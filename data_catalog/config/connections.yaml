@@ -1,0 +1,35 @@
+connections:
+  - id: conn_postgres_dwh
+    name: Postgres DWH VPS3
+    type: postgres
+    host: 10.3.152.9
+    port: 5432
+    database: dwh_prod
+    user: readonly_user
+    password_env: POSTGRES_DWH_PASSWORD
+    include_schemas: [public, stage]
+    active: true
+
+  - id: conn_sqlserver_erp
+    name: Syntess ERP op VPS1
+    type: mssql
+    host: 10.3.152.2
+    port: 1433
+    database: erp_live
+    user: erp_reader
+    password_env: SQLSERVER_ERP_PASSWORD
+    include_schemas: [dbo]
+    active: true
+
+  - id: conn_powerbi_local
+    name: Lokale Power BI Projecten
+    type: powerbi
+    folder: ${POWERBI_PROJECTS_DIR}
+    active: true
+
+  - id: conn_data_lake
+    name: Lokale CSV-data
+    type: file
+    folder: C:/DataLake
+    extensions: [csv, parquet]
+    active: true
