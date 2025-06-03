@@ -1,5 +1,23 @@
+# Python
 __pycache__/
 *.pyc
-.env
-.vscode/
+*.pyo
+*.pyd
+
+# Logs
+*.log
+
+# SQLite databases
+*.sqlite
 *.sqlite3
+
+# Virtuele omgevingen
+venv/
+.env
+
+# VSCode (optioneel)
+.vscode/
+
+# Test output, tijdelijk
+*.tmp
+*.bak
