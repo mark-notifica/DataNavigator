@@ -1,0 +1,166 @@
+﻿table 'NR - Projectwaardering boekingregels DQ'
+
+	column ProjectwaarderingKey
+		dataType: int64
+		isNullable: false
+		formatString: 0
+		sourceProviderType: int
+		summarizeBy: none
+		sourceColumn: ProjectwaarderingKey
+
+		annotation SummarizationSetBy = Automatic
+
+	column Rubriek
+		dataType: string
+		sourceProviderType: nvarchar(50)
+		summarizeBy: none
+		sourceColumn: Rubriek
+
+		annotation SummarizationSetBy = Automatic
+
+	column Kostenplaats
+		dataType: string
+		isNullable: false
+		sourceProviderType: varchar(1)
+		summarizeBy: none
+		sourceColumn: Kostenplaats
+
+		annotation SummarizationSetBy = Automatic
+
+	column Project
+		dataType: string
+		sourceProviderType: nvarchar(1024)
+		summarizeBy: none
+		sourceColumn: Project
+
+		annotation SummarizationSetBy = Automatic
+
+	column Datum
+		dataType: dateTime
+		formatString: General Date
+		sourceProviderType: date
+		summarizeBy: none
+		sourceColumn: Datum
+
+		annotation SummarizationSetBy = Automatic
+
+	column Omschrijving
+		dataType: string
+		sourceProviderType: nvarchar(120)
+		summarizeBy: none
+		sourceColumn: Omschrijving
+
+		annotation SummarizationSetBy = Automatic
+
+	column Bedrag
+		dataType: int64
+		formatString: 0
+		sourceProviderType: int
+		summarizeBy: none
+		sourceColumn: Bedrag
+
+		annotation SummarizationSetBy = Automatic
+
+	column DebetCredit
+		dataType: string
+		isNullable: false
+		sourceProviderType: varchar(1)
+		summarizeBy: none
+		sourceColumn: DebetCredit
+
+		annotation SummarizationSetBy = Automatic
+
+	column BedragDebet
+		dataType: int64
+		formatString: 0
+		sourceProviderType: int
+		summarizeBy: none
+		sourceColumn: BedragDebet
+
+		annotation SummarizationSetBy = Automatic
+
+	column BedragCredit
+		dataType: int64
+		formatString: 0
+		sourceProviderType: int
+		summarizeBy: none
+		sourceColumn: BedragCredit
+
+		annotation SummarizationSetBy = Automatic
+
+	column klantnummer
+		dataType: int64
+		isNullable: false
+		formatString: 0
+		sourceProviderType: int
+		summarizeBy: none
+		sourceColumn: klantnummer
+
+		annotation SummarizationSetBy = Automatic
+
+	partition 'NR - Projectwaardering boekingregels DQ' = m
+		mode: directQuery
+		queryGroup: NotificaRAAS
+		source = ```
+				let
+				    Source = Sql.Database(#"7_serverAppdata",#"8_databaseAppdata", [Query="
+				select 
+				*
+				from
+					(SELECT 
+						pw.[ProjectwaarderingKey]
+						,(SELECT top 1 [Rubriek Code] as [rubriek code projectwaardering balans] FROM [dbo].[KT_Rubrieken] where Toepassing = 'Projectwaardering' and Type = 'B' and pw.klantnummer=[dbo].[KT_Rubrieken].klantnummer) as Rubriek  /*Betreft 1e Rubriek projectwaardering balans van de klant*/
+						,'' as Kostenplaats
+						,left(trim(pwr.[Project]),CHARINDEX('-',pwr.[Project])-1) as Project
+						,EOMONTH(pw.Boekdatum) as Datum
+						,pw.Titel as Omschrijving
+						, NULL as Bedrag
+						, '' as DebetCredit
+						, case when pwr.[Correctieboeking aangepast]>0
+							then cast(pwr.[Correctieboeking aangepast] as int)
+							else NULL
+						end as BedragDebet
+						, case when pwr.[Correctieboeking aangepast]<=0
+							then cast(pwr.[Correctieboeking aangepast]*-1 as int)
+							else NULL
+						end as BedragCredit 
+						,pw.klantnummer
+					FROM [RAAS].[Projectwaarderingen] pw
+					left join [RAAS].[Projectwaarderingregels] pwr on pw.ProjectwaarderingKey=pwr.ProjectwaarderingKey
+					where pwr.Waarderen = 'Ja' and pw.klantnummer ="&Text.From(#"1_klantnummer")&"
+				
+					union all
+				
+					SELECT 
+						pw.[ProjectwaarderingKey]
+						--,'7110' as Rubriek
+						,(SELECT top 1 [Rubriek Code] as [rubriek code projectwaardering balans] FROM [dbo].[KT_Rubrieken] where Toepassing = 'Projectwaardering' and Type = 'W' and pw.klantnummer=[dbo].[KT_Rubrieken].klantnummer) as Rubriek /*Betreft 1e Rubriek projectwaardering resultaat van de klant*/
+						,'' as Kostenplaats
+						,left(trim(pwr.[Project]),CHARINDEX('-',pwr.[Project])-1) as Project
+						,EOMONTH(pw.Boekdatum) as Datum
+						,pw.Titel as Omschrijving
+						, NULL as Bedrag
+						, '' as DebetCredit
+						, case when pwr.[Correctieboeking aangepast]>0
+							then NULL
+							else cast(pwr.[Correctieboeking aangepast]*-1 as int)
+						end as BedragDebet
+						, case when pwr.[Correctieboeking aangepast]<=0
+							then NULL
+							else cast( cast(pwr.[Correctieboeking aangepast]as int) as varchar)
+						end as BedragCredit
+						,pw.klantnummer
+					FROM [RAAS].[Projectwaarderingen] pw
+					left join [RAAS].[Projectwaarderingregels] pwr on pw.ProjectwaarderingKey=pwr.ProjectwaarderingKey
+					where pwr.Waarderen = 'Ja' and pw.klantnummer ="&Text.From(#"1_klantnummer")&"
+					)pwbr
+				
+				    "])
+				in
+				    Source
+				```
+
+	annotation PBI_ResultType = Table
+
+	annotation PBI_NavigationStepName = Navigation
+

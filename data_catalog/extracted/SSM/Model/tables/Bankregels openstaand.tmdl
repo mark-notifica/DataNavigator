@@ -1,0 +1,101 @@
+﻿table 'Bankregels openstaand'
+
+	column BankregelKey
+		dataType: int64
+		formatString: 0
+		summarizeBy: count
+		sourceColumn: BankregelKey
+
+		annotation SummarizationSetBy = Automatic
+
+	column BankafschriftDocumentKey
+		dataType: int64
+		formatString: 0
+		summarizeBy: none
+		sourceColumn: BankafschriftDocumentKey
+
+		annotation SummarizationSetBy = Automatic
+
+	column DagboekKey
+		dataType: int64
+		formatString: 0
+		summarizeBy: count
+		sourceColumn: DagboekKey
+
+		annotation SummarizationSetBy = Automatic
+
+	column AdministratieKey
+		dataType: int64
+		formatString: 0
+		summarizeBy: count
+		sourceColumn: AdministratieKey
+
+		annotation SummarizationSetBy = Automatic
+
+	column Boekdatum
+		dataType: dateTime
+		isHidden
+		formatString: Long Date
+		summarizeBy: none
+		sourceColumn: Boekdatum
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Aanmaakdatum bankafschrift'
+		dataType: dateTime
+		formatString: Long Date
+		summarizeBy: none
+		sourceColumn: Aanmaakdatum bankafschrift
+
+		annotation SummarizationSetBy = Automatic
+
+	column Gereedmelddatum
+		dataType: dateTime
+		formatString: Long Date
+		summarizeBy: none
+		sourceColumn: Gereedmelddatum
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Status Bankafschrift'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Status Bankafschrift
+
+		annotation SummarizationSetBy = Automatic
+
+	column Debetbedrag
+		dataType: double
+		formatString: "€"\ #,0;-"€"\ #,0;"€"\ #,0
+		summarizeBy: sum
+		sourceColumn: Debetbedrag
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column Creditbedrag
+		dataType: double
+		formatString: "€"\ #,0;-"€"\ #,0;"€"\ #,0
+		summarizeBy: sum
+		sourceColumn: Creditbedrag
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	partition 'Bankregels openstaand' = m
+		mode: import
+		queryGroup: 'Feiten algemeen'
+		source =
+				let
+				    View = "SSM Bankregels openstaand",
+				    Source =PostgreSQL.Database(#"3_server",#"4_database"),
+				    #"Notifica_SSM" = Source{[Schema=#"5_schema",Item=View]}[Data]
+				in
+				    #"Notifica_SSM"
+
+	annotation PBI_ResultType = Table
+
+	annotation PBI_NavigationStepName = Navigation
+

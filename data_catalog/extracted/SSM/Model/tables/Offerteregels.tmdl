@@ -1,0 +1,76 @@
+﻿table Offerteregels
+
+	column OfferteregelKey
+		dataType: int64
+		formatString: 0
+		summarizeBy: count
+		sourceColumn: OfferteregelKey
+
+		annotation SummarizationSetBy = Automatic
+
+	column OfferteDocumentKey
+		dataType: int64
+		formatString: 0
+		summarizeBy: none
+		sourceColumn: OfferteDocumentKey
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Offertebedrag incl korting excl BTW'
+		dataType: double
+		summarizeBy: sum
+		sourceColumn: Offertebedrag incl korting excl BTW
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+		annotation BestPracticeAnalyzer_IgnoreRules = {"RuleIDs":["APPLY_FORMAT_STRING_COLUMNS"]}
+
+	column Optioneel
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Optioneel
+
+		annotation SummarizationSetBy = Automatic
+
+	column Aantal
+		dataType: double
+		summarizeBy: sum
+		sourceColumn: Aantal
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column Scoringskans
+		dataType: int64
+		formatString: 0
+		summarizeBy: sum
+		sourceColumn: Scoringskans
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Potentiele orderwaarde'
+		dataType: int64
+		formatString: 0
+		summarizeBy: sum
+		sourceColumn: Potentiele orderwaarde
+
+		annotation SummarizationSetBy = Automatic
+
+	partition Offerteregels = m
+		mode: import
+		queryGroup: Commercieel
+		source =
+				let
+				    View = "SSM Offerteregels",
+				    Source =PostgreSQL.Database(#"3_server",#"4_database"),
+				    #"Notifica_SSM" = Source{[Schema=#"5_schema",Item=View]}[Data]
+				in
+				    #"Notifica_SSM"
+
+	annotation PBI_ResultType = Table
+
+	annotation PBI_NavigationStepName = Navigation
+

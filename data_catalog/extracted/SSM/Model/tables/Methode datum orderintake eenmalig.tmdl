@@ -1,0 +1,32 @@
+﻿table 'Methode datum orderintake eenmalig'
+
+	column DatummethodeKey
+		dataType: int64
+		formatString: 0
+		summarizeBy: none
+		sourceColumn: DatummethodeKey
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Datum methode'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Datum methode
+
+		annotation SummarizationSetBy = Automatic
+
+	partition 'Methode datum orderintake eenmalig' = m
+		mode: import
+		queryGroup: Methodes
+		source =
+				let
+				    Source = Table.FromRows(Json.Document(Binary.Decompress(Binary.FromText("i45WMjQwVNJRcspPzU5JLCnNVcgvSkktUorVAckYAWUcE/NyExOxSBoDJT3zyvJTi5DkilLTU3OKlWJjAQ==", BinaryEncoding.Base64), Compression.Deflate)), let _t = ((type nullable text) meta [Serialized.Text = true]) in type table [Key = _t, Column1 = _t]),
+				    #"Renamed Columns" = Table.RenameColumns(Source,{{"Column1", "Datum methode"}, {"Key", "DatummethodeKey"}}),
+				    #"Changed Type" = Table.TransformColumnTypes(#"Renamed Columns",{{"DatummethodeKey", Int64.Type}})
+				in
+				    #"Changed Type"
+
+	annotation PBI_ResultType = Table
+
+	annotation PBI_NavigationStepName = Navigation
+

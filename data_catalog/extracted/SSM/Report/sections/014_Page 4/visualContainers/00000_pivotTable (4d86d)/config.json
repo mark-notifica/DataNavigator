@@ -1,0 +1,179 @@
+{
+  "name": "4d86d2f65015c0540713",
+  "layouts": [
+    {
+      "id": 0,
+      "position": {
+        "x": 0,
+        "y": 319,
+        "width": 1263,
+        "height": 200,
+        "z": 2000,
+        "tabOrder": 0
+      }
+    }
+  ],
+  "singleVisual": {
+    "visualType": "pivotTable",
+    "projections": {
+      "Rows": [
+        {
+          "queryRef": "Projecten.Hoofdproject",
+          "active": true
+        },
+        {
+          "queryRef": "Projecten.Niveau 2 Project"
+        }
+      ],
+      "Values": [
+        {
+          "queryRef": "Formules.Orderbedrag"
+        },
+        {
+          "queryRef": "Formules.Orderbedrag Niet gefactureerd"
+        },
+        {
+          "queryRef": "Formules.Project omzet"
+        },
+        {
+          "queryRef": "Formules.Project omzet (niet via order)"
+        },
+        {
+          "queryRef": "Formules.Project omzet (order)"
+        },
+        {
+          "queryRef": "Formules.Cash in"
+        },
+        {
+          "queryRef": "Formules.Cash in via order"
+        }
+      ]
+    },
+    "prototypeQuery": {
+      "Version": 2,
+      "From": [
+        {
+          "Name": "p",
+          "Entity": "Projecten",
+          "Type": 0
+        },
+        {
+          "Name": "f",
+          "Entity": "Formules",
+          "Type": 0
+        }
+      ],
+      "Select": [
+        {
+          "Column": {
+            "Expression": {
+              "SourceRef": {
+                "Source": "p"
+              }
+            },
+            "Property": "Hoofdproject"
+          },
+          "Name": "Projecten.Hoofdproject",
+          "NativeReferenceName": "Hoofdproject"
+        },
+        {
+          "Column": {
+            "Expression": {
+              "SourceRef": {
+                "Source": "p"
+              }
+            },
+            "Property": "Niveau 2 Project"
+          },
+          "Name": "Projecten.Niveau 2 Project",
+          "NativeReferenceName": "Niveau 2 Project"
+        },
+        {
+          "Measure": {
+            "Expression": {
+              "SourceRef": {
+                "Source": "f"
+              }
+            },
+            "Property": "Orderbedrag"
+          },
+          "Name": "Formules.Orderbedrag",
+          "NativeReferenceName": "Orderbedrag"
+        },
+        {
+          "Measure": {
+            "Expression": {
+              "SourceRef": {
+                "Source": "f"
+              }
+            },
+            "Property": "Orderbedrag Niet gefactureerd"
+          },
+          "Name": "Formules.Orderbedrag Niet gefactureerd",
+          "NativeReferenceName": "Orderbedrag Niet gefactureerd"
+        },
+        {
+          "Measure": {
+            "Expression": {
+              "SourceRef": {
+                "Source": "f"
+              }
+            },
+            "Property": "Project omzet"
+          },
+          "Name": "Formules.Project omzet",
+          "NativeReferenceName": "Project omzet"
+        },
+        {
+          "Measure": {
+            "Expression": {
+              "SourceRef": {
+                "Source": "f"
+              }
+            },
+            "Property": "Project omzet (niet via order)"
+          },
+          "Name": "Formules.Project omzet (niet via order)",
+          "NativeReferenceName": "Project omzet (niet via order)"
+        },
+        {
+          "Measure": {
+            "Expression": {
+              "SourceRef": {
+                "Source": "f"
+              }
+            },
+            "Property": "Project omzet (order)"
+          },
+          "Name": "Formules.Project omzet (order)",
+          "NativeReferenceName": "Project omzet (order)"
+        },
+        {
+          "Measure": {
+            "Expression": {
+              "SourceRef": {
+                "Source": "f"
+              }
+            },
+            "Property": "Cash in"
+          },
+          "Name": "Formules.Cash in",
+          "NativeReferenceName": "Cash in"
+        },
+        {
+          "Measure": {
+            "Expression": {
+              "SourceRef": {
+                "Source": "f"
+              }
+            },
+            "Property": "Cash in via order"
+          },
+          "Name": "Formules.Cash in via order",
+          "NativeReferenceName": "Cash in via order"
+        }
+      ]
+    },
+    "drillFilterOtherVisuals": true
+  }
+}

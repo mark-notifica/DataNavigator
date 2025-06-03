@@ -1,0 +1,99 @@
+﻿table Administraties
+
+	column AdministratieKey
+		dataType: int64
+		formatString: 0
+		summarizeBy: none
+		sourceColumn: AdministratieKey
+
+		changedProperty = IsHidden
+
+		annotation SummarizationSetBy = Automatic
+
+	column Code
+		dataType: string
+		sourceProviderType: varchar(max)
+		summarizeBy: none
+		sourceColumn: Code
+
+		annotation SummarizationSetBy = Automatic
+
+	column Administratie
+		dataType: string
+		sourceProviderType: varchar(max)
+		summarizeBy: none
+		sourceColumn: Administratie
+
+		annotation SummarizationSetBy = Automatic
+
+	column Status
+		dataType: string
+		sourceProviderType: varchar(max)
+		summarizeBy: none
+		sourceColumn: Status
+
+		annotation SummarizationSetBy = Automatic
+
+	column AdministratieRelatieKey
+		dataType: int64
+		formatString: 0
+		summarizeBy: count
+		sourceColumn: AdministratieRelatieKey
+
+		changedProperty = IsHidden
+
+		annotation SummarizationSetBy = Automatic
+
+	column UniekeAdministratieID
+		dataType: string
+		summarizeBy: none
+		sourceColumn: UniekeAdministratieID
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Administratie relatie'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Administratie relatie
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Administratie kenmerk'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Administratie kenmerk
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Actief via instellingen app'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Actief via instellingen app
+
+		annotation SummarizationSetBy = Automatic
+
+	partition Administraties-1d28d407-b2a3-4c49-85bf-19b9bc9e2b8d = m
+		mode: import
+		queryGroup: Stam
+		source =
+				let
+				    View = "SSM Administraties",
+				    Source = PostgreSQL.Database(#"3_server",#"4_database"),
+				    #"Notifica_SSM" = Source{[Schema=#"5_schema",Item=View]}[Data],
+				    #"Merged Queries" = Table.NestedJoin( #"Notifica_SSM", {"UniekeAdministratieID"}, #"NR - ActieveAdministraties", {"UniekeID"}, "NR - ActieveAdministraties", JoinKind.LeftOuter),
+				    #"Expanded NR - ActieveAdministraties" = Table.ExpandTableColumn(#"Merged Queries", "NR - ActieveAdministraties", {"Actief via instellingen app"}, {"Actief via instellingen app"}),
+				    #"Changed Type" = Table.TransformColumnTypes(#"Expanded NR - ActieveAdministraties",{{"Actief via instellingen app", type text}}),
+				    #"Replaced Value" = Table.ReplaceValue(#"Changed Type",null,"Historisch in Syntess",Replacer.ReplaceValue,{"Actief via instellingen app"})
+				in
+				    #"Replaced Value"
+
+	annotation PBI_Id = a99dac32-2b3a-4a75-b4a1-93d79069d949
+
+	annotation LinkedQueryName = Administraties
+
+	annotation PBI_QueryRelationships = {"columnCount":6,"keyColumnNames":["AdministratieKey"],"queryRelationships":[],"columnIdentities":["Server.Database\\/2/SQL/1127.bisqq.nl;DWH1127/stam/stam.Administraties.{AdministratieKey,0}","Server.Database\\/2/SQL/1127.bisqq.nl;DWH1127/stam/stam.Administraties.{Code,1}","Server.Database\\/2/SQL/1127.bisqq.nl;DWH1127/stam/stam.Administraties.{Administratie,2}","Server.Database\\/2/SQL/1127.bisqq.nl;DWH1127/stam/stam.Administraties.{Status,3}","Server.Database\\/2/SQL/1127.bisqq.nl;DWH1127/stam/stam.Administraties.{Kenmerk,4}","Server.Database\\/2/SQL/1127.bisqq.nl;DWH1127/stam/stam.Administraties.{AdministratieRelatieKey,5}"],"ColumnCount":6,"KeyColumnNames":["AdministratieKey"],"ColumnIdentities":["Server.Database\\/2/SQL/1127.bisqq.nl;DWH1127/stam/stam.Administraties.{AdministratieKey,0}","Server.Database\\/2/SQL/1127.bisqq.nl;DWH1127/stam/stam.Administraties.{Code,1}","Server.Database\\/2/SQL/1127.bisqq.nl;DWH1127/stam/stam.Administraties.{Administratie,2}","Server.Database\\/2/SQL/1127.bisqq.nl;DWH1127/stam/stam.Administraties.{Status,3}","Server.Database\\/2/SQL/1127.bisqq.nl;DWH1127/stam/stam.Administraties.{Kenmerk,4}","Server.Database\\/2/SQL/1127.bisqq.nl;DWH1127/stam/stam.Administraties.{AdministratieRelatieKey,5}"],"RelationshipInfo":[]}
+
+	annotation PBI_ResultType = Table
+
+	annotation PBI_NavigationStepName = Navigation
+

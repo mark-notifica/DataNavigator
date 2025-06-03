@@ -1,0 +1,51 @@
+{
+  "name": "63981e9c02e0ce3203b4",
+  "layouts": [
+    {
+      "id": 0,
+      "position": {
+        "x": 1114.020618556701,
+        "y": 211.54639175257731,
+        "z": 3000,
+        "width": 165.77319587628867,
+        "height": 284.53608247422682,
+        "tabOrder": 3000
+      }
+    }
+  ],
+  "singleVisual": {
+    "visualType": "tableEx",
+    "projections": {
+      "Values": [
+        {
+          "queryRef": "Administraties.Administratie"
+        }
+      ]
+    },
+    "prototypeQuery": {
+      "Version": 2,
+      "From": [
+        {
+          "Name": "a",
+          "Entity": "Administraties",
+          "Type": 0
+        }
+      ],
+      "Select": [
+        {
+          "Column": {
+            "Expression": {
+              "SourceRef": {
+                "Source": "a"
+              }
+            },
+            "Property": "Administratie"
+          },
+          "Name": "Administraties.Administratie",
+          "NativeReferenceName": "Administratie"
+        }
+      ]
+    },
+    "drillFilterOtherVisuals": true
+  }
+}

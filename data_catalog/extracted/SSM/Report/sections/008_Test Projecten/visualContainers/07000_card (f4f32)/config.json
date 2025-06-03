@@ -1,0 +1,67 @@
+{
+  "name": "f4f329c39deed17dc820",
+  "layouts": [
+    {
+      "id": 0,
+      "position": {
+        "x": 978.37241598222431,
+        "y": 121.89025116057611,
+        "z": 7000,
+        "width": 302.28782287822878,
+        "height": 154.39431813672974,
+        "tabOrder": 7000
+      }
+    }
+  ],
+  "singleVisual": {
+    "visualType": "card",
+    "projections": {
+      "Values": [
+        {
+          "queryRef": "Formules.OHW"
+        }
+      ]
+    },
+    "prototypeQuery": {
+      "Version": 2,
+      "From": [
+        {
+          "Name": "f",
+          "Entity": "Formules",
+          "Type": 0
+        }
+      ],
+      "Select": [
+        {
+          "Measure": {
+            "Expression": {
+              "SourceRef": {
+                "Source": "f"
+              }
+            },
+            "Property": "OHW"
+          },
+          "Name": "Formules.OHW",
+          "NativeReferenceName": "OHW"
+        }
+      ],
+      "OrderBy": [
+        {
+          "Direction": 2,
+          "Expression": {
+            "Measure": {
+              "Expression": {
+                "SourceRef": {
+                  "Source": "f"
+                }
+              },
+              "Property": "OHW"
+            }
+          }
+        }
+      ]
+    },
+    "drillFilterOtherVisuals": true,
+    "hasDefaultSort": true
+  }
+}

@@ -1,0 +1,135 @@
+﻿table 'NR - Projectwaarderingen DQ'
+
+	column ProjectwaarderingKey
+		dataType: int64
+		isNullable: false
+		formatString: 0
+		sourceProviderType: int
+		summarizeBy: none
+		sourceColumn: ProjectwaarderingKey
+
+		annotation SummarizationSetBy = Automatic
+
+	column Aanmaakdatum
+		dataType: dateTime
+		isNullable: false
+		formatString: General Date
+		sourceProviderType: datetime2
+		summarizeBy: none
+		sourceColumn: Aanmaakdatum
+
+		annotation SummarizationSetBy = Automatic
+
+	column Wijzigdatum
+		dataType: dateTime
+		isNullable: false
+		formatString: General Date
+		sourceProviderType: datetime2
+		summarizeBy: none
+		sourceColumn: Wijzigdatum
+
+		annotation SummarizationSetBy = Automatic
+
+	column Aanmaker
+		dataType: string
+		isNullable: false
+		sourceProviderType: nvarchar(100)
+		summarizeBy: none
+		sourceColumn: Aanmaker
+
+		annotation SummarizationSetBy = Automatic
+
+	column Wijziger
+		dataType: string
+		isNullable: false
+		sourceProviderType: nvarchar(100)
+		summarizeBy: none
+		sourceColumn: Wijziger
+
+		annotation SummarizationSetBy = Automatic
+
+	column Boekdatum
+		dataType: dateTime
+		isHidden
+		formatString: General Date
+		sourceProviderType: datetime2
+		summarizeBy: none
+		sourceColumn: Boekdatum
+
+		annotation SummarizationSetBy = Automatic
+
+	column Opmerking
+		dataType: string
+		sourceProviderType: nvarchar(max)
+		summarizeBy: none
+		sourceColumn: Opmerking
+
+		annotation SummarizationSetBy = Automatic
+
+	column Status
+		dataType: string
+		sourceProviderType: varchar(10)
+		summarizeBy: none
+		sourceColumn: Status
+
+		annotation SummarizationSetBy = Automatic
+
+	column Titel
+		dataType: string
+		sourceProviderType: nvarchar(120)
+		summarizeBy: none
+		sourceColumn: Titel
+
+		annotation SummarizationSetBy = Automatic
+
+	column Projectwaardering
+		dataType: string
+		sourceProviderType: nvarchar(166)
+		summarizeBy: none
+		sourceColumn: Projectwaardering
+
+		annotation SummarizationSetBy = Automatic
+
+	column klantnummer
+		dataType: int64
+		isNullable: false
+		formatString: 0
+		sourceProviderType: int
+		summarizeBy: none
+		sourceColumn: klantnummer
+
+		annotation SummarizationSetBy = Automatic
+
+	partition 'NR - Projectwaarderingen DQ' = m
+		mode: directQuery
+		queryGroup: NotificaRAAS
+		source =
+				let
+				    Source = Sql.Database(#"7_serverAppdata",#"8_databaseAppdata", [Query="
+				SELECT [ProjectwaarderingKey]
+				      ,[Aanmaakdatum]
+				      ,[Wijzigdatum]
+				      ,[Aanmaker]
+				      ,[Wijziger]
+				      ,[Boekdatum]
+				      ,[Opmerking]
+					  ,Status
+				      ,[Titel]
+					  ,cast([ProjectwaarderingKey] as varchar)
+						+' - '
+						+Titel
+						+' ('
+						+ Status
+						+')'
+						as Projectwaardering
+				    ,klantnummer
+				  FROM [RAAS].[Projectwaarderingen]
+				  where klantnummer ="&Text.From(#"1_klantnummer")&"
+				    "])
+				in
+				    Source
+
+	annotation PBI_ResultType = Table
+
+	annotation PBI_NavigationStepName = Navigation
+

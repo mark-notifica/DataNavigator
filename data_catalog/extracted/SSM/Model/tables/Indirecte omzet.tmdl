@@ -1,0 +1,208 @@
+﻿table 'Indirecte omzet'
+
+	column ProjectKey
+		dataType: int64
+		formatString: 0
+		summarizeBy: count
+		sourceColumn: ProjectKey
+
+		annotation SummarizationSetBy = Automatic
+
+	column BestekParagraafKey
+		dataType: int64
+		formatString: 0
+		summarizeBy: count
+		sourceColumn: BestekParagraafKey
+
+		annotation SummarizationSetBy = Automatic
+
+	column WerkbonKey
+		dataType: int64
+		summarizeBy: count
+		sourceColumn: WerkbonKey
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column WerkbonParagraafKey
+		dataType: int64
+		formatString: 0
+		summarizeBy: count
+		sourceColumn: WerkbonParagraafKey
+
+		annotation SummarizationSetBy = Automatic
+
+	column AdministratieKey
+		dataType: int64
+		formatString: 0
+		summarizeBy: count
+		sourceColumn: AdministratieKey
+
+		annotation SummarizationSetBy = Automatic
+
+	column OrderregelKey
+		dataType: int64
+		summarizeBy: count
+		sourceColumn: OrderregelKey
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column DebiteurRelatieKey
+		dataType: int64
+		formatString: 0
+		summarizeBy: count
+		sourceColumn: DebiteurRelatieKey
+
+		annotation SummarizationSetBy = Automatic
+
+	column VerkoopfactuurDocumentKey
+		dataType: int64
+		formatString: 0
+		summarizeBy: count
+		sourceColumn: VerkoopfactuurDocumentKey
+
+		annotation SummarizationSetBy = Automatic
+
+	column Bedrag
+		dataType: double
+		summarizeBy: sum
+		sourceColumn: Bedrag
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column Boekdatum
+		dataType: dateTime
+		formatString: Long Date
+		summarizeBy: none
+		sourceColumn: Boekdatum
+
+		annotation SummarizationSetBy = Automatic
+
+	column BTWverrekening
+		dataType: string
+		summarizeBy: none
+		sourceColumn: BTWverrekening
+
+		annotation SummarizationSetBy = Automatic
+
+	column Kostensoort
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Kostensoort
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Kostenplaats Code'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Kostenplaats Code
+
+		annotation SummarizationSetBy = Automatic
+
+	column Kostenplaats
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Kostenplaats
+
+		annotation SummarizationSetBy = Automatic
+
+	column Bron
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Bron
+
+		annotation SummarizationSetBy = Automatic
+
+	column Type
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Type
+
+		annotation SummarizationSetBy = Automatic
+
+	column Factuurdatum
+		dataType: dateTime
+		formatString: Long Date
+		summarizeBy: none
+		sourceColumn: Factuurdatum
+
+		annotation SummarizationSetBy = Automatic
+
+	column Betaaltermijn
+		dataType: int64
+		formatString: 0
+		summarizeBy: sum
+		sourceColumn: Betaaltermijn
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Debiteur Code'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Debiteur Code
+
+		annotation SummarizationSetBy = Automatic
+
+	column Debiteur
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Debiteur
+
+		annotation SummarizationSetBy = Automatic
+
+	column Opbrengststatus
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Opbrengststatus
+
+		annotation SummarizationSetBy = Automatic
+
+	column DispuutKey
+		dataType: int64
+		formatString: 0
+		summarizeBy: count
+		sourceColumn: DispuutKey
+
+		annotation SummarizationSetBy = Automatic
+
+	column projectsoort
+		dataType: string
+		summarizeBy: none
+		sourceColumn: projectsoort
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Vanuit order Ja/Nee'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Vanuit order Ja/Nee
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Vanuit werkbon Ja/Nee'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Vanuit werkbon Ja/Nee
+
+		annotation SummarizationSetBy = Automatic
+
+	partition 'Indirecte omzet' = m
+		mode: import
+		queryGroup: 'Feiten algemeen'
+		source =
+				let
+				    View = "SSM Indirecte omzet",
+				    Source =PostgreSQL.Database(#"3_server",#"4_database"),
+				    #"Notifica_SSM" = Source{[Schema=#"5_schema",Item=View]}[Data]
+				in
+				    #"Notifica_SSM"
+
+	annotation PBI_ResultType = Exception
+
+	annotation PBI_NavigationStepName = Navigation
+

@@ -1,0 +1,32 @@
+﻿table 'Methode FTE'
+
+	column FTEKey
+		dataType: string
+		summarizeBy: none
+		sourceColumn: FTEKey
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Uren per week'
+		dataType: double
+		summarizeBy: sum
+		sourceColumn: Uren per week
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	partition 'Methode FTE' = m
+		mode: import
+		queryGroup: Methodes
+		source =
+				let
+				    Source = Table.FromRows(Json.Document(Binary.Decompress(Binary.FromText("Pc65DQAxCAXRXogJwMZXLRb9t7H6LCZ8mmTuJRUlpj7IGWgBfuzgTFig2gBXYgaqLXAndqDaAc8PlcBriheTRAtUw4spuX8=", BinaryEncoding.Base64), Compression.Deflate)), let _t = ((type nullable text) meta [Serialized.Text = true]) in type table [FTEKey = _t, #"Uren per week" = _t]),
+				    #"Changed Type" = Table.TransformColumnTypes(Source,{{"Uren per week", type number}})
+				in
+				    #"Changed Type"
+
+	annotation PBI_ResultType = Table
+
+	annotation PBI_NavigationStepName = Navigation
+

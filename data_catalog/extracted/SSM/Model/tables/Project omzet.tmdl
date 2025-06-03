@@ -1,0 +1,238 @@
+﻿table 'Project omzet'
+
+	column ProjectKey
+		dataType: int64
+		formatString: 0
+		summarizeBy: none
+		sourceColumn: ProjectKey
+
+		changedProperty = IsHidden
+
+		annotation SummarizationSetBy = Automatic
+
+	column AdministratieKey
+		dataType: int64
+		formatString: 0
+		summarizeBy: count
+		sourceColumn: AdministratieKey
+
+		changedProperty = IsHidden
+
+		annotation SummarizationSetBy = Automatic
+
+	column Kostensoort
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Kostensoort
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Kostenplaats Code'
+		dataType: string
+		sourceProviderType: varchar(max)
+		summarizeBy: none
+		sourceColumn: Kostenplaats Code
+
+		annotation SummarizationSetBy = Automatic
+
+	column Kostenplaats
+		dataType: string
+		sourceProviderType: varchar(max)
+		summarizeBy: none
+		sourceColumn: Kostenplaats
+
+		annotation SummarizationSetBy = Automatic
+
+	column Bron
+		dataType: string
+		sourceProviderType: varchar(max)
+		summarizeBy: none
+		sourceColumn: Bron
+
+		annotation SummarizationSetBy = Automatic
+
+	column Type
+		dataType: string
+		sourceProviderType: varchar(max)
+		summarizeBy: none
+		sourceColumn: Type
+
+		annotation SummarizationSetBy = Automatic
+
+	column Factuurdatum
+		dataType: dateTime
+		formatString: dd-mm-yyyy
+		summarizeBy: none
+		sourceColumn: Factuurdatum
+
+		annotation SummarizationSetBy = Automatic
+
+	column Betaaltermijn
+		dataType: int64
+		formatString: 0
+		summarizeBy: sum
+		sourceColumn: Betaaltermijn
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Debiteur Code'
+		dataType: string
+		sourceProviderType: varchar(max)
+		summarizeBy: none
+		sourceColumn: Debiteur Code
+
+		annotation SummarizationSetBy = Automatic
+
+	column Debiteur
+		dataType: string
+		sourceProviderType: varchar(max)
+		summarizeBy: none
+		sourceColumn: Debiteur
+
+		annotation SummarizationSetBy = Automatic
+
+	column Boekdatum
+		dataType: dateTime
+		isHidden
+		formatString: dd-mm-yyyy
+		summarizeBy: none
+		sourceColumn: Boekdatum
+
+		changedProperty = IsHidden
+
+		annotation SummarizationSetBy = Automatic
+
+	column Opbrengststatus
+		dataType: string
+		sourceProviderType: varchar(max)
+		summarizeBy: none
+		sourceColumn: Opbrengststatus
+
+		annotation SummarizationSetBy = Automatic
+
+	column OrderregelKey
+		dataType: int64
+		summarizeBy: count
+		sourceColumn: OrderregelKey
+
+		changedProperty = IsHidden
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column DebiteurRelatieKey
+		dataType: int64
+		formatString: 0
+		summarizeBy: count
+		sourceColumn: DebiteurRelatieKey
+
+		changedProperty = IsHidden
+
+		annotation SummarizationSetBy = Automatic
+
+	column DispuutKey
+		dataType: int64
+		formatString: 0
+		summarizeBy: none
+		sourceColumn: DispuutKey
+
+		changedProperty = IsHidden
+
+		annotation SummarizationSetBy = Automatic
+
+	column BestekParagraafKey
+		dataType: int64
+		formatString: 0
+		summarizeBy: count
+		sourceColumn: BestekParagraafKey
+
+		changedProperty = IsHidden
+
+		annotation SummarizationSetBy = Automatic
+
+	column VerkoopfactuurDocumentKey
+		dataType: int64
+		formatString: 0
+		summarizeBy: count
+		sourceColumn: VerkoopfactuurDocumentKey
+
+		changedProperty = IsHidden
+
+		annotation SummarizationSetBy = Automatic
+
+	column Bedrag
+		dataType: double
+		summarizeBy: sum
+		sourceColumn: Bedrag
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column BTWverrekening
+		dataType: string
+		summarizeBy: none
+		sourceColumn: BTWverrekening
+
+		annotation SummarizationSetBy = Automatic
+
+	column projectsoort
+		dataType: string
+		summarizeBy: none
+		sourceColumn: projectsoort
+
+		annotation SummarizationSetBy = Automatic
+
+	column WerkbonKey
+		dataType: int64
+		summarizeBy: count
+		sourceColumn: WerkbonKey
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column WerkbonParagraafKey
+		dataType: int64
+		formatString: 0
+		summarizeBy: count
+		sourceColumn: WerkbonParagraafKey
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Vanuit order Ja/Nee'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Vanuit order Ja/Nee
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Vanuit werkbon Ja/Nee'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Vanuit werkbon Ja/Nee
+
+		annotation SummarizationSetBy = Automatic
+
+	partition 'Project omzet-3779dbea-d955-4b1c-b4d1-77c7c2c10b18' = m
+		mode: import
+		queryGroup: Projecten
+		source =
+				let
+				    View = "SSM Project omzet",
+				    Source =PostgreSQL.Database(#"3_server",#"4_database"),
+				    #"Notifica_SSM" = Source{[Schema=#"5_schema",Item=View]}[Data]
+				in
+				    #"Notifica_SSM"
+
+	annotation PBI_Id = b81db583-4b5c-41f1-89bc-de3a646fa7cd
+
+	annotation LinkedQueryName = Opbrengsten
+
+	annotation PBI_QueryRelationships = {"columnCount":35,"keyColumnNames":[],"queryRelationships":[],"columnIdentities":["Server.Database\\/2/SQL/1127.bisqq.nl;DWH1127/projecten/projecten.Project Opbrengsten.{ProjectKey,0}","Server.Database\\/2/SQL/1127.bisqq.nl;DWH1127/projecten/projecten.Project Opbrengsten.{BestekparagraafKey,1}","Server.Database\\/2/SQL/1127.bisqq.nl;DWH1127/projecten/projecten.Project Opbrengsten.{OHWrubriekKey,2}","Server.Database\\/2/SQL/1127.bisqq.nl;DWH1127/projecten/projecten.Project Opbrengsten.{AdministratieKey,3}","Server.Database\\/2/SQL/1127.bisqq.nl;DWH1127/projecten/projecten.Project Opbrengsten.{VerkoopFactuurKey,4}","Server.Database\\/2/SQL/1127.bisqq.nl;DWH1127/projecten/projecten.Project Opbrengsten.{KlantrekeningDocumentKey,5}","Server.Database\\/2/SQL/1127.bisqq.nl;DWH1127/projecten/projecten.Project Opbrengsten.{KostenplaatsKey,6}","Server.Database\\/2/SQL/1127.bisqq.nl;DWH1127/projecten/projecten.Project Opbrengsten.{KostensoortKey,7}","Server.Database\\/2/SQL/1127.bisqq.nl;DWH1127/projecten/projecten.Project Opbrengsten.{TariefKey,8}","Server.Database\\/2/SQL/1127.bisqq.nl;DWH1127/projecten/projecten.Project Opbrengsten.{OrderregelKey,9}","Server.Database\\/2/SQL/1127.bisqq.nl;DWH1127/projecten/projecten.Project Opbrengsten.{DebiteurRelatieKey,10}","Server.Database\\/2/SQL/1127.bisqq.nl;DWH1127/projecten/projecten.Project Opbrengsten.{Opbrengst,11}","Server.Database\\/2/SQL/1127.bisqq.nl;DWH1127/projecten/projecten.Project Opbrengsten.{Kostensoort Code,12}","Server.Database\\/2/SQL/1127.bisqq.nl;DWH1127/projecten/projecten.Project Opbrengsten.{Kostensoort,13}","Server.Database\\/2/SQL/1127.bisqq.nl;DWH1127/projecten/projecten.Project Opbrengsten.{Kostenplaats Code,14}","Server.Database\\/2/SQL/1127.bisqq.nl;DWH1127/projecten/projecten.Project Opbrengsten.{Kostenplaats,15}","Server.Database\\/2/SQL/1127.bisqq.nl;DWH1127/projecten/projecten.Project Opbrengsten.{Bron,16}","Server.Database\\/2/SQL/1127.bisqq.nl;DWH1127/projecten/projecten.Project Opbrengsten.{Type,17}","Server.Database\\/2/SQL/1127.bisqq.nl;DWH1127/projecten/projecten.Project Opbrengsten.{Factuurdatum,18}","Server.Database\\/2/SQL/1127.bisqq.nl;DWH1127/projecten/projecten.Project Opbrengsten.{Betaaltermijn,19}","Server.Database\\/2/SQL/1127.bisqq.nl;DWH1127/projecten/projecten.Project Opbrengsten.{Debiteur Code,20}","Server.Database\\/2/SQL/1127.bisqq.nl;DWH1127/projecten/projecten.Project Opbrengsten.{Debiteur,21}","Server.Database\\/2/SQL/1127.bisqq.nl;DWH1127/projecten/projecten.Project Opbrengsten.{Debiteur Adres,22}","Server.Database\\/2/SQL/1127.bisqq.nl;DWH1127/projecten/projecten.Project Opbrengsten.{Debiteur Postcode,23}","Server.Database\\/2/SQL/1127.bisqq.nl;DWH1127/projecten/projecten.Project Opbrengsten.{Debiteur Plaats,24}","Server.Database\\/2/SQL/1127.bisqq.nl;DWH1127/projecten/projecten.Project Opbrengsten.{Document code,25}","Server.Database\\/2/SQL/1127.bisqq.nl;DWH1127/projecten/projecten.Project Opbrengsten.{document status,26}","Server.Database\\/2/SQL/1127.bisqq.nl;DWH1127/projecten/projecten.Project Opbrengsten.{Boekdatum,27}","Server.Database\\/2/SQL/1127.bisqq.nl;DWH1127/projecten/projecten.Project Opbrengsten.{Valuta Code,28}","Server.Database\\/2/SQL/1127.bisqq.nl;DWH1127/projecten/projecten.Project Opbrengsten.{Boekjaar,29}","Server.Database\\/2/SQL/1127.bisqq.nl;DWH1127/projecten/projecten.Project Opbrengsten.{Opbrengststatus,30}","Server.Database\\/2/SQL/1127.bisqq.nl;DWH1127/projecten/projecten.Project Opbrengsten.{Dagboek code,31}","Server.Database\\/2/SQL/1127.bisqq.nl;DWH1127/projecten/projecten.Project Opbrengsten.{Dagboek,32}","Server.Database\\/2/SQL/1127.bisqq.nl;DWH1127/projecten/projecten.Project Opbrengsten.{Omschrijving,33}","Server.Database\\/2/SQL/1127.bisqq.nl;DWH1127/projecten/projecten.Project Opbrengsten.{DispuutKey,34}"],"ColumnCount":35,"KeyColumnNames":[],"ColumnIdentities":["Server.Database\\/2/SQL/1127.bisqq.nl;DWH1127/projecten/projecten.Project Opbrengsten.{ProjectKey,0}","Server.Database\\/2/SQL/1127.bisqq.nl;DWH1127/projecten/projecten.Project Opbrengsten.{BestekparagraafKey,1}","Server.Database\\/2/SQL/1127.bisqq.nl;DWH1127/projecten/projecten.Project Opbrengsten.{OHWrubriekKey,2}","Server.Database\\/2/SQL/1127.bisqq.nl;DWH1127/projecten/projecten.Project Opbrengsten.{AdministratieKey,3}","Server.Database\\/2/SQL/1127.bisqq.nl;DWH1127/projecten/projecten.Project Opbrengsten.{VerkoopFactuurKey,4}","Server.Database\\/2/SQL/1127.bisqq.nl;DWH1127/projecten/projecten.Project Opbrengsten.{KlantrekeningDocumentKey,5}","Server.Database\\/2/SQL/1127.bisqq.nl;DWH1127/projecten/projecten.Project Opbrengsten.{KostenplaatsKey,6}","Server.Database\\/2/SQL/1127.bisqq.nl;DWH1127/projecten/projecten.Project Opbrengsten.{KostensoortKey,7}","Server.Database\\/2/SQL/1127.bisqq.nl;DWH1127/projecten/projecten.Project Opbrengsten.{TariefKey,8}","Server.Database\\/2/SQL/1127.bisqq.nl;DWH1127/projecten/projecten.Project Opbrengsten.{OrderregelKey,9}","Server.Database\\/2/SQL/1127.bisqq.nl;DWH1127/projecten/projecten.Project Opbrengsten.{DebiteurRelatieKey,10}","Server.Database\\/2/SQL/1127.bisqq.nl;DWH1127/projecten/projecten.Project Opbrengsten.{Opbrengst,11}","Server.Database\\/2/SQL/1127.bisqq.nl;DWH1127/projecten/projecten.Project Opbrengsten.{Kostensoort Code,12}","Server.Database\\/2/SQL/1127.bisqq.nl;DWH1127/projecten/projecten.Project Opbrengsten.{Kostensoort,13}","Server.Database\\/2/SQL/1127.bisqq.nl;DWH1127/projecten/projecten.Project Opbrengsten.{Kostenplaats Code,14}","Server.Database\\/2/SQL/1127.bisqq.nl;DWH1127/projecten/projecten.Project Opbrengsten.{Kostenplaats,15}","Server.Database\\/2/SQL/1127.bisqq.nl;DWH1127/projecten/projecten.Project Opbrengsten.{Bron,16}","Server.Database\\/2/SQL/1127.bisqq.nl;DWH1127/projecten/projecten.Project Opbrengsten.{Type,17}","Server.Database\\/2/SQL/1127.bisqq.nl;DWH1127/projecten/projecten.Project Opbrengsten.{Factuurdatum,18}","Server.Database\\/2/SQL/1127.bisqq.nl;DWH1127/projecten/projecten.Project Opbrengsten.{Betaaltermijn,19}","Server.Database\\/2/SQL/1127.bisqq.nl;DWH1127/projecten/projecten.Project Opbrengsten.{Debiteur Code,20}","Server.Database\\/2/SQL/1127.bisqq.nl;DWH1127/projecten/projecten.Project Opbrengsten.{Debiteur,21}","Server.Database\\/2/SQL/1127.bisqq.nl;DWH1127/projecten/projecten.Project Opbrengsten.{Debiteur Adres,22}","Server.Database\\/2/SQL/1127.bisqq.nl;DWH1127/projecten/projecten.Project Opbrengsten.{Debiteur Postcode,23}","Server.Database\\/2/SQL/1127.bisqq.nl;DWH1127/projecten/projecten.Project Opbrengsten.{Debiteur Plaats,24}","Server.Database\\/2/SQL/1127.bisqq.nl;DWH1127/projecten/projecten.Project Opbrengsten.{Document code,25}","Server.Database\\/2/SQL/1127.bisqq.nl;DWH1127/projecten/projecten.Project Opbrengsten.{document status,26}","Server.Database\\/2/SQL/1127.bisqq.nl;DWH1127/projecten/projecten.Project Opbrengsten.{Boekdatum,27}","Server.Database\\/2/SQL/1127.bisqq.nl;DWH1127/projecten/projecten.Project Opbrengsten.{Valuta Code,28}","Server.Database\\/2/SQL/1127.bisqq.nl;DWH1127/projecten/projecten.Project Opbrengsten.{Boekjaar,29}","Server.Database\\/2/SQL/1127.bisqq.nl;DWH1127/projecten/projecten.Project Opbrengsten.{Opbrengststatus,30}","Server.Database\\/2/SQL/1127.bisqq.nl;DWH1127/projecten/projecten.Project Opbrengsten.{Dagboek code,31}","Server.Database\\/2/SQL/1127.bisqq.nl;DWH1127/projecten/projecten.Project Opbrengsten.{Dagboek,32}","Server.Database\\/2/SQL/1127.bisqq.nl;DWH1127/projecten/projecten.Project Opbrengsten.{Omschrijving,33}","Server.Database\\/2/SQL/1127.bisqq.nl;DWH1127/projecten/projecten.Project Opbrengsten.{DispuutKey,34}"],"RelationshipInfo":[]}
+
+	annotation PBI_ResultType = Table
+
+	annotation PBI_NavigationStepName = Navigation
+

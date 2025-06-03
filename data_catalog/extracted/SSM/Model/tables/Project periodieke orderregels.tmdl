@@ -1,0 +1,308 @@
+﻿table 'Project periodieke orderregels'
+
+	column OrderDocumentKey
+		dataType: int64
+		formatString: 0
+		summarizeBy: count
+		sourceColumn: OrderDocumentKey
+
+		annotation SummarizationSetBy = Automatic
+
+	column ProjectKey
+		dataType: int64
+		formatString: 0
+		summarizeBy: none
+		sourceColumn: ProjectKey
+
+		annotation SummarizationSetBy = Automatic
+
+	column BestekparagraafKey
+		dataType: int64
+		formatString: 0
+		summarizeBy: count
+		sourceColumn: BestekparagraafKey
+
+		annotation SummarizationSetBy = Automatic
+
+	column PrijsindexKey
+		dataType: int64
+		formatString: 0
+		summarizeBy: count
+		sourceColumn: PrijsindexKey
+
+		annotation SummarizationSetBy = Automatic
+
+	column KostenplaatsKey
+		dataType: int64
+		formatString: 0
+		summarizeBy: count
+		sourceColumn: KostenplaatsKey
+
+		annotation SummarizationSetBy = Automatic
+
+	column KostensoortKey
+		dataType: int64
+		formatString: 0
+		summarizeBy: count
+		sourceColumn: KostensoortKey
+
+		annotation SummarizationSetBy = Automatic
+
+	column HandelsartikelKey
+		dataType: int64
+		formatString: 0
+		summarizeBy: count
+		sourceColumn: HandelsartikelKey
+
+		annotation SummarizationSetBy = Automatic
+
+	column TariefKey
+		dataType: int64
+		formatString: 0
+		summarizeBy: count
+		sourceColumn: TariefKey
+
+		annotation SummarizationSetBy = Automatic
+
+	column BTWKey
+		dataType: int64
+		formatString: 0
+		summarizeBy: count
+		sourceColumn: BTWKey
+
+		annotation SummarizationSetBy = Automatic
+
+	column Categorie
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Categorie
+
+		annotation SummarizationSetBy = Automatic
+
+	column Opzeggingsdatum
+		dataType: dateTime
+		formatString: dd-mm-yyyy
+		summarizeBy: none
+		sourceColumn: Opzeggingsdatum
+
+		annotation SummarizationSetBy = Automatic
+
+	column Regeltype
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Regeltype
+
+		annotation SummarizationSetBy = Automatic
+
+	column Afleverdatum
+		dataType: dateTime
+		formatString: dd-mm-yyyy
+		summarizeBy: none
+		sourceColumn: Afleverdatum
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Ingangsdatum index'
+		dataType: dateTime
+		formatString: dd-mm-yyyy
+		summarizeBy: none
+		sourceColumn: Ingangsdatum index
+
+		annotation SummarizationSetBy = Automatic
+
+	column Einddatum
+		dataType: dateTime
+		formatString: dd-mm-yyyy
+		summarizeBy: none
+		sourceColumn: Einddatum
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Werkelijk factuurdatum'
+		dataType: dateTime
+		formatString: dd-mm-yyyy
+		summarizeBy: none
+		sourceColumn: Werkelijk factuurdatum
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Aantal gefactureerd'
+		dataType: double
+		summarizeBy: sum
+		sourceColumn: Aantal gefactureerd
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column 'Aantal nu te factureren'
+		dataType: double
+		summarizeBy: sum
+		sourceColumn: Aantal nu te factureren
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column Invoerdatum
+		dataType: dateTime
+		formatString: dd-mm-yyyy
+		summarizeBy: none
+		sourceColumn: Invoerdatum
+
+		annotation SummarizationSetBy = Automatic
+
+	column Korting
+		dataType: double
+		summarizeBy: sum
+		sourceColumn: Korting
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column 'BTW verrekening'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: BTW verrekening
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Brutoprijs per eenheid'
+		dataType: double
+		summarizeBy: sum
+		sourceColumn: Brutoprijs per eenheid
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column 'Aantal kalendereenheden'
+		dataType: int64
+		formatString: 0
+		summarizeBy: sum
+		sourceColumn: Aantal kalendereenheden
+
+		annotation SummarizationSetBy = Automatic
+
+	column Kalendereenheid
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Kalendereenheid
+
+		annotation SummarizationSetBy = Automatic
+
+	column Aantal
+		dataType: double
+		summarizeBy: sum
+		sourceColumn: Aantal
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column Omschrijving
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Omschrijving
+
+		annotation SummarizationSetBy = Automatic
+
+	column Regelnummer
+		dataType: int64
+		formatString: 0
+		summarizeBy: sum
+		sourceColumn: Regelnummer
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Geplande factureerdatum'
+		dataType: dateTime
+		formatString: dd-mm-yyyy
+		summarizeBy: none
+		sourceColumn: Geplande factureerdatum
+
+		annotation SummarizationSetBy = Automatic
+
+	column Kortingfactor
+		dataType: double
+		summarizeBy: sum
+		sourceColumn: Kortingfactor
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column BTWfactor
+		dataType: double
+		summarizeBy: sum
+		sourceColumn: BTWfactor
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column Boekdatum
+		dataType: dateTime
+		formatString: dd-mm-yyyy
+		summarizeBy: none
+		sourceColumn: Boekdatum
+
+		annotation SummarizationSetBy = Automatic
+
+	column Aanmaakdatum
+		dataType: dateTime
+		formatString: dd-mm-yyyy
+		summarizeBy: none
+		sourceColumn: Aanmaakdatum
+
+		annotation SummarizationSetBy = Automatic
+
+	column VerkoperMedewerkerKey
+		dataType: int64
+		formatString: 0
+		summarizeBy: count
+		sourceColumn: VerkoperMedewerkerKey
+
+		annotation SummarizationSetBy = Automatic
+
+	column DebiteurRelatieKey
+		dataType: int64
+		formatString: 0
+		summarizeBy: count
+		sourceColumn: DebiteurRelatieKey
+
+		annotation SummarizationSetBy = Automatic
+
+	column OrderregelKey
+		dataType: int64
+		formatString: 0
+		summarizeBy: none
+		sourceColumn: OrderregelKey
+
+		annotation SummarizationSetBy = Automatic
+
+	column Verwijderingsbijdrage
+		dataType: double
+		summarizeBy: sum
+		sourceColumn: Verwijderingsbijdrage
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	partition 'Project periodieke orderregels' = m
+		mode: import
+		queryGroup: Projecten
+		source =
+				let
+				    View = "SSM Project periodieke orderregels",
+				    Source =PostgreSQL.Database(#"3_server",#"4_database"),
+				    #"Notifica_SSM" = Source{[Schema=#"5_schema",Item=View]}[Data]
+				in
+				    #"Notifica_SSM"
+
+	annotation PBI_ResultType = Table
+
+	annotation PBI_NavigationStepName = Navigation
+

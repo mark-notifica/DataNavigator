@@ -1,0 +1,23 @@
+﻿table 'Laatste verversdatum'
+
+	column 'Date Last Refreshed'
+		dataType: dateTime
+		formatString: General Date
+		summarizeBy: none
+		sourceColumn: Date Last Refreshed
+
+		annotation SummarizationSetBy = Automatic
+
+	partition 'Laatste verversdatum-8b126554-b179-4921-a29e-59dcb26670f0' = m
+		mode: import
+		queryGroup: Algemeen
+		source =
+				let
+				Source = #table(type table[Date Last Refreshed=datetime], {{DateTime.LocalNow()}})
+				in
+				Source
+
+	annotation PBI_ResultType = Table
+
+	annotation PBI_NavigationStepName = Navigation
+

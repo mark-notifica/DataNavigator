@@ -1,0 +1,262 @@
+{
+  "name": "e360cea997b2510044ac",
+  "layouts": [
+    {
+      "id": 0,
+      "position": {
+        "x": 0,
+        "y": 81,
+        "z": 0,
+        "width": 1280,
+        "height": 639,
+        "tabOrder": 1000
+      }
+    }
+  ],
+  "singleVisual": {
+    "visualType": "tableEx",
+    "projections": {
+      "Values": [
+        {
+          "queryRef": "Documentatie  - Berekeningen.MEASURE_NAME"
+        },
+        {
+          "queryRef": "Documentatie  - Berekeningen.EXPRESSION"
+        },
+        {
+          "queryRef": "Documentatie  - Berekeningen.DESCRIPTION"
+        }
+      ]
+    },
+    "prototypeQuery": {
+      "Version": 2,
+      "From": [
+        {
+          "Name": "d",
+          "Entity": "SSM measures",
+          "Type": 0
+        }
+      ],
+      "Select": [
+        {
+          "Column": {
+            "Expression": {
+              "SourceRef": {
+                "Source": "d"
+              }
+            },
+            "Property": "Omschrijving"
+          },
+          "Name": "Documentatie  - Berekeningen.DESCRIPTION",
+          "NativeReferenceName": "Omschrijving"
+        },
+        {
+          "Column": {
+            "Expression": {
+              "SourceRef": {
+                "Source": "d"
+              }
+            },
+            "Property": "DAX"
+          },
+          "Name": "Documentatie  - Berekeningen.EXPRESSION",
+          "NativeReferenceName": "DAX"
+        },
+        {
+          "Column": {
+            "Expression": {
+              "SourceRef": {
+                "Source": "d"
+              }
+            },
+            "Property": "Measure"
+          },
+          "Name": "Documentatie  - Berekeningen.MEASURE_NAME",
+          "NativeReferenceName": "Measure"
+        }
+      ],
+      "OrderBy": [
+        {
+          "Direction": 1,
+          "Expression": {
+            "Column": {
+              "Expression": {
+                "SourceRef": {
+                  "Source": "d"
+                }
+              },
+              "Property": "Measure"
+            }
+          }
+        }
+      ]
+    },
+    "columnProperties": {
+      "Documentatie  - Berekeningen.EXPRESSION": {
+        "displayName": "DAX"
+      },
+      "Documentatie  - Berekeningen.DESCRIPTION": {
+        "displayName": "Omschrijving"
+      },
+      "Documentatie  - Berekeningen.MEASURE_NAME": {
+        "displayName": "Measure"
+      }
+    },
+    "drillFilterOtherVisuals": true,
+    "objects": {
+      "columnWidth": [
+        {
+          "properties": {
+            "value": {
+              "expr": {
+                "Literal": {
+                  "Value": "440.9991886237352D"
+                }
+              }
+            }
+          },
+          "selector": {
+            "metadata": "Documentatie  - Berekeningen.DESCRIPTION"
+          }
+        },
+        {
+          "properties": {
+            "value": {
+              "expr": {
+                "Literal": {
+                  "Value": "574.7391281721382D"
+                }
+              }
+            }
+          },
+          "selector": {
+            "metadata": "Documentatie  - Berekeningen.EXPRESSION"
+          }
+        },
+        {
+          "properties": {
+            "value": {
+              "expr": {
+                "Literal": {
+                  "Value": "279.68040746508177D"
+                }
+              }
+            }
+          },
+          "selector": {
+            "metadata": "Documentatie  - Berekeningen.MEASURE_NAME"
+          }
+        }
+      ],
+      "columnHeaders": [
+        {
+          "properties": {
+            "backColor": {
+              "solid": {
+                "color": {
+                  "expr": {
+                    "ThemeDataColor": {
+                      "ColorId": 4,
+                      "Percent": 0
+                    }
+                  }
+                }
+              }
+            },
+            "bold": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            }
+          }
+        }
+      ],
+      "values": [
+        {
+          "properties": {
+            "fontSize": {
+              "expr": {
+                "Literal": {
+                  "Value": "10D"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "vcObjects": {
+      "visualHeader": [
+        {
+          "properties": {
+            "background": {
+              "solid": {
+                "color": {
+                  "expr": {
+                    "ThemeDataColor": {
+                      "ColorId": 0,
+                      "Percent": -0.1
+                    }
+                  }
+                }
+              }
+            },
+            "border": {
+              "solid": {
+                "color": {
+                  "expr": {
+                    "ThemeDataColor": {
+                      "ColorId": 0,
+                      "Percent": -0.3
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      ],
+      "title": [
+        {
+          "properties": {
+            "show": {
+              "expr": {
+                "Literal": {
+                  "Value": "false"
+                }
+              }
+            },
+            "text": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Measure documentatie'"
+                }
+              }
+            },
+            "background": {
+              "solid": {
+                "color": {
+                  "expr": {
+                    "ThemeDataColor": {
+                      "ColorId": 3,
+                      "Percent": 0.2
+                    }
+                  }
+                }
+              }
+            },
+            "alignment": {
+              "expr": {
+                "Literal": {
+                  "Value": "'center'"
+                }
+              }
+            }
+          }
+        }
+      ]
+    }
+  }
+}

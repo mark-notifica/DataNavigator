@@ -1,0 +1,141 @@
+{
+  "name": "7c3f58b413eb050c0b28",
+  "layouts": [
+    {
+      "id": 0,
+      "position": {
+        "x": 10.042245021122511,
+        "y": 0,
+        "z": 0,
+        "width": 1269.9577549788776,
+        "height": 409.41460470730237,
+        "tabOrder": 0
+      }
+    }
+  ],
+  "singleVisual": {
+    "visualType": "tableEx",
+    "projections": {
+      "Values": [
+        {
+          "queryRef": "Formules.Mutatie actual CoCFC"
+        },
+        {
+          "queryRef": "Formules.Forecast eindsaldo"
+        },
+        {
+          "queryRef": "Formules.Forecast beginsaldo"
+        },
+        {
+          "queryRef": "Formules.Forecast mutatie "
+        },
+        {
+          "queryRef": "Formules.Mutatie actual en forecast CoCFC"
+        },
+        {
+          "queryRef": "Formules.Subtotaal codering mutatie actual CoCFC"
+        },
+        {
+          "queryRef": "Formules.Subtotaal codering mutatie actual en forecast CoCFC"
+        }
+      ]
+    },
+    "prototypeQuery": {
+      "Version": 2,
+      "From": [
+        {
+          "Name": "f",
+          "Entity": "Formules",
+          "Type": 0
+        }
+      ],
+      "Select": [
+        {
+          "Measure": {
+            "Expression": {
+              "SourceRef": {
+                "Source": "f"
+              }
+            },
+            "Property": "Mutatie actual CoCFC"
+          },
+          "Name": "Formules.Mutatie actual CoCFC",
+          "NativeReferenceName": "Mutatie actual CoCFC"
+        },
+        {
+          "Measure": {
+            "Expression": {
+              "SourceRef": {
+                "Source": "f"
+              }
+            },
+            "Property": "Forecast eindsaldo"
+          },
+          "Name": "Formules.Forecast eindsaldo",
+          "NativeReferenceName": "Forecast eindsaldo"
+        },
+        {
+          "Measure": {
+            "Expression": {
+              "SourceRef": {
+                "Source": "f"
+              }
+            },
+            "Property": "Forecast beginsaldo"
+          },
+          "Name": "Formules.Forecast beginsaldo",
+          "NativeReferenceName": "Forecast beginsaldo"
+        },
+        {
+          "Measure": {
+            "Expression": {
+              "SourceRef": {
+                "Source": "f"
+              }
+            },
+            "Property": "Forecast mutatie cashflow"
+          },
+          "Name": "Formules.Forecast mutatie ",
+          "NativeReferenceName": "Forecast mutatie "
+        },
+        {
+          "Measure": {
+            "Expression": {
+              "SourceRef": {
+                "Source": "f"
+              }
+            },
+            "Property": "Mutatie actual en forecast CoCFC"
+          },
+          "Name": "Formules.Mutatie actual en forecast CoCFC",
+          "NativeReferenceName": "Mutatie actual en forecast CoCFC"
+        },
+        {
+          "Measure": {
+            "Expression": {
+              "SourceRef": {
+                "Source": "f"
+              }
+            },
+            "Property": "Subtotaal codering mutatie actual CoCFC"
+          },
+          "Name": "Formules.Subtotaal codering mutatie actual CoCFC",
+          "NativeReferenceName": "Subtotaal codering mutatie actual CoCFC"
+        },
+        {
+          "Measure": {
+            "Expression": {
+              "SourceRef": {
+                "Source": "f"
+              }
+            },
+            "Property": "Subtotaal codering mutatie actual en forecast CoCFC"
+          },
+          "Name": "Formules.Subtotaal codering mutatie actual en forecast CoCFC",
+          "NativeReferenceName": "Subtotaal codering mutatie actual en forecast CoCFC"
+        }
+      ]
+    },
+    "drillFilterOtherVisuals": true
+  }
+}

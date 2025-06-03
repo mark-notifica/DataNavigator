@@ -1,0 +1,128 @@
+{
+  "name": "a884a78706b65c2aaa06",
+  "layouts": [
+    {
+      "id": 0,
+      "position": {
+        "x": 10.364372469635628,
+        "y": 0,
+        "z": 0,
+        "width": 1136.9716599190283,
+        "height": 720.32388663967606,
+        "tabOrder": 0
+      }
+    }
+  ],
+  "singleVisual": {
+    "visualType": "tableEx",
+    "projections": {
+      "Values": [
+        {
+          "queryRef": "Sum(Methode generieke marge.Methode ID verwachte marge)"
+        },
+        {
+          "queryRef": "Sum(Methode generieke marge.Value)"
+        },
+        {
+          "queryRef": "Sum(Methode generieke marge.Value2)"
+        }
+      ]
+    },
+    "prototypeQuery": {
+      "Version": 2,
+      "From": [
+        {
+          "Name": "m",
+          "Entity": "Methode generieke marge",
+          "Type": 0
+        }
+      ],
+      "Select": [
+        {
+          "Column": {
+            "Expression": {
+              "SourceRef": {
+                "Source": "m"
+              }
+            },
+            "Property": "Methode ID verwachte marge"
+          },
+          "Name": "Sum(Methode generieke marge.Methode ID verwachte marge)",
+          "NativeReferenceName": "Methode ID verwachte marge"
+        },
+        {
+          "Column": {
+            "Expression": {
+              "SourceRef": {
+                "Source": "m"
+              }
+            },
+            "Property": "Value"
+          },
+          "Name": "Sum(Methode generieke marge.Value)",
+          "NativeReferenceName": "Value"
+        },
+        {
+          "Column": {
+            "Expression": {
+              "SourceRef": {
+                "Source": "m"
+              }
+            },
+            "Property": "Value2"
+          },
+          "Name": "Sum(Methode generieke marge.Value2)",
+          "NativeReferenceName": "Value2"
+        }
+      ],
+      "OrderBy": [
+        {
+          "Direction": 2,
+          "Expression": {
+            "Column": {
+              "Expression": {
+                "SourceRef": {
+                  "Source": "m"
+                }
+              },
+              "Property": "Value"
+            }
+          }
+        }
+      ]
+    },
+    "drillFilterOtherVisuals": true,
+    "objects": {
+      "columnWidth": [
+        {
+          "properties": {
+            "value": {
+              "expr": {
+                "Literal": {
+                  "Value": "119.29219886422666D"
+                }
+              }
+            }
+          },
+          "selector": {
+            "metadata": "Sum(Methode generieke marge.Value2)"
+          }
+        },
+        {
+          "properties": {
+            "value": {
+              "expr": {
+                "Literal": {
+                  "Value": "127.71941921224797D"
+                }
+              }
+            }
+          },
+          "selector": {
+            "metadata": "Sum(Methode generieke marge.Value)"
+          }
+        }
+      ]
+    }
+  }
+}

@@ -1,0 +1,927 @@
+﻿relationship 15cd8683-dd8b-40f9-8959-da7242dc2d20
+	fromColumn: 'Calculatie kostenregels'.TaakKey
+	toColumn: Taken.TaakKey
+
+relationship 97212332-49da-44a3-85b4-a0e90479713c
+	fromColumn: 'Project kosten en geboekte uren'.TaakKey
+	toColumn: Taken.TaakKey
+
+relationship cf08eeea-821d-4616-bb0b-1df87eefce8f
+	fromColumn: 'Geboekte uren'.MedewerkerKey
+	toColumn: Bedrijfsmedewerkers.MedewerkerKey
+
+relationship d5345629-e134-418a-9c44-757fab17fdda
+	fromColumn: 'Project kosten en geboekte uren'.KostensoortKey
+	toColumn: Kostensoorten.KostensoortKey
+
+relationship 7b5798de-d86c-4e81-ae8b-e4a4dff66d8b
+	fromColumn: 'Calculatie kostenregels'.KostensoortKey
+	toColumn: Kostensoorten.KostensoortKey
+
+relationship 4977804a-b819-486f-8e92-e14486a0bfca
+	fromColumn: 'Project eenmalige orderregels'.ProjectKey
+	toColumn: Projecten.ProjectKey
+
+relationship 9aa7edf5-ba43-4e02-a0b0-817e1e3840ed
+	fromColumn: 'Geboekte uren'.Uitvoeringsdatum
+	toColumn: Kalender.Datum
+
+relationship 4ba24da1-c961-44b7-9e33-c960acbed5f5
+	fromColumn: 'Geboekte uren'.TaakKey
+	toColumn: Taken.TaakKey
+
+relationship 886b68f4-7f26-4eee-9862-7acbd397e4be
+	fromColumn: 'Project kosten en geboekte uren'.CrediteurRelatieKey
+	toColumn: Relaties.RelatieKey
+
+relationship 6863e586-2b8f-480a-82cc-65eac0bf8fbe
+	fromColumn: Bestekparagrafen.ProjectKey
+	toColumn: Projecten.ProjectKey
+
+relationship a1aeee55-4722-459d-9be7-0582d44547d0
+	isActive: false
+	fromColumn: 'Calculaties met verkoopprijzen'.ProjectKey
+	toColumn: Projecten.ProjectKey
+
+relationship efc2f756-05fb-4240-9819-17c6b4a1ccbf
+	fromColumn: 'Project kosten en geboekte uren'.Boekdatum
+	toColumn: Kalender.Datum
+
+relationship 60edf129-c08b-42eb-b3d4-c4cfa2771aeb
+	fromColumn: 'Project omzet'.Boekdatum
+	toColumn: Kalender.Datum
+
+relationship d9b18241-1c60-4bf0-ad48-12a7bdd2b9c7
+	crossFilteringBehavior: bothDirections
+	fromColumn: Journaalregels.KostenplaatsKey
+	toColumn: Kostenplaatsen.KostenplaatsKey
+
+relationship 54b504f9-e6da-4bce-9c91-3d826de9e172
+	fromColumn: 'Project omzet'.Kostensoort
+	toColumn: Kostensoorten.KostensoortKey
+
+relationship e04a1c5d-a13e-4041-8d4d-4c1a516f907b
+	fromColumn: Journaalregels.DocumentKey
+	toColumn: Documenten.DocumentKey
+
+relationship 263b66d8-feb7-4356-8ecd-48c2d525062c
+	fromColumn: 'Project service orders prognose'.ProjectKey
+	toColumn: Projecten.ProjectKey
+
+relationship fcdfce04-43e9-499d-836d-246b879d8ef0
+	fromColumn: 'Project service orders prognose'.Factureerdatum
+	toColumn: Kalender.Datum
+
+relationship 28eac0a7-fc2a-4b02-ae57-365c846e8008
+	fromColumn: Bedrijfseenheden.AdministratieKey
+	toColumn: Administraties.AdministratieKey
+
+relationship 46dadf82-4f83-42c3-b0f6-46bb5ce709c5
+	fromColumn: Documenten.BedrijfseenheidKey
+	toColumn: Bedrijfseenheden.BedrijfseenheidKey
+
+relationship c67ffb21-ebda-45ab-86bc-84899ef13011
+	fromColumn: 'Project journaalregels'.ProjectKey
+	toColumn: Projecten.ProjectKey
+
+relationship 5d1ae7fa-b902-40de-a326-c2994eade185
+	fromColumn: 'Geboekte uren'.DocumentKey
+	toColumn: Documenten.DocumentKey
+
+relationship 5a6fd90f-760c-4e3a-908c-9f761b0ffef9
+	fromColumn: 'Project omzet'.ProjectKey
+	toColumn: Projecten.ProjectKey
+
+relationship d5295159-9b71-428e-b844-c0b953aa2349
+	fromColumn: 'Project journaalregels'.KostenplaatsKey
+	toColumn: Kostenplaatsen.KostenplaatsKey
+
+relationship b35ec2f4-6b8a-49b9-9a74-0e2d22329ac6
+	isActive: false
+	fromColumn: Kostenplaatsen.AdministratieKey
+	toColumn: Administraties.AdministratieKey
+
+relationship ac8b63f8-3a71-4e94-a63c-68ce9f47ba9e
+	fromColumn: 'Budget per dag'.AdministratieKey
+	toColumn: Administraties.AdministratieKey
+
+relationship 782f1f5f-9f89-4297-abb1-24282c665dee
+	fromColumn: 'Budget per dag'.KostenplaatsKey
+	toColumn: Kostenplaatsen.KostenplaatsKey
+
+relationship 91e38902-6fd1-4dfe-9698-71541a4445e6
+	fromColumn: 'Project journaalregels'.boekdatum
+	toColumn: Kalender.Datum
+
+relationship b4a67a5f-0f89-4bb2-a4c9-7f8277b792ae
+	fromColumn: 'Arbeidspatroon per medewerker per week'.MedewerkerKey
+	toColumn: Bedrijfsmedewerkers.MedewerkerKey
+
+relationship 6d7c4370-b89e-4ccc-9f3a-8f0160a7eba0
+	fromColumn: 'Arbeidspatroon per medewerker per week'.'Einddatum Week'
+	toColumn: 'Kalender FTE'.Datum
+
+relationship a2013da3-efbf-45b3-8376-1b3a86a6e2e8
+	fromColumn: 'Arbeidspatroon per medewerker per week'.'Einddatum Week'
+	toColumn: Kalender.Datum
+
+relationship 55e3bbc6-f8d8-4c72-90cb-8818a10726e5
+	fromColumn: 'Inkoopfactuur termijnen'.InkoopFactuurKey
+	toColumn: Documenten.DocumentKey
+
+relationship b4aa18a2-892b-4c17-81e9-ec978e9c9954
+	fromColumn: 'Verkoopfactuur termijnen'.VerkoopfactuurDocumentKey
+	toColumn: Documenten.DocumentKey
+
+relationship ffcf04e5-c083-4420-a4d8-0de1b6ce359d
+	crossFilteringBehavior: bothDirections
+	fromColumn: Werkbonparagrafen.WerkbonDocumentKey
+	toColumn: Werkbonnen.WerkbonDocumentKey
+
+relationship 1113f7aa-caf2-43cb-b5bf-5e8eb25de296
+	fromColumn: 'Werkbonparagraaf oplossingen'.WerkbonparagaafKey
+	toColumn: Werkbonparagrafen.WerkbonparagraafKey
+
+relationship 60924d83-fdf8-4c89-b320-19cf54cab00b
+	fromColumn: 'Werkbonparagraaf opvolgingen'.WerkbonparagraafKey
+	toColumn: Werkbonparagrafen.WerkbonparagraafKey
+
+relationship 526bfa2f-3d60-4594-941b-ecc8966ed35d
+	fromColumn: 'Materieel kosten'.MaterieelKey
+	toColumn: Materieel.MaterieelKey
+
+relationship b83af954-697b-409a-a33a-b1ae150bf6a5
+	fromColumn: 'Materieel kosten'.Boekdatum
+	toColumn: Kalender.Datum
+
+relationship 6f2f9d25-d6b5-4325-8c6b-3129a84d9d55
+	fromColumn: 'Materieel kosten'.KostensoortKey
+	toColumn: Kostensoorten.KostensoortKey
+
+relationship 9c9114cb-9d5c-4ca9-ba75-450cc71e100d
+	fromColumn: 'Project kosten en geboekte uren'.BestekparagraafKey
+	toColumn: Bestekparagrafen.BestekParagraafKey
+
+relationship 346cd257-018a-4afc-98e0-82a93911272d
+	fromColumn: Werkbonparagrafen.BestekparagraafKey
+	toColumn: Bestekparagrafen.BestekParagraafKey
+
+relationship 16b73b2e-a6dd-469a-b710-5c435563358a
+	fromColumn: 'Werkbonparagraaf kosten en geboekte uren'.WerkbonparagraafKey
+	toColumn: Werkbonparagrafen.WerkbonparagraafKey
+
+relationship d0764540-ba86-47e9-8068-148075174e96
+	isActive: false
+	fromColumn: Werkbonnen.'Hoofdwerkbon aanmaakdatum'
+	toColumn: Kalender.Datum
+
+relationship 5870998f-841d-4b01-934c-7c8845ec35a2
+	isActive: false
+	fromColumn: Werkbonnen.'Hoofdwerkbon boekdatum'
+	toColumn: Kalender.Datum
+
+relationship 54ed68a6-abf4-4973-a1ba-39336f8927d1
+	fromColumn: Grootboekrekeningen.RekeningSchemaKey
+	toColumn: Rekeningschemas.RekeningSchemaKey
+
+relationship abe6033f-9119-42ce-92f6-eb51afc99730
+	fromColumn: 'Budget per dag'.Budgetdatum
+	toColumn: Kalender.Datum
+
+relationship c97fca4b-714a-4edc-8a27-4a132546f87f
+	fromColumn: 'Werkbonparagraaf kosten en geboekte uren'.TaakKey
+	toColumn: Taken.TaakKey
+
+relationship 13c86b3e-19b7-49b3-b2da-18ef661452b3
+	crossFilteringBehavior: bothDirections
+	fromColumn: Grootboekrekeningen.RubriekKey
+	toColumn: Rubrieken.RubriekKey
+
+relationship 3abcfc50-1937-4c82-8d91-785695511228
+	fromColumn: Kostensoorten.HoofdRubriekKey
+	toColumn: Rubrieken.RubriekKey
+
+relationship 3fb1ffdc-489b-4055-87fc-669cdb161df9
+	fromColumn: Journaalregels.RubriekKey
+	toColumn: Rubrieken.RubriekKey
+
+relationship ab5fb7a8-e71a-40a8-97ad-0e899570dbbf
+	fromColumn: 'Budget per dag'.RubriekKey
+	toColumn: Rubrieken.RubriekKey
+
+relationship 6d6175f7-8263-4acd-9069-12325af011dc
+	fromColumn: 'Project journaalregels'.RubriekKey
+	toColumn: Rubrieken.RubriekKey
+
+relationship fb172a14-006b-496e-990d-08373de13d40
+	fromColumn: Boekingperiodes.BoekjaarKey
+	toColumn: Boekjaren.BoekjaarKey
+
+relationship 2ed603ff-1655-4738-80e0-4abc75aedd97
+	fromColumn: Boekjaren.AdministratieKey
+	toColumn: Administraties.AdministratieKey
+
+relationship 4cfdcf2c-95fb-44e9-a5e8-08fcd7e68b5d
+	fromColumn: Projecten.AdministratieKey
+	toColumn: Administraties.AdministratieKey
+
+relationship da111928-74d6-408e-bf98-e6ab2775931f
+	fromColumn: Materieel.AdministratieKey
+	toColumn: Administraties.AdministratieKey
+
+relationship d692d3d3-1df6-470e-8aa5-15f52bffef21
+	fromColumn: 'Materieel kosten'.KostenplaatsKey
+	toColumn: Kostenplaatsen.KostenplaatsKey
+
+relationship 201ed5f1-e7d1-4ddb-a9cb-9ca6017e6e58
+	fromColumn: 'Openstaande documenten'.'Boekdatum einde maand'
+	toColumn: Kalender.Datum
+
+relationship c770e4cc-5a85-4208-b54f-2b05a053351b
+	fromColumn: 'Openstaande documenten'.BedrijfseenheidKey
+	toColumn: Bedrijfseenheden.BedrijfseenheidKey
+
+relationship c19e1c34-3118-4d01-8811-ae453157c55a
+	isActive: false
+	fromColumn: 'Rekeningschema per administratie'.AdministratieKey
+	toColumn: Administraties.AdministratieKey
+
+relationship 23d5d8ca-fea5-4601-9c69-17ba776bfda6
+	crossFilteringBehavior: bothDirections
+	fromColumn: 'Rekeningschema per administratie'.RekeningSchemaKey
+	toColumn: Rekeningschemas.RekeningSchemaKey
+
+relationship 36583a08-2baf-4f0c-b7ed-50852b1c9d63
+	fromColumn: Bedrijfsmedewerkers.AfdelingKey
+	toColumn: Afdelingen.AfdelingKey
+
+relationship a63123f6-bfc8-4065-846e-0cd66d5475bc
+	isActive: false
+	fromColumn: Bedrijfsmedewerkers.'Datum in dienst'
+	toColumn: Kalender.Datum
+
+relationship 4042ecd8-a6ea-4169-ac77-d351e40e6adb
+	isActive: false
+	fromColumn: Bedrijfsmedewerkers.'Datum uit dienst'
+	toColumn: Kalender.Datum
+
+relationship 70a4949a-9fb4-4656-bcc4-f7da909dc595
+	fromColumn: 'Verkoopfactuur termijnen'.Alloc_datum
+	toColumn: Kalender.Datum
+
+relationship 1be08a51-4a90-4c62-91b6-42028b8fb1dd
+	fromColumn: 'Inkoopfactuur termijnen'.Alloc_datum
+	toColumn: Kalender.Datum
+
+relationship 8ee7176a-2838-40ac-8dd7-7016c3d5255f
+	fromColumn: 'Prognose BTW'.AdministratieKey
+	toColumn: Administraties.AdministratieKey
+
+relationship 4ff41439-c9a2-4968-83ab-4c34df9ce19d
+	fromColumn: 'NR - Cashflow rubrieken DQ'.CashflowcategorieRegelKey
+	toColumn: 'NR - Cashflow categorien DQ'.RegelKey
+
+relationship ab2d80a1-5ab9-417f-ad9a-c6922a126f27
+	fromColumn: Journaalregels.RubriekKey
+	toColumn: 'NR - Cashflow rubrieken DQ'.RubriekKey
+
+relationship 64cbf2b0-1aa6-4fac-bda9-d5acb0320354
+	fromColumn: 'Verkoopfactuur termijnen'.Factuurdatum
+	toColumn: 'Kalender factuurdatum'.Factuurdatum
+
+relationship 05b30c52-6922-4cd6-b250-aa962a89d483
+	fromColumn: 'Inkoopfactuur termijnen'.Factuurdatum
+	toColumn: 'Kalender factuurdatum'.Factuurdatum
+
+relationship 49cf6893-3c27-4732-bfa4-7c3ffa05e2b0
+	fromColumn: 'Project omzet'.DispuutKey
+	toColumn: Disputen.DispuutKey
+
+relationship d449b877-e701-4649-b774-5a6028141973
+	fromColumn: 'Inkoopfactuur termijnen'.DispuutKey
+	toColumn: Disputen.DispuutKey
+
+relationship 9260e142-8651-4c1e-886f-ee5a56c9376e
+	fromColumn: 'Verkoopfactuur termijnen'.DispuutKey
+	toColumn: Disputen.DispuutKey
+
+relationship a7fdef76-77b0-4db8-9703-d1082df0aa56
+	fromColumn: 'Projectenbudgetregels (doorgerekend)'.BestekparagraafKey
+	toColumn: Bestekparagrafen.BestekParagraafKey
+
+relationship 2527bf52-c6ef-491d-81da-e84124642fc8
+	fromColumn: 'Projectenbudgetregels (doorgerekend)'.KostensoortKey
+	toColumn: Kostensoorten.KostensoortKey
+
+relationship e39f2cf1-5487-46c6-8012-18c67227abdf
+	fromColumn: 'NR - Projectwaardering boekingregels DQ'.ProjectwaarderingKey
+	toColumn: 'NR - Projectwaarderingen DQ'.ProjectwaarderingKey
+
+relationship 5ce88ad4-0888-4480-937a-15ed49c6d306
+	fromColumn: 'NR - Projectbudgetverzoekregels DQ'.BestekparagraafKey
+	toColumn: Bestekparagrafen.BestekParagraafKey
+
+relationship 46384b86-2dae-4c55-af94-feb84cf23ebd
+	crossFilteringBehavior: bothDirections
+	fromColumn: 'NR - Projectbudgetverzoekregels DQ'.BudgetverzoekKey
+	toColumn: 'NR - Projectbudgetverzoeken DQ'.BudgetverzoekKey
+
+relationship b90d4d7d-dd31-4409-85a5-7a2091cec43d
+	isActive: false
+	fromColumn: 'NR - Projectbudgetverzoeken DQ'.Aanmaakdatum
+	toColumn: Kalender.Datum
+
+relationship 84e38bad-3e02-41cd-a3f3-6c2f8975e8a3
+	isActive: false
+	fromColumn: 'NR - Projectwaarderingen DQ'.Aanmaakdatum
+	toColumn: Kalender.Datum
+
+relationship 6d90bf2a-8c1d-46ba-a78e-ea726daffbfc
+	fromColumn: 'NR - Resultaatrekening forecastregels DQ'.ForecastResultaatKey
+	toColumn: 'NR - Resultaatrekening forecast DQ'.Regelkey
+
+relationship 7a1d12d3-139a-a24c-55fa-0b40a38d9539
+	fromColumn: 'NR - Resultaatrekening forecastregels DQ'.Datum
+	toColumn: Kalender.Datum
+
+relationship 0a738d3b-a380-40d9-a7bf-7440b407cfd1
+	isActive: false
+	fromColumn: 'NR - Resultaatrekening forecast DQ'.AdministratieKey
+	toColumn: Administraties.AdministratieKey
+
+relationship dc9406de-357b-45c6-bd1e-4f71fb56eba7
+	fromColumn: 'NR - Resultaatrekening forecast DQ'.BedrijfseenheidKey
+	toColumn: Bedrijfseenheden.BedrijfseenheidKey
+
+relationship 690ab668-b290-a246-a6e8-c9a17ea44bbc
+	crossFilteringBehavior: bothDirections
+	toCardinality: many
+	fromColumn: Kalender.Jaar
+	toColumn: 'Kalender standdatums'.Jaar
+
+relationship c35e3386-d0cc-43fd-b5c0-966c042ede5b
+	fromColumn: 'NR - Resultaatrekening forecastregels DQ'.'CoA Code'
+	toColumn: 'NR - CoA schema'.Code
+
+relationship 8fcfd887-d472-0e98-ae2f-bac6f4085317
+	fromColumn: 'NR - Budgetregels DQ'.BudgetKey
+	toColumn: 'NR - Budget DQ'.Regelkey
+
+relationship 591bedc5-74b0-440e-93c7-f6ae4bc06801
+	fromColumn: 'NR - Budget DQ'.BedrijfseenheidKey
+	toColumn: Bedrijfseenheden.BedrijfseenheidKey
+
+relationship 0acd5ad9-d9c4-40ca-8e50-bb9c66b835ad
+	fromColumn: 'NR - Budgetregels DQ'.Datum
+	toColumn: Kalender.Datum
+
+relationship 0d39c9bb-33de-4dab-a183-ec358891dab2
+	fromColumn: 'NR - Budgetregels DQ'.'CoA Code'
+	toColumn: 'NR - CoA schema'.Code
+
+relationship f557a60e-0d57-40cc-a16b-56bb95138874
+	fromColumn: 'Betalingen per inkoopregel'.ProjectKey
+	toColumn: Projecten.ProjectKey
+
+relationship d37bf93a-c766-4d04-815e-0fc1330d6c0b
+	fromColumn: 'Betalingen per opbrengstregel'.ProjectKey
+	toColumn: Projecten.ProjectKey
+
+relationship fd587ed0-a18d-4a90-953e-40d681ef238a
+	fromColumn: 'Betalingen per inkoopregel'.KostensoortKey
+	toColumn: Kostensoorten.KostensoortKey
+
+relationship ea4d7b06-562b-4615-be13-f17ca666a2f3
+	fromColumn: 'Betalingen per opbrengstregel (alleen orderregels)'.OrderregelKey
+	toColumn: 'Project eenmalige orderregels'.OrderregelKey
+
+relationship 78066073-802d-4d47-b5f1-ba781fdd8378
+	fromColumn: 'Project kosten en geboekte uren'.HandelsartikelKey
+	toColumn: Handelsartikelen.HandelsartikelKey
+
+relationship bbae2975-0cc3-43a1-a628-8ae81881f066
+	fromColumn: Bedrijfsmedewerkers.UniekeFunctieID
+	toColumn: 'NR - MPS functies DQ'.UniekeID
+
+relationship 12db7d47-14a1-4db8-975e-2e642d702945
+	fromColumn: 'NR - Projectbudgetverzoekregels DQ'.TaakKey
+	toColumn: Taken.TaakKey
+
+relationship b81da2ea-4fcc-4fc0-a0fe-0de114a9570a
+	fromColumn: 'NR - Projectbudgetverzoekregels DQ'.KostensoortKey
+	toColumn: Kostensoorten.KostensoortKey
+
+relationship be5e2f69-7937-498a-876b-82eea5908dc6
+	isActive: false
+	fromColumn: 'Project eenmalige orderregels'.Invoerdatum
+	toColumn: Kalender.Datum
+
+relationship 41d0687e-5f43-4333-ad3e-9c8a8c2f14a3
+	fromColumn: 'Onderhoudsplanning en te verwachten kosten'.BestekparagraafKey
+	toColumn: Bestekparagrafen.BestekParagraafKey
+
+relationship ff0ccf72-626c-4b8d-90fa-137928d8cbf6
+	fromColumn: 'Onderhoudsplanning en te verwachten kosten'.Plandatum
+	toColumn: Kalender.Datum
+
+relationship 688e0fa2-ae72-4307-84f0-fa04d461935b
+	fromColumn: 'Onderhoudsplanning en te verwachten kosten'.KostensoortKey
+	toColumn: Kostensoorten.KostensoortKey
+
+relationship c494434f-db0d-456a-ac85-d15f87dc33d9
+	fromColumn: 'Onderhoudsplanning en te verwachten kosten'.TaakKey
+	toColumn: Taken.TaakKey
+
+relationship eef61503-7784-4a9b-87a1-0613958ff4cb
+	fromColumn: 'Werkbonparagraaf opbrengsten'.WerkbonParagraafKey
+	toColumn: Werkbonparagrafen.WerkbonparagraafKey
+
+relationship 5fa84166-131e-4697-a991-59c38d6c4a50
+	fromColumn: 'Calculatie kostenregels'.BestekParagraafKey
+	toColumn: Bestekparagrafen.BestekParagraafKey
+
+relationship cf8bce59-415f-4979-b3bc-4d9ebfb3650e
+	fromColumn: 'Calculatie kostenregels'.HandelsartikelKey
+	toColumn: Handelsartikelen.HandelsartikelKey
+
+relationship 2be87639-9f2f-4523-ab9f-f3bf3bc0d9a0
+	fromColumn: 'Werkbonparagraaf WvB arbeid'.WerkbonparagraafKey
+	toColumn: Werkbonparagrafen.WerkbonparagraafKey
+
+relationship 3ba79ad9-7379-4d17-8424-17b24001af9a
+	fromColumn: 'Werkbonparagraaf WvB arbeid'.TaakKey
+	toColumn: Taken.TaakKey
+
+relationship e201cd08-4617-4ab5-ae27-94601c6ac25d
+	fromColumn: 'Geplande en contracturen medewerkers'.Datum
+	toColumn: Kalender.Datum
+
+relationship 9cf5753f-1521-4dbe-a752-9703f200650f
+	fromColumn: 'Geplande en contracturen medewerkers'.MedewerkerKey
+	toColumn: Bedrijfsmedewerkers.MedewerkerKey
+
+relationship 4242a4e6-95aa-42a6-9ffe-2ce675274e44
+	isActive: false
+	fromColumn: 'Project eenmalige orderregels'.Boekdatum
+	toColumn: Kalender.Datum
+
+relationship 6b5f8000-eb61-4525-877b-6169aeb86d66
+	isActive: false
+	fromColumn: 'Project eenmalige orderregels'.Aanmaakdatum
+	toColumn: Kalender.Datum
+
+relationship a624e45b-9df5-4ed2-b5ad-c374d203df85
+	fromColumn: 'Project eenmalige orderregels'.VerkoperMedewerkerKey
+	toColumn: Verkopers.MedewerkerKey
+
+relationship 52b80c8d-fc91-4b4f-b826-71ead393a656
+	fromColumn: 'Service order intake'.ProjectKey
+	toColumn: Projecten.ProjectKey
+
+relationship fb03193e-c245-49af-9348-10f9e1bb4ee3
+	fromColumn: 'Service order intake'.VerkoperMedewerkerKey
+	toColumn: Verkopers.MedewerkerKey
+
+relationship d5410fef-3bf8-451c-a114-2c98f3be2c4a
+	fromColumn: 'Service order intake'.Boekdatum
+	toColumn: Kalender.Datum
+
+relationship c60e67bf-1a38-4542-8d53-3e82eec79749
+	fromColumn: Offerteregels.OfferteDocumentKey
+	toColumn: Offertes.OfferteDocumentKey
+
+relationship 0aa1376b-0736-4d3b-937f-9057b9f279e7
+	crossFilteringBehavior: bothDirections
+	toCardinality: many
+	fromColumn: Offertes.CalculatieDocumentKey
+	toColumn: 'Calculatiekosten onder offertes'.CalculatieDocumentKey
+
+relationship c0ed3e0d-cca4-40da-beb2-a7b0b64e5283
+	fromColumn: 'Calculatiekosten onder offertes'.TaakKey
+	toColumn: Taken.TaakKey
+
+relationship c4f910c8-9342-4019-9858-a9eaef99214e
+	fromColumn: Offertes.ProjectKey
+	toColumn: Projecten.ProjectKey
+
+relationship 0abbf977-310a-41e4-8d65-e3640d92c04c
+	fromColumn: 'Bankregels openstaand'.BankafschriftDocumentKey
+	toColumn: Documenten.DocumentKey
+
+relationship 978454bb-1f14-4be4-b741-1ce09b73d7b8
+	fromColumn: 'Bankregels openstaand'.Boekdatum
+	toColumn: Kalender.Datum
+
+relationship a847932c-b2d8-447e-8f4a-43a53ccbcb97
+	fromColumn: 'Bank rubrieken meerdere keren gekoppeld'.AdministratieKey
+	toColumn: Administraties.AdministratieKey
+
+relationship 9442dcd3-2bcd-4403-986e-fb31d6e18e05
+	fromColumn: 'Verkoopfactuur termijnen'.Vervaldatum
+	toColumn: 'Kalender vervaldatum'.Vervaldatum
+
+relationship dc3ab057-f3d3-441f-8d1b-a76d5402c0d1
+	fromColumn: 'Inkoopfactuur termijnen'.Vervaldatum
+	toColumn: 'Kalender vervaldatum'.Vervaldatum
+
+relationship 09f1f479-6586-433a-ad7c-e518c87b62ce
+	fromColumn: Projecten.Opdrachtdatum
+	toColumn: 'Kalender opdrachtdatum'.Opdrachtdatum
+
+relationship 92198abb-27ec-4356-a0af-2b2e1a7cb0aa
+	fromColumn: 'arbeidspatroon per medewerker'.MedewerkerKey
+	toColumn: Bedrijfsmedewerkers.MedewerkerKey
+
+relationship 504aa8ee-5c97-4311-9882-4b066c2d6f26
+	fromColumn: 'Project kosten en geboekte uren'.MedewerkerKey
+	toColumn: Bedrijfsmedewerkers.MedewerkerKey
+
+relationship 45327bcd-86be-4893-b06a-628037f94180
+	fromColumn: 'Betalingen per inkoopregel'.DispuutKey
+	toColumn: Disputen.DispuutKey
+
+relationship 80f08bec-a826-47b2-8cd4-0e8f21303d54
+	fromColumn: 'Betalingen per opbrengstregel'.DispuutKey
+	toColumn: Disputen.DispuutKey
+
+relationship c6b1c403-7082-441a-9ac6-6c47f0c91774
+	fromColumn: 'Betalingen per opbrengstregel (alleen orderregels)'.DispuutKey
+	toColumn: Disputen.DispuutKey
+
+relationship c0382f0a-a8fd-486e-87d8-7ef2c5e2b365
+	crossFilteringBehavior: bothDirections
+	fromColumn: 'Calculatie kostenregels'.CalculatieDocumentKey
+	toColumn: 'Calculaties met verkoopprijzen'.CalculatieDocumentKey
+
+relationship bca24952-de34-4f71-8566-09d27d611c04
+	fromColumn: Bestekparagrafen.InstallatieKey
+	toColumn: Installaties.InstallatieKey
+
+relationship d49cca6b-4d2e-4ff5-a7fc-97b601d0d8a2
+	fromColumn: Installaties.ObjectKey
+	toColumn: Objecten.ObjectKey
+
+relationship 46ed155f-aa58-4163-b78c-de0833b7a5ce
+	isActive: false
+	fromColumn: Bestekparagrafen.ProjectKey
+	toColumn: Objecten.ObjectKey
+
+relationship 1f282ca3-ad27-4311-abbe-6f152963a9ae
+	isActive: false
+	fromColumn: Bestekparagrafen.ObjectKey
+	toColumn: Objecten.ObjectKey
+
+relationship 57253692-1dd1-4be7-bb7c-b890acec49fa
+	crossFilteringBehavior: bothDirections
+	fromColumn: Relatiegroepen.RelatieKey
+	toColumn: Relaties.RelatieKey
+
+relationship 88d340d1-2366-4b26-9938-00abf8cf97d2
+	fromColumn: Relatiegroepen.AdministratieKey
+	toColumn: Administraties.AdministratieKey
+
+relationship f2957a86-6359-44a6-a645-4f95f89a57a9
+	isActive: false
+	fromColumn: Bestekparagrafen.'Bestekparagraaf onderaannemerRelatieKey'
+	toColumn: Relaties.RelatieKey
+
+relationship c3d3d421-c30c-4ceb-813c-bbd54394c688
+	isActive: false
+	fromColumn: Projecten.DebiteurRelatieKey
+	toColumn: Relaties.RelatieKey
+
+relationship eddf60c2-025e-45fa-b0d7-c07a68b0f219
+	isActive: false
+	fromColumn: Projecten.OpdrachtgeverRelatieKey
+	toColumn: Relaties.RelatieKey
+
+relationship 8e526337-49ff-4a4e-ad1e-9dc89b6d1620
+	fromColumn: 'Voorraad magazijnen'.AdministratieKey
+	toColumn: Administraties.AdministratieKey
+
+relationship f0abd348-73af-40e2-b343-d5b9db0f3df7
+	fromColumn: 'Voorraad locaties'.MagazijnKey
+	toColumn: 'Voorraad magazijnen'.MagazijnKey
+
+relationship d6e80144-a84b-4590-8139-7f40d31750bc
+	fromColumn: 'Voorraad posities'.voorraadlocatieKey
+	toColumn: 'Voorraad locaties'.VoorraadlocatieKey
+
+relationship a4750229-ccbd-4662-9f70-b7200fa48f2a
+	fromColumn: 'Voorraad mutaties'.OntvangstVoorraadpositieKey
+	toColumn: 'Voorraad posities'.VoorraadpositieKey
+
+relationship 284a2a0e-1051-450e-a9e7-6891b4d809e0
+	isActive: false
+	fromColumn: 'Voorraad mutaties'.UitgifteVoorraadpositieKey
+	toColumn: 'Voorraad posities'.VoorraadpositieKey
+
+relationship 4de2c097-eb5c-4e27-afc9-589110c54ed2
+	isActive: false
+	fromColumn: 'Voorraad mutaties'.LeverancierRelatieKey
+	toColumn: Relaties.RelatieKey
+
+relationship 17254014-d4f2-4202-b473-9ffea1b7a227
+	isActive: false
+	fromColumn: 'Voorraad mutaties'.CrediteurRelatieKey
+	toColumn: Relaties.RelatieKey
+
+relationship 31c2a400-e53f-408c-ac78-8bb2c3940051
+	isActive: false
+	fromColumn: 'Voorraad locaties'.ProjectKey
+	toColumn: Projecten.ProjectKey
+
+relationship 2b309bcc-de37-4f21-b3a8-4d4afb71a211
+	crossFilteringBehavior: bothDirections
+	fromColumn: 'Object info (administratieafhankelijk)'.ObjectKey
+	toColumn: Objecten.ObjectKey
+
+relationship 49ce182b-1a9c-4d35-ae6f-048b007e36d6
+	fromColumn: 'Object info (administratieafhankelijk)'.RegioKey
+	toColumn: Regio.RegioKey
+
+relationship dd2cb71f-4e6c-4327-8191-637f763725b2
+	isActive: false
+	fromColumn: 'Object info (administratieafhankelijk)'.DebiteurRelatieKey
+	toColumn: Relaties.RelatieKey
+
+relationship 45efe871-c256-4d78-9048-6cc516f78afb
+	fromColumn: 'NR - CoA mapping balans DQ'.CoA_code_balans
+	toColumn: 'NR - CoA balans schema'.Code
+
+relationship 6afc0154-2083-41de-bcda-f3152b4e3ddb
+	fromColumn: 'NR - CoA mapping DQ'.CoA_code
+	toColumn: 'NR - CoA schema'.Code
+
+relationship de5412c8-328c-4680-9308-e0b923c275e6
+	fromColumn: Journaalregels.RubriekKey
+	toColumn: 'NR - CoA mapping DQ'.RubriekKey
+
+relationship bd9e2c76-e27b-4019-951d-a481a7067eb7
+	fromColumn: 'Project journaalregels'.RubriekKey
+	toColumn: 'NR - CoA mapping DQ'.RubriekKey
+
+relationship 1e88c5d3-161f-468c-92b6-fe23aeb25b3c
+	fromColumn: Journaalregels.RubriekKey
+	toColumn: 'NR - CoA mapping balans DQ'.RubriekKey
+
+relationship 387674a2-29c7-45ea-b2fe-1525f366ecc6
+	fromColumn: 'Project journaalregels'.RubriekKey
+	toColumn: 'NR - CoA mapping balans DQ'.'Rubriek Code'
+
+relationship e0b04779-4279-448d-bfab-7ac48401f5ea
+	fromColumn: 'Budget per dag'.RubriekKey
+	toColumn: 'NR - CoA mapping balans DQ'.RubriekKey
+
+relationship a6ff6edf-d021-4573-84b6-e34b78caeed7
+	fromColumn: 'Budget per dag'.RubriekKey
+	toColumn: 'NR - CoA mapping DQ'.RubriekKey
+
+relationship fb695550-95cc-4ae3-b695-8a4e6ff8643b
+	fromColumn: 'NR - Cashflow forecastregels DQ'.ForecastcashflowKey
+	toColumn: 'NR - Cashflow forecast DQ'.Regelkey
+
+relationship 058d2a97-775c-4a5d-b391-91656d3a618f
+	fromColumn: 'NR - Cashflow forecast DQ'.BedrijfseenheidKey
+	toColumn: Bedrijfseenheden.BedrijfseenheidKey
+
+relationship 319bd1ed-d3d2-a23b-9364-0ae4185a5c2e
+	fromColumn: 'NR - Cashflow forecastregels DQ'.CashflowCategorieKey
+	toColumn: 'NR - Cashflow categorien DQ'.RegelKey
+
+relationship 6c89056d-c6ae-4514-9de8-7a3816ca63ae
+	fromColumn: 'NR - Cashflow forecastregels DQ'.Datum
+	toColumn: Kalender.Datum
+
+relationship 15836ff1-4717-4f5e-9959-85d8ce0dd17f
+	isActive: false
+	fromColumn: Projecten.PrincipaalRelatieKey
+	toColumn: Relaties.RelatieKey
+
+relationship f1922fac-84ac-41c5-9dbe-6daaa1cb4412
+	isActive: false
+	fromColumn: Projecten.CalculatorMedewerkerKey
+	toColumn: Bedrijfsmedewerkers.MedewerkerKey
+
+relationship b6d1eadb-2de4-4417-b9a1-5c4e69850b9c
+	isActive: false
+	fromColumn: Projecten.ProjectleiderMedewerkerKey
+	toColumn: Bedrijfsmedewerkers.MedewerkerKey
+
+relationship 3b5c649e-8ce9-40d8-bd90-58ee553fef92
+	isActive: false
+	fromColumn: Projecten.UitvoerderMedewerkerKey
+	toColumn: Bedrijfsmedewerkers.MedewerkerKey
+
+relationship 83368562-9308-43b4-b658-89b6a2397168
+	isActive: false
+	fromColumn: Projecten.VerkoperMedewerkerKey
+	toColumn: Bedrijfsmedewerkers.MedewerkerKey
+
+relationship c1fa8979-ab0d-458f-bdb2-c89ab7430a7a
+	isActive: false
+	fromColumn: Projecten.WerkvoorbereiderMedewerkerKey
+	toColumn: Bedrijfsmedewerkers.MedewerkerKey
+
+relationship 8d885112-3a32-4624-9879-e914d01e8eac
+	fromColumn: 'Werkbonparagraaf kosten en geboekte uren'.KostensoortKey
+	toColumn: Kostensoorten.KostensoortKey
+
+relationship 1b5155a2-aa8b-40ea-9fb3-1e364b22cb34
+	fromColumn: 'Werkbonparagraaf WvB arbeid'.KostensoortKey
+	toColumn: Kostensoorten.KostensoortKey
+
+relationship c576951a-2263-4755-824d-d037a0a31ff0
+	crossFilteringBehavior: bothDirections
+	fromColumn: 'Relatie activiteiten'.RelatieKey
+	toColumn: Relaties.RelatieKey
+
+relationship 3b2feac6-bf99-49a6-aa49-f5a612cac996
+	fromColumn: 'Geplande en contracturen medewerkers'.BestekparagraafKey
+	toColumn: Bestekparagrafen.BestekParagraafKey
+
+relationship c46c690f-f716-4d61-b61e-c0aa616209a6
+	isActive: false
+	fromColumn: 'Geplande en contracturen medewerkers'.WerkbonParagraafKey
+	toColumn: Werkbonparagrafen.WerkbonparagraafKey
+
+relationship 82a805b6-ee26-47a3-9555-5628297b7bf2
+	fromColumn: 'Projecten WvB arbeid'.BestekparagraafKey
+	toColumn: Bestekparagrafen.BestekParagraafKey
+
+relationship 6b053ef3-ced1-4a51-bc9f-0c773ab478f5
+	fromColumn: 'Projecten WvB materiaal en overig'.BestekparagraafKey
+	toColumn: Bestekparagrafen.BestekParagraafKey
+
+relationship 2dc72686-2a19-4171-a464-f496b908f86a
+	fromColumn: 'Werkbonparagraaf WvB materiaal en overig'.KostensoortKey
+	toColumn: Kostensoorten.KostensoortKey
+
+relationship 5a1b86a5-211a-45ab-8c99-e7e01d858635
+	fromColumn: 'Werkbonparagraaf WvB materiaal en overig'.TariefKey
+	toColumn: Tarieven.TariefKey
+
+relationship e23d46e9-0b0a-4e57-bc34-0c90746675de
+	fromColumn: 'Werkbonparagraaf WvB materiaal en overig'.HandelsartikelKey
+	toColumn: Handelsartikelen.HandelsartikelKey
+
+relationship cd922b13-f8ca-4b04-a48d-c7fc68958993
+	fromColumn: 'Projecten WvB materiaal en overig'.TariefKey
+	toColumn: Tarieven.TariefKey
+
+relationship 689d25d9-7889-407d-8ba4-e142954ad9e2
+	fromColumn: 'Projecten WvB arbeid'.TaakKey
+	toColumn: Taken.TaakKey
+
+relationship c27506a0-ee39-4450-ba77-acda6900c8de
+	fromColumn: 'Projecten WvB materiaal en overig'.KostensoortKey
+	toColumn: Kostensoorten.KostensoortKey
+
+relationship fcf76c14-4de6-46a8-95b7-8751aa83c8c3
+	fromColumn: 'Projecten WvB materiaal en overig'.HandelsartikelKey
+	toColumn: Handelsartikelen.HandelsartikelKey
+
+relationship 23ffd9d5-3e50-4e18-8bc6-6eaa6db52e4c
+	fromColumn: 'Voorraad posities'.TariefKey
+	toColumn: Tarieven.TariefKey
+
+relationship 4203a904-e1a6-4473-b1a7-c9b1362a5932
+	fromColumn: 'Project kosten en geboekte uren'.TariefKey
+	toColumn: Tarieven.TariefKey
+
+relationship abf79785-147e-4dd9-ac66-62676d050a18
+	fromColumn: 'Werkbonparagraaf kosten en geboekte uren'.HandelsartikelKey
+	toColumn: Handelsartikelen.HandelsartikelKey
+
+relationship 093a21c5-9023-4aaa-981a-54921802e1e5
+	fromColumn: 'Werkbonparagraaf kosten en geboekte uren'.TariefKey
+	toColumn: Tarieven.TariefKey
+
+relationship eb6b455f-0e6d-44ae-9a4d-33ef00b62ea9
+	fromColumn: 'Calculatie kostenregels'.TariefKey
+	toColumn: Tarieven.TariefKey
+
+relationship 048b4831-0076-4a8f-ae64-d27561669af5
+	fromColumn: 'Werkbonparagraaf opbrengsten'.Boekdatum
+	toColumn: Kalender.Datum
+
+relationship 8bafdd79-04ac-4522-8696-bbf38fcf0e73
+	fromColumn: 'Werkbonparagraaf kosten en geboekte uren'.Boekdatum
+	toColumn: Kalender.Datum
+
+relationship 8c447007-78bb-456e-b2c6-d9fd5713d4f0
+	fromColumn: 'Document paraferingen'.DocumentKey
+	toColumn: Documenten.DocumentKey
+
+relationship b2252647-d5c8-4e57-b15c-d2de22c9bed0
+	fromColumn: 'Logboek aanmeldingen'.AdministratieKey
+	toColumn: Administraties.AdministratieKey
+
+relationship 260220f6-34ef-42a0-9125-900f267fa839
+	fromColumn: 'Project periodieke orderregels'.ProjectKey
+	toColumn: Projecten.ProjectKey
+
+relationship 6845e244-cd6e-a113-c36a-8bf44a04942b
+	fromColumn: 'Betalingen per opbrengstregel (alleen periodieke orderregels)'.OrderregelKey
+	toColumn: 'Project periodieke orderregels'.OrderregelKey
+
+relationship 02e2cedf-4704-48e9-a00f-9878b594996d
+	fromColumn: 'Betalingen per opbrengstregel (alleen periodieke orderregels)'.DispuutKey
+	toColumn: Disputen.DispuutKey
+
+relationship 8ab5c669-19d8-4475-8a36-bf2b9453aefb
+	fromColumn: 'Betalingen per opbrengstregel (alleen orderregels)'.'Verkoopfactuur boekdatum'
+	toColumn: Kalender.Datum
+
+relationship f93b03d5-3b6c-578f-1fe1-65cd2e149f33
+	fromColumn: 'Betalingen per opbrengstregel (alleen periodieke orderregels)'.'Verkoopfactuur boekdatum'
+	toColumn: Kalender.Datum
+
+relationship 44d95577-aae7-4dbb-b09e-74af71758dce
+	fromColumn: 'Relatie activiteiten'.BedrijfsactiviteitKey
+	toColumn: Bedrijfsactiviteiten.BedrijfsactiviteitKey
+
+relationship aecd9674-2d87-4e27-b0cd-a95b33b53d36
+	fromColumn: 'NR - Projectvoortgang opnameregels DQ'.BestekparagraafKey
+	toColumn: Bestekparagrafen.BestekParagraafKey
+
+relationship 85c76e47-bc39-4caa-a6d7-85d48ed95fae
+	crossFilteringBehavior: bothDirections
+	fromColumn: 'NR - Projectvoortgang opnameregels DQ'.ProjectopnameKey
+	toColumn: 'NR - Projectvoortgang opnames DQ'.ProjectopnameKey
+
+relationship 0d72cf40-8770-4953-a55c-deaf1bc9b629
+	fromColumn: 'Geplande en contracturen medewerkers'.TaakKey
+	toColumn: Taken.TaakKey
+
+relationship c149cc52-66dd-49fd-b3b9-7407c840cab9
+	fromColumn: Projecten.'Project SegmentKey'
+	toColumn: Segmenten.SegmentKey
+
+relationship 34732ea5-c2a9-0a10-ed10-56fa06ba8aa1
+	fromColumn: 'Project service werkvoorbereiding'.BestekparagraafKey
+	toColumn: Bestekparagrafen.BestekParagraafKey
+
+relationship 5a3dc9ed-70d4-2951-d25c-4f831935e415
+	fromColumn: 'Logboek werkbonfases'.WerkbonDocumentKey
+	toColumn: Werkbonnen.WerkbonDocumentKey
+
+relationship 464f23aa-c680-d3fc-820f-1ef0b4f20ed5
+	isActive: false
+	fromColumn: 'Project omzet'.BestekParagraafKey
+	toColumn: Bestekparagrafen.BestekParagraafKey
+
+relationship cdca8d9f-5ae8-98fb-d4b6-1bd7bb4c4435
+	isActive: false
+	fromColumn: 'Project omzet'.WerkbonKey
+	toColumn: Werkbonnen.WerkbonDocumentKey
+
+relationship cfb578b0-7c44-600d-2cec-c3a94c670cf1
+	isActive: false
+	fromColumn: 'Project omzet'.WerkbonParagraafKey
+	toColumn: Werkbonparagrafen.WerkbonparagraafKey
+
+relationship 2b128abf-c033-72a3-5847-86bfce12b5e1
+	isActive: false
+	fromColumn: 'Calculaties met verkoopprijzen'.Aanmaakdatum
+	toColumn: 'Kalender aanmaakdatum'.Aanmaakdatum
+
+relationship 493fde4a-6d96-5a2a-f7a0-437e340754b3
+	fromColumn: Taken.unieketaakid
+	toColumn: 'NR - Taakgroepen DQ'.UniekeID
+
+relationship 6433420f-3b60-aafe-c5b9-bb8454bfc2cb
+	fromColumn: Journaalregels.Boekdatum
+	toColumn: Kalender.Datum
+
+relationship 0af5af30-d8ea-2b5b-e0d8-a175fda72f17
+	fromColumn: Acties.ActieDocumentKey
+	toColumn: Documenten.DocumentKey
+
+relationship 29b7a94a-18f9-3f5e-f606-80c2d91ed950
+	isActive: false
+	fromColumn: Acties.GekoppeldDocumentKey
+	toColumn: Documenten.DocumentKey
+
+relationship 6158c9be-cab1-49b9-2c8a-2393e22acb42
+	isActive: false
+	fromColumn: Acties.ProjectKey
+	toColumn: Projecten.ProjectKey
+
+relationship 3151dd72-1372-df67-c5e7-1e5eb2c26121
+	fromColumn: Acties.RelatieKey
+	toColumn: Relaties.RelatieKey
+
+relationship 41aebf97-5987-0a13-0460-030841fa7f00
+	fromColumn: 'Werkbonparagraaf checklistregels'.WerkbonparagraafKey
+	toColumn: Werkbonparagrafen.WerkbonparagraafKey
+
+relationship eacd11e4-19fd-aaa0-7597-23631b040b4a
+	fromColumn: 'Installatie ventilatie'.InstallatieKey
+	toColumn: Installaties.InstallatieKey
+
+relationship 443af0d1-bd57-bded-296c-48b8376b1802
+	isActive: false
+	fromColumn: 'Project kosten en geboekte uren'.DocumentKey
+	toColumn: Documenten.DocumentKey
+

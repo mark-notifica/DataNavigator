@@ -1,0 +1,95 @@
+﻿table 'Inkoopfactuur termijnen'
+
+	column InkoopFactuurKey
+		dataType: int64
+		formatString: 0
+		summarizeBy: none
+		sourceColumn: InkoopFactuurKey
+
+		annotation SummarizationSetBy = Automatic
+
+	column Alloc_datum
+		dataType: dateTime
+		formatString: General Date
+		summarizeBy: none
+		sourceColumn: Alloc_datum
+
+		annotation SummarizationSetBy = Automatic
+
+	column Bedrag
+		dataType: double
+		summarizeBy: sum
+		sourceColumn: Bedrag
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column Factuurdatum
+		dataType: dateTime
+		formatString: General Date
+		summarizeBy: none
+		sourceColumn: Factuurdatum
+
+		annotation SummarizationSetBy = Automatic
+
+	column Boekdatum
+		dataType: dateTime
+		formatString: General Date
+		summarizeBy: none
+		sourceColumn: Boekdatum
+
+		annotation SummarizationSetBy = Automatic
+
+	column Crediteur
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Crediteur
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Bankafschrift status'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Bankafschrift status
+
+		annotation SummarizationSetBy = Automatic
+
+	column Vervaldatum
+		dataType: dateTime
+		formatString: General Date
+		summarizeBy: none
+		sourceColumn: Vervaldatum
+
+		annotation SummarizationSetBy = Automatic
+
+	column Termijnstatus
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Termijnstatus
+
+		annotation SummarizationSetBy = Automatic
+
+	column DispuutKey
+		dataType: int64
+		formatString: 0
+		summarizeBy: none
+		sourceColumn: DispuutKey
+
+		annotation SummarizationSetBy = Automatic
+
+	partition 'Inkoopfactuur termijnen' = m
+		mode: import
+		queryGroup: 'Feiten algemeen'
+		source =
+				let
+				    View = "SSM Inkoopfactuur termijnen",
+				    Source =PostgreSQL.Database(#"3_server",#"4_database"),
+				    #"Notifica_SSM" = Source{[Schema=#"5_schema",Item=View]}[Data]
+				in
+				    #"Notifica_SSM"
+
+	annotation PBI_ResultType = Table
+
+	annotation PBI_NavigationStepName = Navigation
+

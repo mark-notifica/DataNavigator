@@ -1,0 +1,67 @@
+{
+  "name": "85dbfe056c51e0a220d7",
+  "layouts": [
+    {
+      "id": 0,
+      "position": {
+        "x": 1029.0723201902119,
+        "y": 240.22508420844065,
+        "z": 3000,
+        "width": 251.58708143451557,
+        "height": 191.53081038240538,
+        "tabOrder": 3000
+      }
+    }
+  ],
+  "singleVisual": {
+    "visualType": "card",
+    "projections": {
+      "Values": [
+        {
+          "queryRef": "Formules.Prognose vs budget"
+        }
+      ]
+    },
+    "prototypeQuery": {
+      "Version": 2,
+      "From": [
+        {
+          "Name": "f",
+          "Entity": "Formules",
+          "Type": 0
+        }
+      ],
+      "Select": [
+        {
+          "Measure": {
+            "Expression": {
+              "SourceRef": {
+                "Source": "f"
+              }
+            },
+            "Property": "Prognose vs budget"
+          },
+          "Name": "Formules.Prognose vs budget",
+          "NativeReferenceName": "Prognose vs budget"
+        }
+      ],
+      "OrderBy": [
+        {
+          "Direction": 2,
+          "Expression": {
+            "Measure": {
+              "Expression": {
+                "SourceRef": {
+                  "Source": "f"
+                }
+              },
+              "Property": "Prognose vs budget"
+            }
+          }
+        }
+      ]
+    },
+    "drillFilterOtherVisuals": true,
+    "hasDefaultSort": true
+  }
+}

@@ -1,0 +1,181 @@
+{
+  "name": "b407fa937d12beec0ea2",
+  "layouts": [
+    {
+      "id": 0,
+      "position": {
+        "x": 420.89679715302492,
+        "y": 0,
+        "z": 1000,
+        "width": 859.10320284697514,
+        "height": 720.626334519573,
+        "tabOrder": 1000
+      }
+    }
+  ],
+  "singleVisual": {
+    "visualType": "pivotTable",
+    "projections": {
+      "Values": [
+        {
+          "queryRef": "Formules.Definitieve kostprijs (t/m standdatum)"
+        },
+        {
+          "queryRef": "Formules.Definitieve kostprijs"
+        }
+      ],
+      "Columns": [
+        {
+          "queryRef": "Kalender.Jaar",
+          "active": true
+        },
+        {
+          "queryRef": "Kalender.Maand",
+          "active": true
+        }
+      ]
+    },
+    "prototypeQuery": {
+      "Version": 2,
+      "From": [
+        {
+          "Name": "f",
+          "Entity": "Formules",
+          "Type": 0
+        },
+        {
+          "Name": "k",
+          "Entity": "Kalender",
+          "Type": 0
+        }
+      ],
+      "Select": [
+        {
+          "Measure": {
+            "Expression": {
+              "SourceRef": {
+                "Source": "f"
+              }
+            },
+            "Property": "Definitieve kostprijs (t/m standdatum)"
+          },
+          "Name": "Formules.Definitieve kostprijs (t/m standdatum)",
+          "NativeReferenceName": "Definitieve kostprijs (t/m standdatum)"
+        },
+        {
+          "Column": {
+            "Expression": {
+              "SourceRef": {
+                "Source": "k"
+              }
+            },
+            "Property": "Jaar"
+          },
+          "Name": "Kalender.Jaar",
+          "NativeReferenceName": "Jaar"
+        },
+        {
+          "Column": {
+            "Expression": {
+              "SourceRef": {
+                "Source": "k"
+              }
+            },
+            "Property": "Maand"
+          },
+          "Name": "Kalender.Maand",
+          "NativeReferenceName": "Maand"
+        },
+        {
+          "Measure": {
+            "Expression": {
+              "SourceRef": {
+                "Source": "f"
+              }
+            },
+            "Property": "Definitieve kostprijs"
+          },
+          "Name": "Formules.Definitieve kostprijs",
+          "NativeReferenceName": "Definitieve kostprijs"
+        }
+      ]
+    },
+    "drillFilterOtherVisuals": true,
+    "objects": {
+      "columnWidth": [
+        {
+          "properties": {
+            "value": {
+              "expr": {
+                "Literal": {
+                  "Value": "243.7859649122807D"
+                }
+              }
+            }
+          },
+          "selector": {
+            "data": [
+              {
+                "scopeId": {
+                  "Comparison": {
+                    "ComparisonKind": 0,
+                    "Left": {
+                      "Column": {
+                        "Expression": {
+                          "SourceRef": {
+                            "Entity": "Kalender"
+                          }
+                        },
+                        "Property": "Jaar"
+                      }
+                    },
+                    "Right": {
+                      "Literal": {
+                        "Value": "2024L"
+                      }
+                    }
+                  }
+                }
+              },
+              {
+                "scopeId": {
+                  "Comparison": {
+                    "ComparisonKind": 0,
+                    "Left": {
+                      "Column": {
+                        "Expression": {
+                          "SourceRef": {
+                            "Entity": "Kalender"
+                          }
+                        },
+                        "Property": "Maand"
+                      }
+                    },
+                    "Right": {
+                      "Literal": {
+                        "Value": "'januari'"
+                      }
+                    }
+                  }
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "values": [
+        {
+          "properties": {
+            "valuesOnRow": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            }
+          }
+        }
+      ]
+    }
+  }
+}

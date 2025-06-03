@@ -1,0 +1,90 @@
+﻿table Materieel
+
+	column MaterieelKey
+		dataType: int64
+		formatString: 0
+		summarizeBy: none
+		sourceColumn: MaterieelKey
+
+		annotation SummarizationSetBy = Automatic
+
+	column AdministratieKey
+		dataType: int64
+		formatString: 0
+		summarizeBy: none
+		sourceColumn: AdministratieKey
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Materieelgroep code'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Materieelgroep code
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Materieelgroep omschrijving'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Materieelgroep omschrijving
+
+		annotation SummarizationSetBy = Automatic
+
+	column MedewerkerKey
+		dataType: int64
+		formatString: 0
+		summarizeBy: count
+		sourceColumn: MedewerkerKey
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Materieel code'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Materieel code
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Materieel omschrijving'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Materieel omschrijving
+
+		annotation SummarizationSetBy = Automatic
+
+	column Kenmerk
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Kenmerk
+
+		annotation SummarizationSetBy = Automatic
+
+	column Status
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Status
+
+		annotation SummarizationSetBy = Automatic
+
+	column Keuren
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Keuren
+
+		annotation SummarizationSetBy = Automatic
+
+	partition Materieel = m
+		mode: import
+		queryGroup: Stam
+		source =
+				let
+				    View = "SSM Materieel",
+				    Source =PostgreSQL.Database(#"3_server",#"4_database"),
+				    #"Notifica_SSM" = Source{[Schema=#"5_schema",Item=View]}[Data]
+				in
+				    #"Notifica_SSM"
+
+	annotation PBI_ResultType = Table
+
+	annotation PBI_NavigationStepName = Navigation
+

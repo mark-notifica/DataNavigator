@@ -1,0 +1,333 @@
+{
+  "name": "d9c1b95ee14d7400dbaa",
+  "layouts": [
+    {
+      "id": 0,
+      "position": {
+        "x": 0,
+        "y": 62.6865671641791,
+        "z": 1000,
+        "width": 1279.7014925373135,
+        "height": 329.55223880597015,
+        "tabOrder": 0
+      }
+    },
+    {
+      "id": 1,
+      "position": {
+        "x": 0,
+        "y": 53,
+        "z": 2,
+        "width": 324,
+        "height": 400
+      }
+    }
+  ],
+  "singleVisual": {
+    "visualType": "textbox",
+    "drillFilterOtherVisuals": true,
+    "objects": {
+      "general": [
+        {
+          "properties": {
+            "paragraphs": [
+              {
+                "textRuns": [
+                  {
+                    "value": "SSM ",
+                    "textStyle": {
+                      "fontFamily": "Calibri",
+                      "fontStyle": "italic",
+                      "fontSize": "11pt"
+                    }
+                  },
+                  {
+                    "value": "is ontwikkeld als een zeer complete dataset. In PowerBI wordt dit het ",
+                    "textStyle": {
+                      "fontFamily": "Calibri",
+                      "fontSize": "11pt"
+                    }
+                  },
+                  {
+                    "value": "semantic model ",
+                    "textStyle": {
+                      "fontFamily": "Calibri",
+                      "fontStyle": "italic",
+                      "fontSize": "11pt"
+                    }
+                  },
+                  {
+                    "value": "genoemd. Het ",
+                    "textStyle": {
+                      "fontFamily": "Calibri",
+                      "fontSize": "11pt"
+                    }
+                  },
+                  {
+                    "value": "semantische",
+                    "textStyle": {
+                      "fontFamily": "Calibri",
+                      "fontSize": "14.6667px"
+                    }
+                  },
+                  {
+                    "value": " model bevat de tabellen, kolommen en berekeningen, in PowerBI measures genoemd, die gebruikt worden voor de Best Practice rapportages. Dit rapport zelf heeft de functie om u te informeren over het gebruik van het semantische model.",
+                    "textStyle": {
+                      "fontFamily": "Calibri",
+                      "fontSize": "11pt"
+                    }
+                  }
+                ]
+              },
+              {
+                "textRuns": [
+                  {
+                    "value": ""
+                  }
+                ]
+              },
+              {
+                "textRuns": [
+                  {
+                    "value": "Een ",
+                    "textStyle": {
+                      "fontFamily": "Calibri",
+                      "fontSize": "11pt"
+                    }
+                  },
+                  {
+                    "value": "semantisch",
+                    "textStyle": {
+                      "fontFamily": "Calibri",
+                      "fontSize": "14.6667px"
+                    }
+                  },
+                  {
+                    "value": " model kunt u zelf ook gebruiken om rapportages op te ontwikkelen. Met een ",
+                    "textStyle": {
+                      "fontFamily": "Calibri",
+                      "fontSize": "11pt"
+                    }
+                  },
+                  {
+                    "value": "Live Connection",
+                    "textStyle": {
+                      "fontFamily": "Calibri",
+                      "fontStyle": "italic",
+                      "fontSize": "11pt"
+                    }
+                  },
+                  {
+                    "value": " of ",
+                    "textStyle": {
+                      "fontFamily": "Calibri",
+                      "fontSize": "11pt"
+                    }
+                  },
+                  {
+                    "value": "Direct Query ",
+                    "textStyle": {
+                      "fontFamily": "Calibri",
+                      "fontStyle": "italic",
+                      "fontSize": "11pt"
+                    }
+                  },
+                  {
+                    "value": "kan verbinding worden gemaakt worden gemaakt met dit semantische model. ",
+                    "textStyle": {
+                      "fontFamily": "Calibri",
+                      "fontSize": "11pt"
+                    }
+                  },
+                  {
+                    "value": "Dit wordt een Thin Report genoemd. ",
+                    "textStyle": {
+                      "fontFamily": "Calibri",
+                      "fontSize": "14.6667px"
+                    }
+                  }
+                ]
+              },
+              {
+                "textRuns": [
+                  {
+                    "value": ""
+                  }
+                ]
+              },
+              {
+                "textRuns": [
+                  {
+                    "value": "Standaard is de verbinding ",
+                    "textStyle": {
+                      "fontFamily": "Calibri",
+                      "fontSize": "11pt"
+                    }
+                  },
+                  {
+                    "value": "Live Connection",
+                    "textStyle": {
+                      "fontFamily": "Calibri",
+                      "fontStyle": "italic",
+                      "fontSize": "11pt"
+                    }
+                  },
+                  {
+                    "value": ". In PowerBI desktop kan dit worden omgezet naar ",
+                    "textStyle": {
+                      "fontFamily": "Calibri",
+                      "fontSize": "11pt"
+                    }
+                  },
+                  {
+                    "value": "Direct Query.",
+                    "textStyle": {
+                      "fontFamily": "Calibri",
+                      "fontStyle": "italic",
+                      "fontSize": "11pt"
+                    }
+                  },
+                  {
+                    "value": " Hierdoor kunnen andere databronnen en rapport specifieke berekeningen worden toegevoegd. Alle berekeningen staan in de map Formules. U kunt als ",
+                    "textStyle": {
+                      "fontFamily": "Calibri",
+                      "fontSize": "11pt"
+                    }
+                  },
+                  {
+                    "value": "developer ",
+                    "textStyle": {
+                      "fontFamily": "Calibri",
+                      "fontStyle": "italic",
+                      "fontSize": "11pt"
+                    }
+                  },
+                  {
+                    "value": "het semantisch model SSM gebruiken om nieuwe rapportages op te ontwikkelen. In PowerBI dekstop met ",
+                    "textStyle": {
+                      "fontFamily": "Calibri",
+                      "fontSize": "11pt"
+                    }
+                  },
+                  {
+                    "value": "Direct Query",
+                    "textStyle": {
+                      "fontFamily": "Calibri",
+                      "fontStyle": "italic",
+                      "fontSize": "11pt"
+                    }
+                  },
+                  {
+                    "value": " kunt u ",
+                    "textStyle": {
+                      "fontFamily": "Calibri",
+                      "fontSize": "11pt"
+                    }
+                  }
+                ]
+              },
+              {
+                "textRuns": [
+                  {
+                    "value": "alle tabellen en de onderlinge relaties zien. Dit is het data model. Op tabblad Documentatie Measures staan de technische DAX formules per measure en de functionele omschrijvingen.",
+                    "textStyle": {
+                      "fontFamily": "Calibri",
+                      "fontSize": "11pt"
+                    }
+                  }
+                ]
+              },
+              {
+                "textRuns": [
+                  {
+                    "value": ""
+                  }
+                ]
+              },
+              {
+                "textRuns": [
+                  {
+                    "value": "Alhoewel thin reports volledig online kunnen worden ontwikkeld* adviseren wij om PowerBI desktop te gebruiken. Met PowerBI desktop kan de voorkeur verbinding, ",
+                    "textStyle": {
+                      "fontFamily": "Calibri",
+                      "fontSize": "11pt"
+                    }
+                  },
+                  {
+                    "value": "Direct Query",
+                    "textStyle": {
+                      "fontFamily": "Calibri",
+                      "fontStyle": "italic",
+                      "fontSize": "11pt"
+                    }
+                  },
+                  {
+                    "value": ", worden aangemaakt en heeft in algemene zin meer functionaliteiten. U kunt zelf nieuwe DAX berekeningen, kolommen en tabellen toevoegen gebaseerd op het door ons beheerde SSM.",
+                    "textStyle": {
+                      "fontFamily": "Calibri",
+                      "fontSize": "11pt"
+                    }
+                  }
+                ]
+              },
+              {
+                "textRuns": [
+                  {
+                    "value": ""
+                  }
+                ]
+              },
+              {
+                "textRuns": [
+                  {
+                    "value": ""
+                  }
+                ]
+              },
+              {
+                "textRuns": [
+                  {
+                    "value": ""
+                  }
+                ]
+              },
+              {
+                "textRuns": [
+                  {
+                    "value": ""
+                  }
+                ]
+              },
+              {
+                "textRuns": [
+                  {
+                    "value": "*rapportages die online zijn aangemaakt hebben altijd een Live Connection.",
+                    "textStyle": {
+                      "fontFamily": "Calibri",
+                      "fontSize": "9pt"
+                    }
+                  }
+                ]
+              }
+            ]
+          }
+        }
+      ]
+    },
+    "vcObjects": {
+      "title": [
+        {
+          "properties": {
+            "text": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Info SSM'"
+                }
+              }
+            }
+          }
+        }
+      ]
+    }
+  }
+}

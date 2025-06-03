@@ -1,0 +1,16 @@
+﻿table 'Methode norm productiviteit monteurs'
+
+	column Value
+		formatString: 0.0%;-0.0%;0.0%
+		summarizeBy: none
+		isNameInferred
+		sourceColumn: [Value]
+
+		annotation SummarizationSetBy = Automatic
+
+	partition 'Methode norm productiviteit monteurs' = calculated
+		mode: import
+		source = GENERATESERIES(0,1,0.05)
+
+	annotation PBI_Id = e03fb29edaa0431e8d37f833fceeb72a
+

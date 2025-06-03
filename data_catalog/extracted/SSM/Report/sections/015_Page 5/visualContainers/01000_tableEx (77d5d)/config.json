@@ -1,0 +1,315 @@
+{
+  "name": "77d5d0cda8200eb24210",
+  "layouts": [
+    {
+      "id": 0,
+      "position": {
+        "x": 0,
+        "y": 302,
+        "z": 0,
+        "width": 1237,
+        "height": 418,
+        "tabOrder": 1000
+      }
+    }
+  ],
+  "singleVisual": {
+    "visualType": "tableEx",
+    "projections": {
+      "Values": [
+        {
+          "queryRef": "Projecten.Hoofdproject"
+        },
+        {
+          "queryRef": "Projecten.Hoofdprojectstatus"
+        },
+        {
+          "queryRef": "CountNonNull(Projecten.Niveau1AlleenGC_ID)"
+        },
+        {
+          "queryRef": "CountNonNull(Projecten.Niveau2AlleenGC_ID)"
+        },
+        {
+          "queryRef": "CountNonNull(Projecten.Niveau3AlleenGC_ID)"
+        },
+        {
+          "queryRef": "Projecten.Niveau 2 Project"
+        },
+        {
+          "queryRef": "Projecten.Niveau 3 Project"
+        },
+        {
+          "queryRef": "Sum(Projecten.Niveau)"
+        },
+        {
+          "queryRef": "Formules.Hoogste projectniveau voortgang app"
+        },
+        {
+          "queryRef": "Bestekparagrafen.Bestekparagraaf niveau 1"
+        },
+        {
+          "queryRef": "Bestekparagrafen.Bestekparagraaf niveau 2"
+        },
+        {
+          "queryRef": "Bestekparagrafen.Bestekparagraaf niveau 3"
+        },
+        {
+          "queryRef": "Bestekparagrafen.Bestekparagraaf niveau 4"
+        }
+      ]
+    },
+    "prototypeQuery": {
+      "Version": 2,
+      "From": [
+        {
+          "Name": "p",
+          "Entity": "Projecten",
+          "Type": 0
+        },
+        {
+          "Name": "f",
+          "Entity": "Formules",
+          "Type": 0
+        },
+        {
+          "Name": "b",
+          "Entity": "Bestekparagrafen",
+          "Type": 0
+        }
+      ],
+      "Select": [
+        {
+          "Column": {
+            "Expression": {
+              "SourceRef": {
+                "Source": "p"
+              }
+            },
+            "Property": "Hoofdproject"
+          },
+          "Name": "Projecten.Hoofdproject",
+          "NativeReferenceName": "Hoofdproject"
+        },
+        {
+          "Column": {
+            "Expression": {
+              "SourceRef": {
+                "Source": "p"
+              }
+            },
+            "Property": "Hoofdprojectstatus"
+          },
+          "Name": "Projecten.Hoofdprojectstatus",
+          "NativeReferenceName": "Hoofdprojectstatus"
+        },
+        {
+          "Column": {
+            "Expression": {
+              "SourceRef": {
+                "Source": "p"
+              }
+            },
+            "Property": "Niveau1AlleenGC_ID"
+          },
+          "Name": "CountNonNull(Projecten.Niveau1AlleenGC_ID)",
+          "NativeReferenceName": "Niveau1AlleenGC_ID"
+        },
+        {
+          "Column": {
+            "Expression": {
+              "SourceRef": {
+                "Source": "p"
+              }
+            },
+            "Property": "Niveau2AlleenGC_ID"
+          },
+          "Name": "CountNonNull(Projecten.Niveau2AlleenGC_ID)",
+          "NativeReferenceName": "Niveau2AlleenGC_ID"
+        },
+        {
+          "Column": {
+            "Expression": {
+              "SourceRef": {
+                "Source": "p"
+              }
+            },
+            "Property": "Niveau3AlleenGC_ID"
+          },
+          "Name": "CountNonNull(Projecten.Niveau3AlleenGC_ID)",
+          "NativeReferenceName": "Niveau3AlleenGC_ID"
+        },
+        {
+          "Column": {
+            "Expression": {
+              "SourceRef": {
+                "Source": "p"
+              }
+            },
+            "Property": "Niveau 2 Project"
+          },
+          "Name": "Projecten.Niveau 2 Project",
+          "NativeReferenceName": "Niveau 2 Project"
+        },
+        {
+          "Column": {
+            "Expression": {
+              "SourceRef": {
+                "Source": "p"
+              }
+            },
+            "Property": "Niveau 3 Project"
+          },
+          "Name": "Projecten.Niveau 3 Project",
+          "NativeReferenceName": "Niveau 3 Project"
+        },
+        {
+          "Column": {
+            "Expression": {
+              "SourceRef": {
+                "Source": "p"
+              }
+            },
+            "Property": "Niveau"
+          },
+          "Name": "Sum(Projecten.Niveau)",
+          "NativeReferenceName": "Niveau"
+        },
+        {
+          "Measure": {
+            "Expression": {
+              "SourceRef": {
+                "Source": "f"
+              }
+            },
+            "Property": "Hoogste projectniveau voortgang app"
+          },
+          "Name": "Formules.Hoogste projectniveau voortgang app",
+          "NativeReferenceName": "Hoogste projectniveau voortgang app"
+        },
+        {
+          "Column": {
+            "Expression": {
+              "SourceRef": {
+                "Source": "b"
+              }
+            },
+            "Property": "Bestekparagraaf niveau 1"
+          },
+          "Name": "Bestekparagrafen.Bestekparagraaf niveau 1",
+          "NativeReferenceName": "Bestekparagraaf niveau 1"
+        },
+        {
+          "Column": {
+            "Expression": {
+              "SourceRef": {
+                "Source": "b"
+              }
+            },
+            "Property": "Bestekparagraaf niveau 2"
+          },
+          "Name": "Bestekparagrafen.Bestekparagraaf niveau 2",
+          "NativeReferenceName": "Bestekparagraaf niveau 2"
+        },
+        {
+          "Column": {
+            "Expression": {
+              "SourceRef": {
+                "Source": "b"
+              }
+            },
+            "Property": "Bestekparagraaf niveau 3"
+          },
+          "Name": "Bestekparagrafen.Bestekparagraaf niveau 3",
+          "NativeReferenceName": "Bestekparagraaf niveau 3"
+        },
+        {
+          "Column": {
+            "Expression": {
+              "SourceRef": {
+                "Source": "b"
+              }
+            },
+            "Property": "Bestekparagraaf niveau 4"
+          },
+          "Name": "Bestekparagrafen.Bestekparagraaf niveau 4",
+          "NativeReferenceName": "Bestekparagraaf niveau 4"
+        }
+      ],
+      "OrderBy": [
+        {
+          "Direction": 1,
+          "Expression": {
+            "Column": {
+              "Expression": {
+                "SourceRef": {
+                  "Source": "p"
+                }
+              },
+              "Property": "Hoofdproject"
+            }
+          }
+        }
+      ]
+    },
+    "drillFilterOtherVisuals": true,
+    "objects": {
+      "columnWidth": [
+        {
+          "properties": {
+            "value": {
+              "expr": {
+                "Literal": {
+                  "Value": "288.22861964920014D"
+                }
+              }
+            }
+          },
+          "selector": {
+            "metadata": "Projecten.Niveau 2 Project"
+          }
+        },
+        {
+          "properties": {
+            "value": {
+              "expr": {
+                "Literal": {
+                  "Value": "217.26353027045099D"
+                }
+              }
+            }
+          },
+          "selector": {
+            "metadata": "Projecten.Niveau 3 Project"
+          }
+        },
+        {
+          "properties": {
+            "value": {
+              "expr": {
+                "Literal": {
+                  "Value": "151D"
+                }
+              }
+            }
+          },
+          "selector": {
+            "metadata": "CountNonNull(Projecten.Niveau2AlleenGC_ID)"
+          }
+        }
+      ],
+      "values": [
+        {
+          "properties": {
+            "wordWrap": {
+              "expr": {
+                "Literal": {
+                  "Value": "false"
+                }
+              }
+            }
+          }
+        }
+      ]
+    }
+  }
+}

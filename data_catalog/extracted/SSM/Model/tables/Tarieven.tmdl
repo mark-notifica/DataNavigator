@@ -1,0 +1,219 @@
+﻿table Tarieven
+
+	column TariefKey
+		dataType: int64
+		formatString: 0
+		summarizeBy: none
+		sourceColumn: TariefKey
+
+		annotation SummarizationSetBy = Automatic
+
+	column EenheidKey
+		dataType: int64
+		formatString: 0
+		summarizeBy: count
+		sourceColumn: EenheidKey
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Tarief Code'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Tarief Code
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Tarief omschrijving'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Tarief omschrijving
+
+		annotation SummarizationSetBy = Automatic
+
+	column Tarief
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Tarief
+
+		annotation SummarizationSetBy = Automatic
+
+	column Categorie
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Categorie
+
+		annotation SummarizationSetBy = Automatic
+
+	column Verrekenprijs
+		dataType: double
+		summarizeBy: sum
+		sourceColumn: Verrekenprijs
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column 'Bruto Verkoopprijs'
+		dataType: double
+		summarizeBy: sum
+		sourceColumn: Bruto Verkoopprijs
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column PrijsAantal
+		dataType: double
+		summarizeBy: sum
+		sourceColumn: PrijsAantal
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column 'Recept Ja/Nee'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Recept Ja/Nee
+
+		annotation SummarizationSetBy = Automatic
+
+	column Status
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Status
+
+		annotation SummarizationSetBy = Automatic
+
+	column Consumentenprijs
+		dataType: double
+		summarizeBy: sum
+		sourceColumn: Consumentenprijs
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column 'Handelsartikel LeverancierRelatieKey'
+		dataType: int64
+		formatString: 0
+		summarizeBy: count
+		sourceColumn: Handelsartikel LeverancierRelatieKey
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Handelsartikel bestelnummer'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Handelsartikel bestelnummer
+
+		annotation SummarizationSetBy = Automatic
+
+	column Handelsartikel
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Handelsartikel
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Handelsartikel LeverancierKortinggroep'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Handelsartikel LeverancierKortinggroep
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Artikel merk'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Artikel merk
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Artikel type'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Artikel type
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Artikel serie'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Artikel serie
+
+		annotation SummarizationSetBy = Automatic
+
+	column Artikelklasse
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Artikelklasse
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Artikel EAN code'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Artikel EAN code
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Handelsartikel EAN code'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Handelsartikel EAN code
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Fabrikant artikel EAN code'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Fabrikant artikel EAN code
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Fabrikant handelsartikel EAN code'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Fabrikant handelsartikel EAN code
+
+		annotation SummarizationSetBy = Automatic
+
+	column AdministratieKey
+		dataType: int64
+		formatString: 0
+		summarizeBy: count
+		sourceColumn: AdministratieKey
+
+		annotation SummarizationSetBy = Automatic
+
+	column HandelsartikelKey
+		dataType: int64
+		formatString: 0
+		summarizeBy: count
+		sourceColumn: HandelsartikelKey
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Korte naam'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Korte naam
+
+		annotation SummarizationSetBy = Automatic
+
+	partition Tarieven = m
+		mode: import
+		queryGroup: Stam
+		source =
+				let
+				    View = "SSM Tarieven",
+				    Source =PostgreSQL.Database(#"3_server",#"4_database"),
+				    #"Notifica_SSM" = Source{[Schema=#"5_schema",Item=View]}[Data]
+				in
+				    #"Notifica_SSM"
+
+	annotation PBI_ResultType = Table
+
+	annotation PBI_NavigationStepName = Navigation
+

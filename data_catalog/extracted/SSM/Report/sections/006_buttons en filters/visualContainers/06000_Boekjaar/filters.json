@@ -1,0 +1,161 @@
+[
+  {
+    "name": "Filter462aa024d9112dcbf0f2",
+    "expression": {
+      "Column": {
+        "Expression": {
+          "SourceRef": {
+            "Entity": "Kalender"
+          }
+        },
+        "Property": "Jaar index"
+      }
+    },
+    "filter": {
+      "Version": 2,
+      "From": [
+        {
+          "Name": "k",
+          "Entity": "Kalender",
+          "Type": 0
+        }
+      ],
+      "Where": [
+        {
+          "Condition": {
+            "In": {
+              "Expressions": [
+                {
+                  "Column": {
+                    "Expression": {
+                      "SourceRef": {
+                        "Source": "k"
+                      }
+                    },
+                    "Property": "Jaar index"
+                  }
+                }
+              ],
+              "Values": [
+                [
+                  {
+                    "Literal": {
+                      "Value": "-3L"
+                    }
+                  }
+                ],
+                [
+                  {
+                    "Literal": {
+                      "Value": "-2L"
+                    }
+                  }
+                ],
+                [
+                  {
+                    "Literal": {
+                      "Value": "-1L"
+                    }
+                  }
+                ],
+                [
+                  {
+                    "Literal": {
+                      "Value": "0L"
+                    }
+                  }
+                ]
+              ]
+            }
+          }
+        }
+      ]
+    },
+    "type": "Categorical",
+    "howCreated": 1,
+    "objects": {
+      "general": [
+        {
+          "properties": {}
+        }
+      ]
+    },
+    "isHiddenInViewMode": true,
+    "isLockedInViewMode": true
+  },
+  {
+    "name": "Filtera96d9fb40e88f280d267",
+    "expression": {
+      "Column": {
+        "Expression": {
+          "SourceRef": {
+            "Entity": "Kalender"
+          }
+        },
+        "Property": "Jaar index tekst"
+      }
+    },
+    "filter": {
+      "Version": 2,
+      "From": [
+        {
+          "Name": "k",
+          "Entity": "Kalender",
+          "Type": 0
+        }
+      ],
+      "Where": [
+        {
+          "Condition": {
+            "Not": {
+              "Expression": {
+                "In": {
+                  "Expressions": [
+                    {
+                      "Column": {
+                        "Expression": {
+                          "SourceRef": {
+                            "Source": "k"
+                          }
+                        },
+                        "Property": "Jaar index tekst"
+                      }
+                    }
+                  ],
+                  "Values": [
+                    [
+                      {
+                        "Literal": {
+                          "Value": "null"
+                        }
+                      }
+                    ]
+                  ]
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "type": "Categorical",
+    "howCreated": 0,
+    "objects": {
+      "general": [
+        {
+          "properties": {
+            "isInvertedSelectionMode": {
+              "expr": {
+                "Literal": {
+                  "Value": "true"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "isHiddenInViewMode": true,
+    "isLockedInViewMode": true
+  }
+]

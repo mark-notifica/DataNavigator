@@ -1,0 +1,163 @@
+﻿table 'Calculatie kostenregels'
+
+	column Kostprijs
+		dataType: double
+		summarizeBy: sum
+		sourceColumn: Kostprijs
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column TaakKey
+		dataType: int64
+		formatString: 0
+		summarizeBy: none
+		sourceColumn: TaakKey
+
+		annotation SummarizationSetBy = Automatic
+
+	column KostensoortKey
+		dataType: int64
+		formatString: 0
+		summarizeBy: none
+		sourceColumn: KostensoortKey
+
+		changedProperty = IsHidden
+
+		annotation SummarizationSetBy = Automatic
+
+	column Documentstatus
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Documentstatus
+
+		annotation SummarizationSetBy = Automatic
+
+	column Calculatiestatus
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Calculatiestatus
+
+		annotation SummarizationSetBy = Automatic
+
+	column Calculator
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Calculator
+
+		annotation SummarizationSetBy = Automatic
+
+	column Aantal
+		dataType: double
+		summarizeBy: sum
+		sourceColumn: Aantal
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column Eenheid
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Eenheid
+
+		annotation SummarizationSetBy = Automatic
+
+	column Verrekenprijs
+		dataType: double
+		summarizeBy: sum
+		sourceColumn: Verrekenprijs
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column Calculatie
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Calculatie
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Bron bestekparagraafKey'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Bron bestekparagraafKey
+
+		annotation SummarizationSetBy = Automatic
+
+	column BestekParagraafKey
+		dataType: int64
+		formatString: 0
+		summarizeBy: none
+		sourceColumn: BestekParagraafKey
+
+		annotation SummarizationSetBy = Automatic
+
+	column HandelsartikelKey
+		dataType: int64
+		formatString: 0
+		summarizeBy: none
+		sourceColumn: HandelsartikelKey
+
+		annotation SummarizationSetBy = Automatic
+
+	column CalculatieDocumentKey
+		dataType: int64
+		formatString: 0
+		summarizeBy: none
+		sourceColumn: CalculatieDocumentKey
+
+		annotation SummarizationSetBy = Automatic
+
+	column TariefKey
+		dataType: int64
+		formatString: 0
+		summarizeBy: none
+		sourceColumn: TariefKey
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Calculatie titel'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Calculatie titel
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Regel omschrijving'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Regel omschrijving
+
+		annotation SummarizationSetBy = Automatic
+
+	column calculatiecode
+		dataType: string
+		summarizeBy: none
+		sourceColumn: calculatiecode
+
+		annotation SummarizationSetBy = Automatic
+
+	partition 'Calculatie kostenregels-0ebb1a34-b72a-4e28-b91a-572bdbf06c70' = m
+		mode: import
+		queryGroup: Projecten
+		source =
+				let
+				    View = "SSM calculatie kostenregels",
+				    Source =PostgreSQL.Database(#"3_server",#"4_database"),
+				    #"Notifica_SSM" = Source{[Schema=#"5_schema",Item=View]}[Data]
+				in
+				    #"Notifica_SSM"
+
+	annotation PBI_Id = 8d8c874c-ec6c-4996-bffc-44e6b33a1cae
+
+	annotation LinkedQueryName = Calculatieregels
+
+	annotation PBI_QueryRelationships = {"columnCount":14,"keyColumnNames":[],"queryRelationships":[{"keyColumnCount":1,"keyColumn":0,"otherKeyColumnIdentity":"Server.Database\\/2/SQL/1127.bisqq.nl;DWH1127/stam/stam.Documenten.{DocumentKey,0}","KeyColumnCount":1}],"columnIdentities":["Server.Database\\/2/SQL/1127.bisqq.nl;DWH1127/projecten/projecten.Calculatieregels.{CalculatieDocumentKey,0}","Server.Database\\/2/SQL/1127.bisqq.nl;DWH1127/projecten/projecten.Calculatieregels.{ProjectKey,1}","Server.Database\\/2/SQL/1127.bisqq.nl;DWH1127/projecten/projecten.Calculatieregels.{Calculatie,2}","Server.Database\\/2/SQL/1127.bisqq.nl;DWH1127/projecten/projecten.Calculatieregels.{Documentstatus,3}","Server.Database\\/2/SQL/1127.bisqq.nl;DWH1127/projecten/projecten.Calculatieregels.{Calculatiestatus,4}","Server.Database\\/2/SQL/1127.bisqq.nl;DWH1127/projecten/projecten.Calculatieregels.{Calculator,5}","Server.Database\\/2/SQL/1127.bisqq.nl;DWH1127/projecten/projecten.Calculatieregels.{TaakKey,6}","Server.Database\\/2/SQL/1127.bisqq.nl;DWH1127/projecten/projecten.Calculatieregels.{Taak,7}","Server.Database\\/2/SQL/1127.bisqq.nl;DWH1127/projecten/projecten.Calculatieregels.{KostensoortKey,8}","Server.Database\\/2/SQL/1127.bisqq.nl;DWH1127/projecten/projecten.Calculatieregels.{Verrekenprijs,9}","Server.Database\\/2/SQL/1127.bisqq.nl;DWH1127/projecten/projecten.Calculatieregels.{Dekking bedrag,10}","Server.Database\\/2/SQL/1127.bisqq.nl;DWH1127/projecten/projecten.Calculatieregels.{Kostprijs,11}","Server.Database\\/2/SQL/1127.bisqq.nl;DWH1127/projecten/projecten.Calculatieregels.{Aantal Uren,12}","Server.Database\\/2/SQL/1127.bisqq.nl;DWH1127/stam/stam.Documenten.{Aanmaakdatum,15}"],"ColumnCount":14,"KeyColumnNames":[],"ColumnIdentities":["Server.Database\\/2/SQL/1127.bisqq.nl;DWH1127/projecten/projecten.Calculatieregels.{CalculatieDocumentKey,0}","Server.Database\\/2/SQL/1127.bisqq.nl;DWH1127/projecten/projecten.Calculatieregels.{ProjectKey,1}","Server.Database\\/2/SQL/1127.bisqq.nl;DWH1127/projecten/projecten.Calculatieregels.{Calculatie,2}","Server.Database\\/2/SQL/1127.bisqq.nl;DWH1127/projecten/projecten.Calculatieregels.{Documentstatus,3}","Server.Database\\/2/SQL/1127.bisqq.nl;DWH1127/projecten/projecten.Calculatieregels.{Calculatiestatus,4}","Server.Database\\/2/SQL/1127.bisqq.nl;DWH1127/projecten/projecten.Calculatieregels.{Calculator,5}","Server.Database\\/2/SQL/1127.bisqq.nl;DWH1127/projecten/projecten.Calculatieregels.{TaakKey,6}","Server.Database\\/2/SQL/1127.bisqq.nl;DWH1127/projecten/projecten.Calculatieregels.{Taak,7}","Server.Database\\/2/SQL/1127.bisqq.nl;DWH1127/projecten/projecten.Calculatieregels.{KostensoortKey,8}","Server.Database\\/2/SQL/1127.bisqq.nl;DWH1127/projecten/projecten.Calculatieregels.{Verrekenprijs,9}","Server.Database\\/2/SQL/1127.bisqq.nl;DWH1127/projecten/projecten.Calculatieregels.{Dekking bedrag,10}","Server.Database\\/2/SQL/1127.bisqq.nl;DWH1127/projecten/projecten.Calculatieregels.{Kostprijs,11}","Server.Database\\/2/SQL/1127.bisqq.nl;DWH1127/projecten/projecten.Calculatieregels.{Aantal Uren,12}","Server.Database\\/2/SQL/1127.bisqq.nl;DWH1127/stam/stam.Documenten.{Aanmaakdatum,15}"],"RelationshipInfo":[{"keyColumnCount":1,"keyColumn":0,"otherKeyColumnIdentity":"Server.Database\\/2/SQL/1127.bisqq.nl;DWH1127/stam/stam.Documenten.{DocumentKey,0}","KeyColumnCount":1}]}
+
+	annotation PBI_ResultType = Table
+
+	annotation PBI_NavigationStepName = Navigation
+

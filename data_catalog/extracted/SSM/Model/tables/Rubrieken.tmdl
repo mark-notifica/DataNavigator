@@ -1,0 +1,89 @@
+﻿table Rubrieken
+
+	column RubriekKey
+		dataType: int64
+		isHidden
+		formatString: 0
+		summarizeBy: none
+		sourceColumn: RubriekKey
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Rubriek omschrijving'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Rubriek omschrijving
+
+		annotation SummarizationSetBy = Automatic
+
+	column Rubriek
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Rubriek
+
+		annotation SummarizationSetBy = Automatic
+
+	column Status
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Status
+
+		annotation SummarizationSetBy = Automatic
+
+	column Groep
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Groep
+
+		annotation SummarizationSetBy = Automatic
+
+	column Toepassing
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Toepassing
+
+		annotation SummarizationSetBy = Automatic
+
+	column Type
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Type
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Rubriek categorie'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Rubriek categorie
+
+		annotation SummarizationSetBy = Automatic
+
+	column Dekking
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Dekking
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Rubriek Code'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Rubriek Code
+
+		annotation SummarizationSetBy = Automatic
+
+	partition Rubrieken = m
+		mode: import
+		queryGroup: Stam
+		source =
+				let
+				    View = "SSM Rubrieken",
+				    Source =PostgreSQL.Database(#"3_server",#"4_database"),
+				    #"Notifica_SSM" = Source{[Schema=#"5_schema",Item=View]}[Data]
+				in
+				    #"Notifica_SSM"
+
+	annotation PBI_ResultType = Table
+
+	annotation PBI_NavigationStepName = Navigation
+

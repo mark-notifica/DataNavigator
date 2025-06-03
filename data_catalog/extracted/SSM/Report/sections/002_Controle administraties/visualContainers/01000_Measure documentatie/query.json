@@ -1,0 +1,243 @@
+{
+  "Commands": [
+    {
+      "SemanticQueryDataShapeCommand": {
+        "Query": {
+          "Version": 2,
+          "From": [
+            {
+              "Name": "a",
+              "Entity": "Administraties",
+              "Type": 0
+            },
+            {
+              "Name": "f",
+              "Entity": "Formules",
+              "Type": 0
+            }
+          ],
+          "Select": [
+            {
+              "Column": {
+                "Expression": {
+                  "SourceRef": {
+                    "Source": "a"
+                  }
+                },
+                "Property": "Actief via instellingen app"
+              },
+              "Name": "Administraties.Actief via instellingen app",
+              "NativeReferenceName": "Actief via instellingen app"
+            },
+            {
+              "Column": {
+                "Expression": {
+                  "SourceRef": {
+                    "Source": "a"
+                  }
+                },
+                "Property": "Administratie"
+              },
+              "Name": "Administraties.Administratie",
+              "NativeReferenceName": "Administratie"
+            },
+            {
+              "Column": {
+                "Expression": {
+                  "SourceRef": {
+                    "Source": "a"
+                  }
+                },
+                "Property": "Administratie kenmerk"
+              },
+              "Name": "Administraties.Administratie kenmerk",
+              "NativeReferenceName": "Administratie kenmerk"
+            },
+            {
+              "Column": {
+                "Expression": {
+                  "SourceRef": {
+                    "Source": "a"
+                  }
+                },
+                "Property": "Administratie relatie"
+              },
+              "Name": "Administraties.Administratie relatie",
+              "NativeReferenceName": "Administratie relatie"
+            },
+            {
+              "Column": {
+                "Expression": {
+                  "SourceRef": {
+                    "Source": "a"
+                  }
+                },
+                "Property": "AdministratieKey"
+              },
+              "Name": "Administraties.AdministratieKey",
+              "NativeReferenceName": "AdministratieKey"
+            },
+            {
+              "Column": {
+                "Expression": {
+                  "SourceRef": {
+                    "Source": "a"
+                  }
+                },
+                "Property": "AdministratieRelatieKey"
+              },
+              "Name": "Administraties.AdministratieRelatieKey",
+              "NativeReferenceName": "AdministratieRelatieKey"
+            },
+            {
+              "Column": {
+                "Expression": {
+                  "SourceRef": {
+                    "Source": "a"
+                  }
+                },
+                "Property": "Code"
+              },
+              "Name": "Administraties.Code",
+              "NativeReferenceName": "Code"
+            },
+            {
+              "Column": {
+                "Expression": {
+                  "SourceRef": {
+                    "Source": "a"
+                  }
+                },
+                "Property": "Status"
+              },
+              "Name": "Administraties.Status",
+              "NativeReferenceName": "Status"
+            },
+            {
+              "Column": {
+                "Expression": {
+                  "SourceRef": {
+                    "Source": "a"
+                  }
+                },
+                "Property": "UniekeAdministratieID"
+              },
+              "Name": "Administraties.UniekeAdministratieID",
+              "NativeReferenceName": "UniekeAdministratieID"
+            },
+            {
+              "Measure": {
+                "Expression": {
+                  "SourceRef": {
+                    "Source": "f"
+                  }
+                },
+                "Property": "logo"
+              },
+              "Name": "Formules.logo",
+              "NativeReferenceName": "logo"
+            },
+            {
+              "Aggregation": {
+                "Expression": {
+                  "Column": {
+                    "Expression": {
+                      "SourceRef": {
+                        "Source": "a"
+                      }
+                    },
+                    "Property": "Actief via instellingen app"
+                  }
+                },
+                "Function": 3
+              },
+              "Name": "Min(Administraties.Actief via instellingen app)"
+            }
+          ],
+          "Where": [
+            {
+              "Condition": {
+                "Not": {
+                  "Expression": {
+                    "In": {
+                      "Expressions": [
+                        {
+                          "Column": {
+                            "Expression": {
+                              "SourceRef": {
+                                "Source": "a"
+                              }
+                            },
+                            "Property": "Administratie"
+                          }
+                        }
+                      ],
+                      "Values": [
+                        [
+                          {
+                            "Literal": {
+                              "Value": "null"
+                            }
+                          }
+                        ]
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          ],
+          "OrderBy": [
+            {
+              "Direction": 1,
+              "Expression": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Source": "a"
+                    }
+                  },
+                  "Property": "Code"
+                }
+              }
+            }
+          ]
+        },
+        "Binding": {
+          "Primary": {
+            "Groupings": [
+              {
+                "Projections": [
+                  0,
+                  1,
+                  2,
+                  3,
+                  4,
+                  5,
+                  6,
+                  7,
+                  8,
+                  9,
+                  10
+                ]
+              }
+            ]
+          },
+          "DataReduction": {
+            "DataVolume": 3,
+            "Primary": {
+              "Window": {
+                "Count": 500
+              }
+            }
+          },
+          "SuppressedJoinPredicates": [
+            10
+          ],
+          "Version": 1
+        },
+        "ExecutionMetricsKind": 1
+      }
+    }
+  ]
+}

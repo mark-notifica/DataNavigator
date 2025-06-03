@@ -1,0 +1,76 @@
+﻿table 'NR - CoA balans schema'
+
+	column Code
+		dataType: int64
+		formatString: 0
+		summarizeBy: none
+		sourceColumn: Code
+
+		annotation SummarizationSetBy = Automatic
+
+	column Niveau2
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Niveau2
+		sortByColumn: Code
+
+		changedProperty = SortByColumn
+
+		annotation SummarizationSetBy = Automatic
+
+	column Niveau1
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Niveau1
+		sortByColumn: Niveau1_sortering
+
+		changedProperty = SortByColumn
+
+		annotation SummarizationSetBy = Automatic
+
+	column Niveau1_sortering
+		dataType: int64
+		formatString: 0
+		summarizeBy: none
+		sourceColumn: Niveau1_sortering
+
+		annotation SummarizationSetBy = Automatic
+
+	column Niveau2_sortering
+		dataType: int64
+		formatString: 0
+		summarizeBy: none
+		sourceColumn: Niveau2_sortering
+
+		annotation SummarizationSetBy = Automatic
+
+	column Teken
+		dataType: int64
+		formatString: 0
+		summarizeBy: none
+		sourceColumn: Teken
+
+		annotation SummarizationSetBy = Automatic
+
+	column Classificatie_type
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Classificatie_type
+
+		annotation SummarizationSetBy = Automatic
+
+	partition 'NR - CoA balans schema' = m
+		mode: import
+		queryGroup: NotificaRAAS
+		source =
+				let
+				    Source = Sql.Database(#"7_serverAppdata", #"8_databaseAppdata"),
+				    #"RAAS_CoA schema" = Source{[Schema="RAAS",Item="CoA Balans schema"]}[Data],
+				    #"Changed Type" = Table.TransformColumnTypes(#"RAAS_CoA schema",{{"Niveau1_sortering", Int64.Type}, {"Niveau2_sortering", Int64.Type}})
+				in
+				    #"Changed Type"
+
+	annotation PBI_ResultType = Table
+
+	annotation PBI_NavigationStepName = Navigation
+

@@ -1,0 +1,84 @@
+﻿table Boekingperiodes
+
+	column BoekingsperiodeKey
+		dataType: int64
+		formatString: 0
+		summarizeBy: count
+		sourceColumn: BoekingsperiodeKey
+
+		annotation SummarizationSetBy = Automatic
+
+	column BoekjaarKey
+		dataType: int64
+		formatString: 0
+		summarizeBy: none
+		sourceColumn: BoekjaarKey
+
+		annotation SummarizationSetBy = Automatic
+
+	column Type
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Type
+
+		annotation SummarizationSetBy = Automatic
+
+	column Code
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Code
+
+		annotation SummarizationSetBy = Automatic
+
+	column Begindatum
+		dataType: dateTime
+		formatString: Long Date
+		summarizeBy: none
+		sourceColumn: Begindatum
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation UnderlyingDateTimeDataType = Date
+
+	column Status
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Status
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Einde van de maand' = EOMONTH(Boekingperiodes[Begindatum],0)
+		isHidden
+		summarizeBy: none
+
+		annotation SummarizationSetBy = Automatic
+
+	column Boekingsperiode
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Boekingsperiode
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Boekingsperiode sorteerbaar'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Boekingsperiode sorteerbaar
+
+		annotation SummarizationSetBy = Automatic
+
+	partition Boekingperiodes = m
+		mode: import
+		queryGroup: Stam
+		source =
+				let
+				    View = "SSM Boekingperiodes",
+				    Source =PostgreSQL.Database(#"3_server",#"4_database"),
+				    #"Notifica_SSM" = Source{[Schema=#"5_schema",Item=View]}[Data]
+				in
+				    #"Notifica_SSM"
+
+	annotation PBI_ResultType = Table
+
+	annotation PBI_NavigationStepName = Navigation
+

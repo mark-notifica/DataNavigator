@@ -1,0 +1,67 @@
+[
+  {
+    "name": "Filtere771a86456853cba6905",
+    "expression": {
+      "Column": {
+        "Expression": {
+          "SourceRef": {
+            "Entity": "Projecten"
+          }
+        },
+        "Property": "Soort"
+      }
+    },
+    "type": "Categorical",
+    "howCreated": 1,
+    "objects": {}
+  },
+  {
+    "name": "Filterc2bf3e9fe4e0417aa38e",
+    "expression": {
+      "Column": {
+        "Expression": {
+          "SourceRef": {
+            "Entity": "Kalender"
+          }
+        },
+        "Property": "Maand index"
+      }
+    },
+    "filter": {
+      "Version": 2,
+      "From": [
+        {
+          "Name": "k",
+          "Entity": "Kalender",
+          "Type": 0
+        }
+      ],
+      "Where": [
+        {
+          "Condition": {
+            "Comparison": {
+              "ComparisonKind": 0,
+              "Left": {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Source": "k"
+                    }
+                  },
+                  "Property": "Maand index"
+                }
+              },
+              "Right": {
+                "Literal": {
+                  "Value": "-1L"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "type": "Advanced",
+    "howCreated": 1
+  }
+]

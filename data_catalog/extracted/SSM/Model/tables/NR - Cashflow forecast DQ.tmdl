@@ -1,0 +1,140 @@
+﻿table 'NR - Cashflow forecast DQ'
+
+	column Regelkey
+		dataType: int64
+		isKey
+		isNullable: false
+		formatString: 0
+		sourceProviderType: int
+		summarizeBy: none
+		sourceColumn: Regelkey
+
+		annotation SummarizationSetBy = Automatic
+
+	column Aanmaakdatum
+		dataType: dateTime
+		formatString: General Date
+		sourceProviderType: datetime
+		summarizeBy: none
+		sourceColumn: Aanmaakdatum
+
+		annotation SummarizationSetBy = Automatic
+
+	column Aanmaker
+		dataType: string
+		sourceProviderType: nvarchar(250)
+		summarizeBy: none
+		sourceColumn: Aanmaker
+
+		annotation SummarizationSetBy = Automatic
+
+	column Wijzigdatum
+		dataType: dateTime
+		formatString: General Date
+		sourceProviderType: datetime
+		summarizeBy: none
+		sourceColumn: Wijzigdatum
+
+		annotation SummarizationSetBy = Automatic
+
+	column Wijziger
+		dataType: string
+		sourceProviderType: nvarchar(250)
+		summarizeBy: none
+		sourceColumn: Wijziger
+
+		annotation SummarizationSetBy = Automatic
+
+	column Versie
+		dataType: string
+		sourceProviderType: nvarchar(250)
+		summarizeBy: none
+		sourceColumn: Versie
+
+		annotation SummarizationSetBy = Automatic
+
+	column Klantnummer
+		dataType: int64
+		isNullable: false
+		formatString: 0
+		sourceProviderType: int
+		summarizeBy: sum
+		sourceColumn: Klantnummer
+
+		annotation SummarizationSetBy = Automatic
+
+	column AdministratieKey
+		dataType: int64
+		isNullable: false
+		formatString: 0
+		sourceProviderType: int
+		summarizeBy: count
+		sourceColumn: AdministratieKey
+
+		annotation SummarizationSetBy = Automatic
+
+	column BedrijfseenheidKey
+		dataType: int64
+		formatString: 0
+		sourceProviderType: int
+		summarizeBy: none
+		sourceColumn: BedrijfseenheidKey
+
+		annotation SummarizationSetBy = Automatic
+
+	column Administratie
+		dataType: string
+		sourceProviderType: nvarchar(250)
+		summarizeBy: none
+		sourceColumn: Administratie
+
+		annotation SummarizationSetBy = Automatic
+
+	column Bedrijfseenheid
+		dataType: string
+		sourceProviderType: nvarchar(250)
+		summarizeBy: none
+		sourceColumn: Bedrijfseenheid
+
+		annotation SummarizationSetBy = Automatic
+
+	column Jaar
+		dataType: int64
+		formatString: 0
+		sourceProviderType: int
+		summarizeBy: sum
+		sourceColumn: Jaar
+
+		annotation SummarizationSetBy = Automatic
+
+	partition 'NR - Cashflow forecast DQ' = m
+		mode: directQuery
+		queryGroup: NotificaRAAS
+		source = ```
+				let
+				    Source = Sql.Database(#"7_serverAppdata", #"8_databaseAppdata", [Query="
+				SELECT  [Regelkey]
+				      ,[Aanmaakdatum]
+				      ,[Aanmaker]
+				      ,[Wijzigdatum]
+				      ,[Wijziger]
+				      ,[Versie]
+				      ,[Klantnummer]
+				      ,[AdministratieKey]
+				      ,case when BedrijfseenheidKey is null 
+						then cast([AdministratieKey]as varchar)+'999' 
+						else [BedrijfseenheidKey]
+					  end as [BedrijfseenheidKey]
+				      ,[Administratie]
+				      ,[Bedrijfseenheid]
+				      ,[Jaar]
+				  FROM [RAAS].[Forecastcashflow]
+				  where klantnummer ="&Text.From(#"1_klantnummer")&"
+				    
+				    ", CreateNavigationProperties=false])
+				in
+				    Source
+				```
+
+	annotation PBI_ResultType = Table
+

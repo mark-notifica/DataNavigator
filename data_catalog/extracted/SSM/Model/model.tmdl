@@ -1,0 +1,215 @@
+﻿model Model
+	culture: en-US
+	defaultPowerBIDataSourceVersion: powerBI_V3
+	sourceQueryCulture: en-NL
+	dataAccessOptions
+		legacyRedirects
+		returnErrorValuesAsNull
+
+queryGroup Projecten
+
+	annotation PBI_QueryGroupOrder = 2
+
+queryGroup Stam
+
+	annotation PBI_QueryGroupOrder = 6
+
+queryGroup Algemeen
+
+	annotation PBI_QueryGroupOrder = 0
+
+queryGroup NotificaRAAS
+
+	annotation PBI_QueryGroupOrder = 1
+
+queryGroup 'Feiten algemeen'
+
+	annotation PBI_QueryGroupOrder = 3
+
+queryGroup Methodes
+
+	annotation PBI_QueryGroupOrder = 7
+
+queryGroup Kalenders
+
+	annotation PBI_QueryGroupOrder = 8
+
+queryGroup Werkbonnen
+
+	annotation PBI_QueryGroupOrder = 4
+
+queryGroup HR
+
+	annotation PBI_QueryGroupOrder = 9
+
+queryGroup Commercieel
+
+	annotation PBI_QueryGroupOrder = 11
+
+queryGroup Voorraad
+
+	annotation PBI_QueryGroupOrder = 10
+
+annotation __PBI_TimeIntelligenceEnabled = 0
+
+annotation PBIDesktopVersion = 2.139.2054.0 (24.12)+334ca1c95b576cc53924655643b0d36f21caac55
+
+annotation PBI_QueryOrder = ["Indirecte omzet","Verkoopfactuur termijnen","Inkoopfactuur termijnen","Geboekte uren","Administraties","Afdelingen","Band","Bank rubrieken meerdere keren gekoppeld","Bedrijfsmedewerkers","Bedrijfseenheden","Boekjaren","Boekingperiodes","Disputen","Documenten","Document paraferingen","Functies","Grootboekrekeningen","Handelsartikelen","Kostenplaatsen","Kostensoorten","Materieel","Installaties","Installatiesoorten","Objecten","Object info (administratieafhankelijk)","Openstaande documenten","Regio","Rekeningschemas","Rekeningschema per administratie","Relaties","Relatiegroepen","Relatie activiteiten","Bedrijfsactiviteiten","Rubrieken","Taken","Bestekparagrafen","Betalingen per inkoopregel","Betalingen per opbrengstregel","Betalingen per opbrengstregel (alleen orderregels)","Betalingen per opbrengstregel (alleen periodieke orderregels)","Calculatie kostenregels","Calculaties met verkoopprijzen","Onderhoudsplanning en te verwachten kosten","Projecten","Projectenbudgetregels (doorgerekend)","Project eenmalige orderregels","Project periodieke orderregels","Journaalregels","Budget per dag","Kalender","1_klantnummer","2_databasesysteem","3_server","4_database","5_schema","6_databasesysteemAppdata","7_serverAppdata","8_databaseAppdata","NR - ActieveAdministraties","NR - CoA mapping DQ","NR - CoA mapping balans DQ","NR  - StandaardLogos","Project journaalregels","Projecten WvB materiaal en overig","Projecten WvB arbeid","Project kosten en geboekte uren","Project omzet","Project service orders prognose","Laatste verversdatum","NR - Projectbudgetverzoekregels DQ","NR - Projectbudgetverzoeken DQ","NR - Projectwaardering boekingregels DQ","NR - Projectwaarderingen DQ","NR - CoA schema","NR - CoA balans schema","Methode omzet TWC","Methode voortgang","Methode verwachte marge","Methode budgetomzet","Eliminatie journaalregels","Kalender aanmaakdatum","Kalender datum historisch","Arbeidspatroon per medewerker per week","arbeidspatroon per medewerker","Methode FTE","Methode contracturen","Kalender FTE","Werkbonnen","Werkbonparagrafen","Werkbonparagraaf kosten en geboekte uren","Werkbonparagraaf opvolgingen","Werkbonparagraaf oplossingen","Werkbonparagraaf opbrengsten","Bestelling per hoofdwerkbon","Materieel kosten","Methode resultaat bepaling","Prognose BTW","Bankregels openstaand","NR - Cashflow categorien DQ","NR - Cashflow rubrieken DQ","NR - Cashflow forecast DQ","NR - Cashflow forecastregels DQ","Kalender vervaldatum","Kalender factuurdatum","NR - Resultaatrekening forecast DQ","NR - Resultaatrekening forecastregels DQ","Kalender standdatums","NR - Budget DQ","NR - Budgetregels DQ","Segmenten","NR - Taakgroepen DQ","NR - MPS functies DQ","NR - LogoPerAdministratie DQ","Kalender opdrachtdatum","Geplande en contracturen medewerkers","Methode afwijking berekening","Methode WvB","Methode bepalen uitvoertijd onderhoud","Werkbonparagraaf WvB arbeid","Methode datum orderintake eenmalig","Verkopers","Service order intake","Offertes","Offerteregels","Calculatiekosten onder offertes","Voorraad magazijnen","Voorraad locaties","Voorraad posities","Voorraad mutaties","Formules klantspecifiek","Formules","Werkbonparagraaf WvB materiaal en overig","Tarieven","Logboek aanmeldingen","NR - Projectvoortgang opnames DQ","NR - Projectvoortgang opnameregels DQ","SSM measures","Project service werkvoorbereiding","Logboek werkbonfases","Acties","Werkbonparagraaf checklistregels","Installatie ventilatie"]
+
+annotation __TEdtr = 1
+
+annotation __BNorm = 1
+
+annotation PBI_ProTooling = ["DevMode","DaxQueryView_Desktop"]
+
+annotation BestPracticeAnalyzer_IgnoreRules = {"RuleIDs":[]}
+
+annotation BestPracticeAnalyzer_ExternalRuleFiles = ["C:\\Users\\markh\\PowerBI_workspaces\\BestPracticeRules-master\\BPARules-standard.json"]
+
+ref table Projecten
+ref table 'Project kosten en geboekte uren'
+ref table 'Project omzet'
+ref table Administraties
+ref table Formules
+ref table 'Calculatie kostenregels'
+ref table Taken
+ref table Kostensoorten
+ref table 'Geboekte uren'
+ref table Bestekparagrafen
+ref table Bedrijfsmedewerkers
+ref table Relaties
+ref table 'Project eenmalige orderregels'
+ref table Kalender
+ref table Journaalregels
+ref table 'NR  - StandaardLogos'
+ref table 'Calculaties met verkoopprijzen'
+ref table Kostenplaatsen
+ref table Documenten
+ref table 'Laatste verversdatum'
+ref table 'Project service orders prognose'
+ref table 'NR - CoA schema'
+ref table 'NR - CoA balans schema'
+ref table Bedrijfseenheden
+ref table 'Project journaalregels'
+ref table 'Budget per dag'
+ref table 'Methode generieke marge'
+ref table 'Eliminatie journaalregels'
+ref table 'Kalender aanmaakdatum'
+ref table 'Kalender datum historisch'
+ref table 'Methode norm productiviteit monteurs'
+ref table 'Arbeidspatroon per medewerker per week'
+ref table 'Methode budgetverzoek bewaking'
+ref table Werkbonnen
+ref table Werkbonparagrafen
+ref table 'Werkbonparagraaf opvolgingen'
+ref table 'Werkbonparagraaf oplossingen'
+ref table 'Werkbonparagraaf kosten en geboekte uren'
+ref table Materieel
+ref table 'Materieel kosten'
+ref table Objecten
+ref table Installaties
+ref table Installatiesoorten
+ref table 'Bestelling per hoofdwerkbon'
+ref table Grootboekrekeningen
+ref table 'Rekeningschema per administratie'
+ref table Rekeningschemas
+ref table 'Openstaande documenten'
+ref table Afdelingen
+ref table Boekingperiodes
+ref table Boekjaren
+ref table Rubrieken
+ref table Segmenten
+ref table 'Kalender FTE'
+ref table 'Inkoopfactuur termijnen'
+ref table 'Verkoopfactuur termijnen'
+ref table Functies
+ref table 'Prognose BTW'
+ref table 'Bankregels openstaand'
+ref table Disputen
+ref table 'NR - Cashflow categorien DQ'
+ref table 'NR - Cashflow rubrieken DQ'
+ref table 'Kalender vervaldatum'
+ref table 'Kalender factuurdatum'
+ref table Band
+ref table 'Projectenbudgetregels (doorgerekend)'
+ref table 'NR - Projectbudgetverzoekregels DQ'
+ref table 'NR - Projectbudgetverzoeken DQ'
+ref table 'NR - Projectwaardering boekingregels DQ'
+ref table 'NR - Projectwaarderingen DQ'
+ref table 'NR - Resultaatrekening forecast DQ'
+ref table 'NR - Resultaatrekening forecastregels DQ'
+ref table 'Kalender standdatums'
+ref table 'NR - Budget DQ'
+ref table 'NR - Budgetregels DQ'
+ref table 'Betalingen per inkoopregel'
+ref table 'Betalingen per opbrengstregel'
+ref table 'Betalingen per opbrengstregel (alleen orderregels)'
+ref table Handelsartikelen
+ref table 'NR - Taakgroepen DQ'
+ref table 'NR - MPS functies DQ'
+ref table 'NR - LogoPerAdministratie DQ'
+ref table 'Onderhoudsplanning en te verwachten kosten'
+ref table 'Werkbonparagraaf opbrengsten'
+ref table 'Kalender opdrachtdatum'
+ref table 'Geplande en contracturen medewerkers'
+ref table 'Methode afwijking berekening'
+ref table 'Methode WvB'
+ref table 'Methode bepalen uitvoertijd onderhoud'
+ref table 'Werkbonparagraaf WvB arbeid'
+ref table 'Methode gemiddelde uitvoertijd onderhoud'
+ref table Verkopers
+ref table 'Service order intake'
+ref table Offertes
+ref table Offerteregels
+ref table 'Calculatiekosten onder offertes'
+ref table 'Indirecte omzet'
+ref table 'Bank rubrieken meerdere keren gekoppeld'
+ref table 'Methode omzet TWC'
+ref table 'Methode voortgang'
+ref table 'Methode verwachte marge'
+ref table 'Methode budgetomzet'
+ref table 'arbeidspatroon per medewerker'
+ref table 'Methode FTE'
+ref table 'Methode contracturen'
+ref table 'Methode resultaat bepaling'
+ref table 'SSM measures'
+ref table 'Methode datum orderintake eenmalig'
+ref table Relatiegroepen
+ref table 'Voorraad magazijnen'
+ref table 'Voorraad locaties'
+ref table 'Voorraad posities'
+ref table 'Voorraad mutaties'
+ref table 'Object info (administratieafhankelijk)'
+ref table Regio
+ref table 'NR - CoA mapping balans DQ'
+ref table 'NR - CoA mapping DQ'
+ref table 'NR - Cashflow forecast DQ'
+ref table 'NR - Cashflow forecastregels DQ'
+ref table 'Formules klantspecifiek'
+ref table 'Projecten WvB materiaal en overig'
+ref table 'Projecten WvB arbeid'
+ref table 'Werkbonparagraaf WvB materiaal en overig'
+ref table 'Relatie activiteiten'
+ref table Tarieven
+ref table 'Logboek aanmeldingen'
+ref table 'Document paraferingen'
+ref table 'Betalingen per opbrengstregel (alleen periodieke orderregels)'
+ref table 'Project periodieke orderregels'
+ref table Bedrijfsactiviteiten
+ref table 'NR - Projectvoortgang opnames DQ'
+ref table 'NR - Projectvoortgang opnameregels DQ'
+ref table 'Project service werkvoorbereiding'
+ref table 'Logboek werkbonfases'
+ref table 1_klantnummer
+ref table Acties
+ref table 'Werkbonparagraaf checklistregels'
+ref table 'Installatie ventilatie'
+
+ref perspective '03. Projecten'
+ref perspective '04. Service'
+ref perspective '01. Financieel'
+ref perspective '02. HR'
+ref perspective '05. Commercieel'
+
+ref cultureInfo en-US
+

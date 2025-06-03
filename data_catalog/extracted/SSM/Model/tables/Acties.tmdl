@@ -1,0 +1,314 @@
+﻿table Acties
+
+	column ActieDocumentKey
+		dataType: int64
+		summarizeBy: none
+		sourceColumn: ActieDocumentKey
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column MedewerkerKey
+		dataType: int64
+		summarizeBy: count
+		sourceColumn: MedewerkerKey
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column RelatieKey
+		dataType: int64
+		summarizeBy: none
+		sourceColumn: RelatieKey
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column ContactpersoonMedewerkerKey
+		dataType: int64
+		summarizeBy: count
+		sourceColumn: ContactpersoonMedewerkerKey
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column Klachtoorzaak
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Klachtoorzaak
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Klachtoorzaak code'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Klachtoorzaak code
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Klachtoorzaak omschrijving'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Klachtoorzaak omschrijving
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Klachtoorzaak korte naam'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Klachtoorzaak korte naam
+
+		annotation SummarizationSetBy = Automatic
+
+	column Klachtoplossing
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Klachtoplossing
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Klachtoplossing code'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Klachtoplossing code
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Klachtoplossing omschrijving'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Klachtoplossing omschrijving
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Klachtoplossing korte naam'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Klachtoplossing korte naam
+
+		annotation SummarizationSetBy = Automatic
+
+	column Actiesoort
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Actiesoort
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Actiesoort code'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Actiesoort code
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Actiesoort omschrijving'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Actiesoort omschrijving
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Actiesoort kenmerk'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Actiesoort kenmerk
+
+		annotation SummarizationSetBy = Automatic
+
+	column ProjectKey
+		dataType: int64
+		summarizeBy: count
+		sourceColumn: ProjectKey
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column GekoppeldDocumentKey
+		dataType: int64
+		summarizeBy: count
+		sourceColumn: GekoppeldDocumentKey
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column ParentActieDocumentKey
+		dataType: int64
+		summarizeBy: count
+		sourceColumn: ParentActieDocumentKey
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column Actiereden
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Actiereden
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Actiereden code'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Actiereden code
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Actiereden omschrijving'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Actiereden omschrijving
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Actiereden kenmerk'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Actiereden kenmerk
+
+		annotation SummarizationSetBy = Automatic
+
+	column PrioriteitKey
+		dataType: int64
+		summarizeBy: count
+		sourceColumn: PrioriteitKey
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column InstallatieKey
+		dataType: int64
+		summarizeBy: count
+		sourceColumn: InstallatieKey
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column ObjectKey
+		dataType: int64
+		summarizeBy: count
+		sourceColumn: ObjectKey
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column 'Datum gepland'
+		dataType: dateTime
+		formatString: Long Date
+		summarizeBy: none
+		sourceColumn: Datum gepland
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation UnderlyingDateTimeDataType = Date
+
+	column 'Tijdstip gepland'
+		dataType: dateTime
+		formatString: Long Time
+		summarizeBy: none
+		sourceColumn: Tijdstip gepland
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation UnderlyingDateTimeDataType = Time
+
+	column 'Tijdsduur gepland'
+		dataType: double
+		summarizeBy: sum
+		sourceColumn: Tijdsduur gepland
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column 'Datum uiterste uitvoering'
+		dataType: dateTime
+		formatString: General Date
+		summarizeBy: none
+		sourceColumn: Datum uiterste uitvoering
+
+		annotation SummarizationSetBy = Automatic
+
+	column Telefoon
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Telefoon
+
+		annotation SummarizationSetBy = Automatic
+
+	column Contactpersoon
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Contactpersoon
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Klacht J/N'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Klacht J/N
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Geannuleerd J/N'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Geannuleerd J/N
+
+		annotation SummarizationSetBy = Automatic
+
+	column Faalkosten
+		dataType: double
+		summarizeBy: sum
+		sourceColumn: Faalkosten
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column 'Klacht terecht J/N'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Klacht terecht J/N
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Verbeterformulier J/N'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Verbeterformulier J/N
+
+		annotation SummarizationSetBy = Automatic
+
+	column Mobiel
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Mobiel
+
+		annotation SummarizationSetBy = Automatic
+
+	partition Acties = m
+		mode: import
+		queryGroup: 'Feiten algemeen'
+		source =
+				let
+				    View = "SSM Acties",
+				    Source =PostgreSQL.Database(#"3_server",#"4_database"),
+				    #"Notifica_SSM" = Source{[Schema=#"5_schema",Item=View]}[Data]
+				in
+				    #"Notifica_SSM"
+
+	annotation PBI_NavigationStepName = Navigation
+
+	annotation PBI_ResultType = Table
+

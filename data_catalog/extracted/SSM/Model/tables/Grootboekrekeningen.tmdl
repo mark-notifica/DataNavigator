@@ -1,0 +1,223 @@
+﻿table Grootboekrekeningen
+
+	column GrootboekRekeningKey
+		dataType: int64
+		formatString: 0
+		summarizeBy: none
+		sourceColumn: GrootboekRekeningKey
+
+		annotation SummarizationSetBy = Automatic
+
+	column ParentGrootboekRekeningKey
+		dataType: int64
+		formatString: 0
+		summarizeBy: none
+		sourceColumn: ParentGrootboekRekeningKey
+
+		annotation SummarizationSetBy = Automatic
+
+	column RekeningSchemaKey
+		dataType: int64
+		formatString: 0
+		summarizeBy: none
+		sourceColumn: RekeningSchemaKey
+
+		annotation SummarizationSetBy = Automatic
+
+	column RubriekKey
+		dataType: int64
+		formatString: 0
+		summarizeBy: none
+		sourceColumn: RubriekKey
+
+		annotation SummarizationSetBy = Automatic
+
+	column Grootboekrekening
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Grootboekrekening
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Status grootboekrekening'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Status grootboekrekening
+
+		annotation SummarizationSetBy = Automatic
+
+	column Type
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Type
+
+		annotation SummarizationSetBy = Automatic
+
+	column PCpath = PATH(Grootboekrekeningen[GrootboekRekeningKey],Grootboekrekeningen[ParentGrootboekRekeningKey])
+		isHidden
+		summarizeBy: none
+
+		annotation SummarizationSetBy = Automatic
+
+	column HierarchyDepth = PATHLENGTH(Grootboekrekeningen[PCpath])
+		isHidden
+		summarizeBy: sum
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Niveau 1' =
+			
+			LOOKUPVALUE (
+			    Grootboekrekeningen[Grootboekrekening],
+			    Grootboekrekeningen[GrootboekRekeningKey], PATHITEM ( Grootboekrekeningen[PCpath], 1,1 )
+			)
+		summarizeBy: none
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Niveau 2' =
+			
+			IF (
+			    Grootboekrekeningen[HierarchyDepth] >= 2,
+			    LOOKUPVALUE (
+			        Grootboekrekeningen[Grootboekrekening],
+			        Grootboekrekeningen[GrootboekRekeningKey], PATHITEM ( Grootboekrekeningen[PCpath], 2, 1 )
+			    ),
+			    Grootboekrekeningen[Niveau 1]
+			)
+		summarizeBy: none
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Niveau 3' =
+			
+			IF (
+			    Grootboekrekeningen[HierarchyDepth] >= 3,
+			    LOOKUPVALUE (
+			        Grootboekrekeningen[Grootboekrekening],
+			        Grootboekrekeningen[GrootboekRekeningKey], PATHITEM ( Grootboekrekeningen[PCpath], 3, 1 )
+			    ),
+			    Grootboekrekeningen[Niveau 2]
+			)
+		summarizeBy: none
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Niveau 4' =
+			
+			IF (
+			    Grootboekrekeningen[HierarchyDepth] >= 4,
+			    LOOKUPVALUE (
+			        Grootboekrekeningen[Grootboekrekening],
+			        Grootboekrekeningen[GrootboekRekeningKey] , PATHITEM ( Grootboekrekeningen[PCpath], 4, 1 )
+			    ),
+			    Grootboekrekeningen[Niveau 3]
+			)
+		summarizeBy: none
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Niveau 5' =
+			
+			IF (
+			    Grootboekrekeningen[HierarchyDepth] >= 5,
+			    LOOKUPVALUE (
+			        Grootboekrekeningen[Grootboekrekening],
+			        Grootboekrekeningen[GrootboekRekeningKey], PATHITEM ( Grootboekrekeningen[PCpath], 5, 1 )
+			    ),
+			    Grootboekrekeningen[Niveau 4]
+			)
+		summarizeBy: none
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Niveau 6' =
+			
+			IF (
+			    Grootboekrekeningen[HierarchyDepth] >= 6,
+			    LOOKUPVALUE (
+			        Grootboekrekeningen[Grootboekrekening],
+			        Grootboekrekeningen[GrootboekRekeningKey], PATHITEM ( Grootboekrekeningen[PCpath], 6, 1 )
+			    ),
+			    Grootboekrekeningen[Niveau 5]
+			)
+		summarizeBy: none
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Niveau 7' =
+			
+			IF (
+			    Grootboekrekeningen[HierarchyDepth] >= 7,
+			    LOOKUPVALUE (
+			        Grootboekrekeningen[Grootboekrekening],
+			        Grootboekrekeningen[GrootboekRekeningKey], PATHITEM ( Grootboekrekeningen[PCpath], 7, 1 )
+			    ),
+			    Grootboekrekeningen[Niveau 6]
+			)
+		summarizeBy: none
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Niveau 8' =
+			
+			IF (
+			    Grootboekrekeningen[HierarchyDepth] >= 8,
+			    LOOKUPVALUE (
+			        Grootboekrekeningen[Grootboekrekening],
+			        Grootboekrekeningen[GrootboekRekeningKey], PATHITEM ( Grootboekrekeningen[PCpath], 8, 1 )
+			    ),
+			    Grootboekrekeningen[Niveau 7]
+			)
+		summarizeBy: none
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Grootboekrekening code]'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Grootboekrekening code]
+
+		annotation SummarizationSetBy = Automatic
+
+	hierarchy 'Grootboekrekening hierarchie'
+
+		level 'Niveau 1'
+			column: 'Niveau 1'
+
+		level 'Niveau 2'
+			column: 'Niveau 2'
+
+		level 'Niveau 3'
+			column: 'Niveau 3'
+
+		level 'Niveau 4'
+			column: 'Niveau 4'
+
+		level 'Niveau 5'
+			column: 'Niveau 5'
+
+		level 'Niveau 6'
+			column: 'Niveau 6'
+
+		level 'Niveau 7'
+			column: 'Niveau 7'
+
+		level 'Niveau 8'
+			column: 'Niveau 8'
+
+	partition Grootboekrekeningen = m
+		mode: import
+		queryGroup: Stam
+		source =
+				let
+				    View = "SSM Grootboekrekeningen",
+				    Source =PostgreSQL.Database(#"3_server",#"4_database"),
+				    #"Notifica_SSM" = Source{[Schema=#"5_schema",Item=View]}[Data]
+				in
+				    #"Notifica_SSM"
+
+	annotation PBI_ResultType = Table
+
+	annotation PBI_NavigationStepName = Navigation
+

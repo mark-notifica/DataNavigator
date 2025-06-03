@@ -1,0 +1,197 @@
+﻿table 'Werkbonparagraaf WvB materiaal en overig'
+
+	column KostensoortKey
+		dataType: int64
+		formatString: 0
+		summarizeBy: none
+		sourceColumn: KostensoortKey
+
+		annotation SummarizationSetBy = Automatic
+
+	column KostenplaatsKey
+		dataType: int64
+		formatString: 0
+		summarizeBy: count
+		sourceColumn: KostenplaatsKey
+
+		annotation SummarizationSetBy = Automatic
+
+	column Code
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Code
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Behoefte aantal'
+		dataType: double
+		summarizeBy: sum
+		sourceColumn: Behoefte aantal
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column Plandatum
+		dataType: dateTime
+		formatString: Long Date
+		summarizeBy: none
+		sourceColumn: Plandatum
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Nettoprijs per stuk'
+		dataType: double
+		summarizeBy: sum
+		sourceColumn: Nettoprijs per stuk
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column 'Brutoverkoopprijs per stuk'
+		dataType: double
+		summarizeBy: sum
+		sourceColumn: Brutoverkoopprijs per stuk
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column 'Verkoopprijs afspraak'
+		dataType: double
+		summarizeBy: sum
+		sourceColumn: Verkoopprijs afspraak
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column 'Tarief verrekenprijs per stuk'
+		dataType: double
+		summarizeBy: sum
+		sourceColumn: Tarief verrekenprijs per stuk
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column 'Tarief brutoverkoopprijs per stuk'
+		dataType: double
+		summarizeBy: sum
+		sourceColumn: Tarief brutoverkoopprijs per stuk
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column 'Handelsartikel verrekenprijs per stuk'
+		dataType: double
+		summarizeBy: sum
+		sourceColumn: Handelsartikel verrekenprijs per stuk
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column 'Handelsartikel kostprijs per stuk'
+		dataType: double
+		summarizeBy: sum
+		sourceColumn: Handelsartikel kostprijs per stuk
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column 'Handelsartikel prijspeildatum'
+		dataType: dateTime
+		formatString: General Date
+		summarizeBy: none
+		sourceColumn: Handelsartikel prijspeildatum
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Werkbon document status'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Werkbon document status
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Bestelling document status'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Bestelling document status
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Pakbon document status'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Pakbon document status
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Inkoopfactuur document status'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Inkoopfactuur document status
+
+		annotation SummarizationSetBy = Automatic
+
+	column TariefKey
+		dataType: int64
+		formatString: 0
+		summarizeBy: none
+		sourceColumn: TariefKey
+
+		annotation SummarizationSetBy = Automatic
+
+	column HandelsartikelKey
+		dataType: int64
+		formatString: 0
+		summarizeBy: none
+		sourceColumn: HandelsartikelKey
+
+		annotation SummarizationSetBy = Automatic
+
+	column WerkvoorbereidingregelKey
+		dataType: int64
+		formatString: 0
+		summarizeBy: count
+		sourceColumn: WerkvoorbereidingregelKey
+
+		annotation SummarizationSetBy = Automatic
+
+	column VerzoekregelKey
+		dataType: int64
+		formatString: 0
+		summarizeBy: count
+		sourceColumn: VerzoekregelKey
+
+		annotation SummarizationSetBy = Automatic
+
+	column WerkbonParagraafKey
+		dataType: int64
+		summarizeBy: count
+		sourceColumn: WerkbonParagraafKey
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	partition 'Werkbonparagraaf WvB materiaal en overig' = m
+		mode: import
+		queryGroup: Werkbonnen
+		source =
+				let
+				    View = "SSM Werkbonparagraaf WvB materiaal en overig",
+				    Source =PostgreSQL.Database(#"3_server",#"4_database"),
+				    #"Notifica_SSM" = Source{[Schema=#"5_schema",Item=View]}[Data]
+				in
+				    #"Notifica_SSM"
+
+	annotation PBI_ResultType = Exception
+
+	annotation PBI_NavigationStepName = Navigation
+

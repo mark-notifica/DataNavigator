@@ -1,0 +1,50 @@
+﻿/// MH 20231111; vooralsnog niet nodig. Installatie informatie toegevoegd aan besteksparagrafen.
+table 'Object info (administratieafhankelijk)'
+
+	column AdministratieKey
+		dataType: int64
+		formatString: 0
+		summarizeBy: count
+		sourceColumn: AdministratieKey
+
+		annotation SummarizationSetBy = Automatic
+
+	column ObjectKey
+		dataType: int64
+		formatString: 0
+		summarizeBy: none
+		sourceColumn: ObjectKey
+
+		annotation SummarizationSetBy = Automatic
+
+	column RegioKey
+		dataType: int64
+		formatString: 0
+		summarizeBy: none
+		sourceColumn: RegioKey
+
+		annotation SummarizationSetBy = Automatic
+
+	column DebiteurRelatieKey
+		dataType: int64
+		formatString: 0
+		summarizeBy: count
+		sourceColumn: DebiteurRelatieKey
+
+		annotation SummarizationSetBy = Automatic
+
+	partition 'Object info (administratieafhankelijk)' = m
+		mode: import
+		queryGroup: Stam
+		source =
+				let
+				    View = "SSM Object info (administratieafhankelijk)",
+				    Source =PostgreSQL.Database(#"3_server",#"4_database"),
+				    #"Notifica_SSM" = Source{[Schema=#"5_schema",Item=View]}[Data]
+				in
+				    #"Notifica_SSM"
+
+	annotation PBI_ResultType = Table
+
+	annotation PBI_NavigationStepName = Navigation
+

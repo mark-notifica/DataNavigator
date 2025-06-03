@@ -1,0 +1,304 @@
+﻿table 'Project eenmalige orderregels'
+
+	column OrderregelKey
+		dataType: int64
+		formatString: 0
+		summarizeBy: none
+		sourceColumn: OrderregelKey
+
+		changedProperty = IsHidden
+
+		annotation SummarizationSetBy = Automatic
+
+	column OrderDocumentKey
+		dataType: int64
+		formatString: 0
+		summarizeBy: count
+		sourceColumn: OrderDocumentKey
+
+		changedProperty = IsHidden
+
+		annotation SummarizationSetBy = Automatic
+
+	column DebiteurRelatieKey
+		dataType: int64
+		formatString: 0
+		summarizeBy: count
+		sourceColumn: DebiteurRelatieKey
+
+		changedProperty = IsHidden
+
+		annotation SummarizationSetBy = Automatic
+
+	column ProjectKey
+		dataType: int64
+		formatString: 0
+		summarizeBy: none
+		sourceColumn: ProjectKey
+
+		changedProperty = IsHidden
+
+		annotation SummarizationSetBy = Automatic
+
+	column AdministratieKey
+		dataType: int64
+		formatString: 0
+		summarizeBy: count
+		sourceColumn: AdministratieKey
+
+		changedProperty = IsHidden
+
+		annotation SummarizationSetBy = Automatic
+
+	column BTWtariefGroepKey
+		dataType: int64
+		isHidden
+		formatString: 0
+		summarizeBy: count
+		sourceColumn: BTWtariefGroepKey
+
+		changedProperty = IsHidden
+
+		annotation SummarizationSetBy = Automatic
+
+	column TariefKey
+		dataType: int64
+		isHidden
+		formatString: 0
+		summarizeBy: count
+		sourceColumn: TariefKey
+
+		changedProperty = IsHidden
+
+		annotation SummarizationSetBy = Automatic
+
+	column KostensoortKey
+		dataType: int64
+		formatString: 0
+		summarizeBy: count
+		sourceColumn: KostensoortKey
+
+		changedProperty = IsHidden
+
+		annotation SummarizationSetBy = Automatic
+
+	column KostenplaatsKey
+		dataType: int64
+		formatString: 0
+		summarizeBy: count
+		sourceColumn: KostenplaatsKey
+
+		changedProperty = IsHidden
+
+		annotation SummarizationSetBy = Automatic
+
+	column Omschrijving
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Omschrijving
+
+		annotation SummarizationSetBy = Automatic
+
+	column FactureerDatum
+		dataType: dateTime
+		formatString: Long Date
+		summarizeBy: none
+		sourceColumn: FactureerDatum
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'BTW verrekening'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: BTW verrekening
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Document code'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Document code
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Dagboek code'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Dagboek code
+
+		annotation SummarizationSetBy = Automatic
+
+	column Dagboek
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Dagboek
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'TotaalRegelbedrag Excl. BTW'
+		dataType: double
+		summarizeBy: sum
+		sourceColumn: TotaalRegelbedrag Excl. BTW
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column 'Nog te factureren excl. BTW'
+		dataType: double
+		summarizeBy: sum
+		sourceColumn: Nog te factureren excl. BTW
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column NogteFactureren(bedrag)
+		dataType: double
+		summarizeBy: sum
+		sourceColumn: NogteFactureren(bedrag)
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column TotaalRegelbedrag
+		dataType: double
+		summarizeBy: sum
+		sourceColumn: TotaalRegelbedrag
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column Invoerdatum
+		dataType: dateTime
+		formatString: Long Date
+		summarizeBy: none
+		sourceColumn: Invoerdatum
+
+		annotation SummarizationSetBy = Automatic
+
+	column Regelnummer
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Regelnummer
+
+		annotation SummarizationSetBy = Automatic
+
+	column UniekeID
+		dataType: string
+		isHidden
+		summarizeBy: none
+		sourceColumn: UniekeID
+
+		changedProperty = IsHidden
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Regelnummer en omschrijving'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Regelnummer en omschrijving
+
+		annotation SummarizationSetBy = Automatic
+
+	column Debiteur
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Debiteur
+
+		annotation SummarizationSetBy = Automatic
+
+	column Betalingstermijn
+		dataType: int64
+		formatString: 0
+		summarizeBy: sum
+		sourceColumn: Betalingstermijn
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Opbrengst nog te verwachten'
+		dataType: double
+		summarizeBy: sum
+		sourceColumn: Opbrengst nog te verwachten
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column Order
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Order
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Debiteur met betaaltermijn'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Debiteur met betaaltermijn
+
+		annotation SummarizationSetBy = Automatic
+
+	column Boekdatum
+		dataType: dateTime
+		formatString: Long Date
+		summarizeBy: none
+		sourceColumn: Boekdatum
+
+		annotation SummarizationSetBy = Automatic
+
+	column VerkoperMedewerkerKey
+		dataType: int64
+		formatString: 0
+		summarizeBy: none
+		sourceColumn: VerkoperMedewerkerKey
+
+		annotation SummarizationSetBy = Automatic
+
+	column Aanmaakdatum
+		dataType: dateTime
+		formatString: Long Date
+		summarizeBy: none
+		sourceColumn: Aanmaakdatum
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Document status'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Document status
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Verrekenprijs tarief'
+		dataType: double
+		summarizeBy: sum
+		sourceColumn: Verrekenprijs tarief
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	partition 'Project eenmalige orderregels-9190bcf2-8fd2-4630-920a-e486ea2f2a14' = m
+		mode: import
+		queryGroup: Projecten
+		source =
+				let
+				    View = "SSM Project eenmalige orderregels",
+				    Source =PostgreSQL.Database(#"3_server",#"4_database"),
+				    #"Notifica_SSM" = Source{[Schema=#"5_schema",Item=View]}[Data]
+				in
+				    #"Notifica_SSM"
+
+	annotation PBI_Id = f74576a5-4733-49c7-a22d-e0bbaa135fd9
+
+	annotation LinkedQueryName = Orderregels
+
+	annotation PBI_QueryRelationships = {"columnCount":33,"keyColumnNames":[],"queryRelationships":[],"columnIdentities":["Section1/Orderregels/Source.{OrderregelKey,0}","Section1/Orderregels/Source.{OrderDocumentKey,1}","Section1/Orderregels/Source.{DebiteurRelatieKey,2}","Section1/Orderregels/Source.{ProjectKey,3}","Section1/Orderregels/Source.{AdministratieKey,4}","Section1/Orderregels/Source.{BTWtariefGroepKey,5}","Section1/Orderregels/Source.{TariefKey,6}","Section1/Orderregels/Source.{KostensoortKey,7}","Section1/Orderregels/Source.{KostenplaatsKey,8}","Section1/Orderregels/Source.{Omschrijving,9}","Section1/Orderregels/Source.{FactureerDatum,10}","Section1/Orderregels/Source.{BTW verrekening,11}","Section1/Orderregels/Source.{Document code,12}","Section1/Orderregels/Source.{document status,13}","Section1/Orderregels/Source.{Dagboek code,14}","Section1/Orderregels/Source.{Dagboek,15}","Section1/Orderregels/Source.{BTW percentage,16}","Section1/Orderregels/Source.{TotaalRegelbedrag Excl. BTW,17}","Section1/Orderregels/Source.{TotaalRegelbedrag Incl. BTW,18}","Section1/Orderregels/Source.{Nog te factureren excl. BTW,19}","Section1/Orderregels/Source.{Nog te factureren incl. BTW,20}","Section1/Orderregels/Source.{NogteFactureren(bedrag),21}","Section1/Orderregels/Source.{TotaalRegelbedrag,22}","Section1/Orderregels/Source.{Invoerdatum,23}","Section1/Orderregels/Source.{Regelnummer,24}","Section1/Orderregels/Source.{UniekeID,25}","Section1/Orderregels/Source.{Regelnummer en omschrijving,26}","Section1/Orderregels/Source.{Debiteur,27}","Section1/Orderregels/Source.{Project,28}","Section1/Orderregels/Source.{Order ,29}","Section1/Orderregels/Source.{Betalingstermijn,30}","Section1/Orderregels/Source.{ Debiteur met betaaltermijn,31}","Section1/Orderregels/Source.{Opbrengst nog te verwachten,32}"],"ColumnCount":33,"KeyColumnNames":[],"ColumnIdentities":["Section1/Orderregels/Source.{OrderregelKey,0}","Section1/Orderregels/Source.{OrderDocumentKey,1}","Section1/Orderregels/Source.{DebiteurRelatieKey,2}","Section1/Orderregels/Source.{ProjectKey,3}","Section1/Orderregels/Source.{AdministratieKey,4}","Section1/Orderregels/Source.{BTWtariefGroepKey,5}","Section1/Orderregels/Source.{TariefKey,6}","Section1/Orderregels/Source.{KostensoortKey,7}","Section1/Orderregels/Source.{KostenplaatsKey,8}","Section1/Orderregels/Source.{Omschrijving,9}","Section1/Orderregels/Source.{FactureerDatum,10}","Section1/Orderregels/Source.{BTW verrekening,11}","Section1/Orderregels/Source.{Document code,12}","Section1/Orderregels/Source.{document status,13}","Section1/Orderregels/Source.{Dagboek code,14}","Section1/Orderregels/Source.{Dagboek,15}","Section1/Orderregels/Source.{BTW percentage,16}","Section1/Orderregels/Source.{TotaalRegelbedrag Excl. BTW,17}","Section1/Orderregels/Source.{TotaalRegelbedrag Incl. BTW,18}","Section1/Orderregels/Source.{Nog te factureren excl. BTW,19}","Section1/Orderregels/Source.{Nog te factureren incl. BTW,20}","Section1/Orderregels/Source.{NogteFactureren(bedrag),21}","Section1/Orderregels/Source.{TotaalRegelbedrag,22}","Section1/Orderregels/Source.{Invoerdatum,23}","Section1/Orderregels/Source.{Regelnummer,24}","Section1/Orderregels/Source.{UniekeID,25}","Section1/Orderregels/Source.{Regelnummer en omschrijving,26}","Section1/Orderregels/Source.{Debiteur,27}","Section1/Orderregels/Source.{Project,28}","Section1/Orderregels/Source.{Order ,29}","Section1/Orderregels/Source.{Betalingstermijn,30}","Section1/Orderregels/Source.{ Debiteur met betaaltermijn,31}","Section1/Orderregels/Source.{Opbrengst nog te verwachten,32}"],"RelationshipInfo":[]}
+
+	annotation PBI_ResultType = Table
+
+	annotation PBI_NavigationStepName = Navigation
+

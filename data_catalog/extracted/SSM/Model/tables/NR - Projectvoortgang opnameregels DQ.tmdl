@@ -1,0 +1,289 @@
+﻿table 'NR - Projectvoortgang opnameregels DQ'
+
+	column RegelKey
+		dataType: int64
+		isNullable: false
+		formatString: 0
+		sourceProviderType: int
+		summarizeBy: count
+		sourceColumn: RegelKey
+
+		annotation SummarizationSetBy = Automatic
+
+	column ProjectopnameKey
+		dataType: int64
+		isNullable: false
+		formatString: 0
+		sourceProviderType: int
+		summarizeBy: none
+		sourceColumn: ProjectopnameKey
+
+		annotation SummarizationSetBy = Automatic
+
+	column Klantnummer
+		dataType: int64
+		isNullable: false
+		formatString: 0
+		sourceProviderType: int
+		summarizeBy: sum
+		sourceColumn: Klantnummer
+
+		annotation SummarizationSetBy = Automatic
+
+	column ProjectKey
+		dataType: int64
+		formatString: 0
+		sourceProviderType: int
+		summarizeBy: count
+		sourceColumn: ProjectKey
+
+		annotation SummarizationSetBy = Automatic
+
+	column Project
+		dataType: string
+		sourceProviderType: nvarchar(250)
+		summarizeBy: none
+		sourceColumn: Project
+
+		annotation SummarizationSetBy = Automatic
+
+	column Projectniveau
+		dataType: int64
+		formatString: 0
+		sourceProviderType: int
+		summarizeBy: sum
+		sourceColumn: Projectniveau
+
+		annotation SummarizationSetBy = Automatic
+
+	column Projectfase
+		dataType: string
+		sourceProviderType: nvarchar(250)
+		summarizeBy: none
+		sourceColumn: Projectfase
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Groepering paragraafniveau hoofdproject'
+		dataType: int64
+		formatString: 0
+		sourceProviderType: int
+		summarizeBy: sum
+		sourceColumn: Groepering paragraafniveau hoofdproject
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Groepering calculatie kosten'
+		dataType: string
+		sourceProviderType: nvarchar(250)
+		summarizeBy: none
+		sourceColumn: Groepering calculatie kosten
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Groepering geboekte kosten'
+		dataType: string
+		sourceProviderType: nvarchar(250)
+		summarizeBy: none
+		sourceColumn: Groepering geboekte kosten
+
+		annotation SummarizationSetBy = Automatic
+
+	column Bestekparagraaf
+		dataType: string
+		sourceProviderType: nvarchar(250)
+		summarizeBy: none
+		sourceColumn: Bestekparagraaf
+
+		annotation SummarizationSetBy = Automatic
+
+	column BestekparagraafKey
+		dataType: int64
+		formatString: 0
+		sourceProviderType: int
+		summarizeBy: none
+		sourceColumn: BestekparagraafKey
+
+		annotation SummarizationSetBy = Automatic
+
+	column Bestekparagraafniveau
+		dataType: int64
+		formatString: 0
+		sourceProviderType: int
+		summarizeBy: sum
+		sourceColumn: Bestekparagraafniveau
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Calculatie kosten inkoop'
+		dataType: double
+		sourceProviderType: decimal(18, 2)
+		summarizeBy: sum
+		sourceColumn: Calculatie kosten inkoop
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column 'Calculatie kosten arbeid montage'
+		dataType: double
+		sourceProviderType: decimal(18, 2)
+		summarizeBy: sum
+		sourceColumn: Calculatie kosten arbeid montage
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column 'Calculatie kosten arbeid projectgebonden'
+		dataType: double
+		sourceProviderType: decimal(18, 2)
+		summarizeBy: sum
+		sourceColumn: Calculatie kosten arbeid projectgebonden
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column 'Calculatie montage uren'
+		dataType: double
+		sourceProviderType: decimal(18, 2)
+		summarizeBy: sum
+		sourceColumn: Calculatie montage uren
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column 'Calculatie projectgebonden uren'
+		dataType: double
+		sourceProviderType: decimal(18, 2)
+		summarizeBy: sum
+		sourceColumn: Calculatie projectgebonden uren
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column 'Geboekte kosten inkoop'
+		dataType: double
+		sourceProviderType: decimal(18, 2)
+		summarizeBy: sum
+		sourceColumn: Geboekte kosten inkoop
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column 'Geboekte kosten arbeid montage'
+		dataType: double
+		sourceProviderType: decimal(18, 2)
+		summarizeBy: sum
+		sourceColumn: Geboekte kosten arbeid montage
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column 'Geboekte kosten arbeid projectgebonden'
+		dataType: double
+		sourceProviderType: decimal(18, 2)
+		summarizeBy: sum
+		sourceColumn: Geboekte kosten arbeid projectgebonden
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column 'Montage uren'
+		dataType: double
+		sourceProviderType: decimal(18, 2)
+		summarizeBy: sum
+		sourceColumn: Montage uren
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column 'Projectgebonden uren'
+		dataType: double
+		sourceProviderType: decimal(18, 2)
+		summarizeBy: sum
+		sourceColumn: Projectgebonden uren
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column 'Percentage gereed inkoop'
+		dataType: double
+		sourceProviderType: decimal(3, 0)
+		summarizeBy: sum
+		sourceColumn: Percentage gereed inkoop
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column 'Percentage gereed arbeid montage'
+		dataType: double
+		sourceProviderType: decimal(3, 0)
+		summarizeBy: sum
+		sourceColumn: Percentage gereed arbeid montage
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column 'Percentage gereed arbeid projectgebonden'
+		dataType: double
+		sourceProviderType: decimal(3, 0)
+		summarizeBy: sum
+		sourceColumn: Percentage gereed arbeid projectgebonden
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	partition 'NR - Projectvoortgang opnameregels DQ' = m
+		mode: directQuery
+		queryGroup: NotificaRAAS
+		source =
+				let
+				    Source = Sql.Database(#"7_serverAppdata", #"8_databaseAppdata", [Query="
+				SELECT [RegelKey]
+				      ,[ProjectopnameKey]
+				      ,[Klantnummer]
+				      ,[ProjectKey]
+				      ,[Project]
+				      ,[Projectniveau]
+				      ,[Projectfase]
+				      ,[Groepering paragraafniveau hoofdproject]
+				      ,[Groepering calculatie kosten]
+				      ,[Groepering geboekte kosten]
+				      ,[Bestekparagraaf]
+				      ,[BestekparagraafKey]
+				      ,[Bestekparagraafniveau]
+				      ,[Calculatie kosten inkoop]
+				      ,[Calculatie kosten arbeid montage]
+				      ,[Calculatie kosten arbeid projectgebonden]
+				      ,[Calculatie montage uren]
+				      ,[Calculatie projectgebonden uren]
+				      ,[Geboekte kosten inkoop]
+				      ,[Geboekte kosten arbeid montage]
+				      ,[Geboekte kosten arbeid projectgebonden]
+				      ,[Montage uren]
+				      ,[Projectgebonden uren]
+				      ,[Percentage gereed inkoop]
+				      ,[Percentage gereed arbeid montage]
+				      ,[Percentage gereed arbeid projectgebonden]
+				  FROM [RAAS].[Projectvoortgang opnameregels]
+				 where Klantnummer ="&Text.From(#"1_klantnummer")&"
+				    ", CreateNavigationProperties=false])
+				in
+				    Source
+
+	annotation PBI_ResultType = Table
+
+	annotation PBI_NavigationStepName = Navigation
+

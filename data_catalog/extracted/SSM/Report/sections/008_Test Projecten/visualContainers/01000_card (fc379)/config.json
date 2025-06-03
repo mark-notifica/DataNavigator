@@ -1,0 +1,67 @@
+{
+  "name": "fc379229449c4065b975",
+  "layouts": [
+    {
+      "id": 0,
+      "position": {
+        "x": 426.30299223902023,
+        "y": 0,
+        "z": 1000,
+        "width": 424.46547934143825,
+        "height": 121.27585124041093,
+        "tabOrder": 1000
+      }
+    }
+  ],
+  "singleVisual": {
+    "visualType": "card",
+    "projections": {
+      "Values": [
+        {
+          "queryRef": "Formules.Omzet/kosten"
+        }
+      ]
+    },
+    "prototypeQuery": {
+      "Version": 2,
+      "From": [
+        {
+          "Name": "f",
+          "Entity": "Formules",
+          "Type": 0
+        }
+      ],
+      "Select": [
+        {
+          "Measure": {
+            "Expression": {
+              "SourceRef": {
+                "Source": "f"
+              }
+            },
+            "Property": "Omzet/kosten"
+          },
+          "Name": "Formules.Omzet/kosten",
+          "NativeReferenceName": "Omzet/kosten"
+        }
+      ],
+      "OrderBy": [
+        {
+          "Direction": 2,
+          "Expression": {
+            "Measure": {
+              "Expression": {
+                "SourceRef": {
+                  "Source": "f"
+                }
+              },
+              "Property": "Omzet/kosten"
+            }
+          }
+        }
+      ]
+    },
+    "drillFilterOtherVisuals": true,
+    "hasDefaultSort": true
+  }
+}

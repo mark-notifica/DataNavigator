@@ -1,0 +1,38 @@
+﻿table 'Methode generieke marge'
+
+	column Value
+		formatString: 0.00%;-0.00%;0.00%
+		summarizeBy: sum
+		isNameInferred
+		sourceColumn: [Value]
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Methode ID verwachte marge'
+		formatString: 0
+		summarizeBy: sum
+		isNameInferred
+		sourceColumn: [Methode ID verwachte marge]
+
+		annotation SummarizationSetBy = Automatic
+
+	column Value2
+		formatString: 0.00%;-0.00%;0.00%
+		summarizeBy: sum
+		isNameInferred
+		sourceColumn: [Value2]
+
+		annotation SummarizationSetBy = Automatic
+
+	partition 'Methode generieke marge' = calculated
+		mode: import
+		source =
+				
+				ADDCOLUMNS(
+				    GENERATESERIES(0,0.8,0.0005)
+				    ,"Methode ID verwachte marge",2
+				    ,"Value2",ROUNDDOWN([Value],2)
+				    )
+
+	annotation PBI_Id = 94854ce5469a4aa195f1a1bbc6842a27
+

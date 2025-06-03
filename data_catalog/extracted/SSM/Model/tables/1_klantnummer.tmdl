@@ -1,0 +1,20 @@
+﻿table 1_klantnummer
+
+	column 1_klantnummer
+		dataType: double
+		summarizeBy: sum
+		sourceColumn: 1_klantnummer
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	partition 1_klantnummer = m
+		mode: import
+		queryGroup: Algemeen
+		source = 9003 meta [IsParameterQuery=true, Type="Number", IsParameterQueryRequired=true]
+
+	annotation PBI_NavigationStepName = Navigation
+
+	annotation PBI_ResultType = Number
+

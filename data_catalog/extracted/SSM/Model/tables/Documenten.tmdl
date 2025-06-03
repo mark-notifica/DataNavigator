@@ -1,0 +1,216 @@
+﻿table Documenten
+
+	column DocumentKey
+		dataType: int64
+		formatString: 0
+		summarizeBy: none
+		sourceColumn: DocumentKey
+
+		annotation SummarizationSetBy = Automatic
+
+	column Dagboek
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Dagboek
+
+		annotation SummarizationSetBy = Automatic
+
+	column BedrijfseenheidKey
+		dataType: string
+		summarizeBy: none
+		sourceColumn: BedrijfseenheidKey
+
+		annotation SummarizationSetBy = Automatic
+
+	column StandaardEntiteitKey
+		dataType: int64
+		formatString: 0
+		summarizeBy: count
+		sourceColumn: StandaardEntiteitKey
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Standaard entiteit'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Standaard entiteit
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Dagboek rubriek'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Dagboek rubriek
+
+		annotation SummarizationSetBy = Automatic
+
+	column DagboekRubriekKey
+		dataType: int64
+		formatString: 0
+		summarizeBy: count
+		sourceColumn: DagboekRubriekKey
+
+		annotation SummarizationSetBy = Automatic
+
+	column Dagboekstatus
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Dagboekstatus
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Dagboek bank Ja/Nee'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Dagboek bank Ja/Nee
+
+		annotation SummarizationSetBy = Automatic
+
+	column Document
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Document
+
+		annotation SummarizationSetBy = Automatic
+
+	column Aanmaakdatum
+		dataType: dateTime
+		formatString: Long Date
+		summarizeBy: none
+		sourceColumn: Aanmaakdatum
+
+		annotation SummarizationSetBy = Automatic
+
+	column Wijzigdatum
+		dataType: dateTime
+		formatString: Long Date
+		summarizeBy: none
+		sourceColumn: Wijzigdatum
+
+		annotation SummarizationSetBy = Automatic
+
+	column Boekdatum
+		dataType: dateTime
+		formatString: Long Date
+		summarizeBy: none
+		sourceColumn: Boekdatum
+
+		annotation SummarizationSetBy = Automatic
+
+	column Gereedmelddatum
+		dataType: dateTime
+		formatString: Long Date
+		summarizeBy: none
+		sourceColumn: Gereedmelddatum
+
+		annotation SummarizationSetBy = Automatic
+
+	column Status
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Status
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Inkoopfactuur CrediteurRelatieKey'
+		dataType: int64
+		formatString: 0
+		summarizeBy: count
+		sourceColumn: Inkoopfactuur CrediteurRelatieKey
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Inkoopfactuur crediteur code'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Inkoopfactuur crediteur code
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Inkoopfactuur crediteur omschrijving'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Inkoopfactuur crediteur omschrijving
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Inkoopfactuur crediteur'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Inkoopfactuur crediteur
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Inkoopfactuur LeverancierRelatieKey'
+		dataType: int64
+		formatString: 0
+		summarizeBy: count
+		sourceColumn: Inkoopfactuur LeverancierRelatieKey
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Verkoopfactuur DebiteurRelatieKey'
+		dataType: int64
+		formatString: 0
+		summarizeBy: count
+		sourceColumn: Verkoopfactuur DebiteurRelatieKey
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Verkoopfactuur debiteur code'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Verkoopfactuur debiteur code
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Verkoopfactuur debiteur omschrijving'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Verkoopfactuur debiteur omschrijving
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Verkoopfactuur debiteur'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Verkoopfactuur debiteur
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Externe referentie'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Externe referentie
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Document code'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Document code
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Document omschrijving'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Document omschrijving
+
+		annotation SummarizationSetBy = Automatic
+
+	partition Documenten-95e52926-17ce-46a1-b1d6-e01c544f7631 = m
+		mode: import
+		queryGroup: Stam
+		source =
+				let
+				    View = "SSM Documenten",
+				    Source =PostgreSQL.Database(#"3_server",#"4_database"),
+				    #"Notifica_SSM" = Source{[Schema=#"5_schema",Item=View]}[Data]
+				in
+				    #"Notifica_SSM"
+
+	annotation PBI_ResultType = Table
+
+	annotation PBI_NavigationStepName = Navigation
+

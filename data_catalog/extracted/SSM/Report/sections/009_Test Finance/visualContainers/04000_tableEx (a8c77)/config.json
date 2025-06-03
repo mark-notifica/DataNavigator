@@ -1,0 +1,71 @@
+{
+  "name": "a8c77519e7d1e062d104",
+  "layouts": [
+    {
+      "id": 0,
+      "position": {
+        "x": 0,
+        "y": 360.337626312661,
+        "z": 4000,
+        "width": 215.877947295423,
+        "height": 141.21339409550228,
+        "tabOrder": 4000
+      }
+    }
+  ],
+  "singleVisual": {
+    "visualType": "tableEx",
+    "projections": {
+      "Values": [
+        {
+          "queryRef": "Formules.Omzet"
+        },
+        {
+          "queryRef": "Projecten.Soort"
+        }
+      ]
+    },
+    "prototypeQuery": {
+      "Version": 2,
+      "From": [
+        {
+          "Name": "f",
+          "Entity": "Formules",
+          "Type": 0
+        },
+        {
+          "Name": "p",
+          "Entity": "Projecten",
+          "Type": 0
+        }
+      ],
+      "Select": [
+        {
+          "Measure": {
+            "Expression": {
+              "SourceRef": {
+                "Source": "f"
+              }
+            },
+            "Property": "Omzet"
+          },
+          "Name": "Formules.Omzet",
+          "NativeReferenceName": "Omzet"
+        },
+        {
+          "Column": {
+            "Expression": {
+              "SourceRef": {
+                "Source": "p"
+              }
+            },
+            "Property": "Soort"
+          },
+          "Name": "Projecten.Soort",
+          "NativeReferenceName": "Soort"
+        }
+      ]
+    },
+    "drillFilterOtherVisuals": true
+  }
+}

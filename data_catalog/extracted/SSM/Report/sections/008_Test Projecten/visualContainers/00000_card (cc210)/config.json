@@ -1,0 +1,67 @@
+{
+  "name": "cc210d3672a656797116",
+  "layouts": [
+    {
+      "id": 0,
+      "position": {
+        "x": 11.025077385491903,
+        "y": 0,
+        "z": 0,
+        "width": 415.27791485352833,
+        "height": 121.27585124041093,
+        "tabOrder": 0
+      }
+    }
+  ],
+  "singleVisual": {
+    "visualType": "card",
+    "projections": {
+      "Values": [
+        {
+          "queryRef": "Formules.Project marge"
+        }
+      ]
+    },
+    "prototypeQuery": {
+      "Version": 2,
+      "From": [
+        {
+          "Name": "f",
+          "Entity": "Formules",
+          "Type": 0
+        }
+      ],
+      "Select": [
+        {
+          "Measure": {
+            "Expression": {
+              "SourceRef": {
+                "Source": "f"
+              }
+            },
+            "Property": "Project marge"
+          },
+          "Name": "Formules.Project marge",
+          "NativeReferenceName": "Project marge"
+        }
+      ],
+      "OrderBy": [
+        {
+          "Direction": 2,
+          "Expression": {
+            "Measure": {
+              "Expression": {
+                "SourceRef": {
+                  "Source": "f"
+                }
+              },
+              "Property": "Project marge"
+            }
+          }
+        }
+      ]
+    },
+    "drillFilterOtherVisuals": true,
+    "hasDefaultSort": true
+  }
+}

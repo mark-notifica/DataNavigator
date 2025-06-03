@@ -1,0 +1,174 @@
+﻿table Werkbonparagrafen
+
+	column WerkbonparagraafKey
+		dataType: int64
+		formatString: 0
+		summarizeBy: none
+		sourceColumn: WerkbonparagraafKey
+
+		annotation SummarizationSetBy = Automatic
+
+	column BestekparagraafKey
+		dataType: int64
+		isHidden
+		formatString: 0
+		summarizeBy: none
+		sourceColumn: BestekparagraafKey
+
+		annotation SummarizationSetBy = Automatic
+
+	column WerkbonDocumentKey
+		dataType: int64
+		formatString: 0
+		summarizeBy: none
+		sourceColumn: WerkbonDocumentKey
+
+		annotation SummarizationSetBy = Automatic
+
+	column Hoofdwerkbon
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Hoofdwerkbon
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Hoofdwerkbon status'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Hoofdwerkbon status
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Hoofdwerkbon aanmaakdatum'
+		dataType: dateTime
+		formatString: Long Date
+		summarizeBy: none
+		sourceColumn: Hoofdwerkbon aanmaakdatum
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Hoofdwerkbon boekdatum'
+		dataType: dateTime
+		formatString: Long Date
+		summarizeBy: none
+		sourceColumn: Hoofdwerkbon boekdatum
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Hoofdwerkbon gereedmelddatum'
+		dataType: dateTime
+		formatString: Long Date
+		summarizeBy: none
+		sourceColumn: Hoofdwerkbon gereedmelddatum
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Hoofdwerkbon uitvoeringstatus'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Hoofdwerkbon uitvoeringstatus
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Hoofdwerkbon Prioriteit'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Hoofdwerkbon Prioriteit
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Werkbon Documentstatus'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Werkbon Documentstatus
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Werkbon uitvoering status'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Werkbon uitvoering status
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Werkbonparagraaf omschrijving'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Werkbonparagraaf omschrijving
+
+		annotation SummarizationSetBy = Automatic
+
+	column Plandatum
+		dataType: dateTime
+		formatString: Long Date
+		summarizeBy: none
+		sourceColumn: Plandatum
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Uitgevoerd op'
+		dataType: dateTime
+		formatString: Long Date
+		summarizeBy: none
+		sourceColumn: Uitgevoerd op
+
+		annotation SummarizationSetBy = Automatic
+
+	column TijdstipUitgevoerd
+		dataType: dateTime
+		formatString: General Date
+		summarizeBy: none
+		sourceColumn: TijdstipUitgevoerd
+
+		annotation SummarizationSetBy = Automatic
+
+	column Storing
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Storing
+
+		annotation SummarizationSetBy = Automatic
+
+	column Oorzaak
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Oorzaak
+
+		annotation SummarizationSetBy = Automatic
+
+	column Factureerwijze
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Factureerwijze
+
+		annotation SummarizationSetBy = Automatic
+
+	column Uitvoeringstatus
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Uitvoeringstatus
+
+		annotation SummarizationSetBy = Automatic
+
+	column Type
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Type
+
+		annotation SummarizationSetBy = Automatic
+
+	partition Werkbonparagrafen = m
+		mode: import
+		queryGroup: Werkbonnen
+		source =
+				let
+				    View = "SSM Werkbonparagrafen",
+				    Source =PostgreSQL.Database(#"3_server",#"4_database"),
+				    #"Notifica_SSM" = Source{[Schema=#"5_schema",Item=View]}[Data]
+				in
+				    #"Notifica_SSM"
+
+	annotation PBI_ResultType = Table
+
+	annotation PBI_NavigationStepName = Navigation
+

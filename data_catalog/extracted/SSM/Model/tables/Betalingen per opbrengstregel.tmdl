@@ -1,0 +1,146 @@
+﻿table 'Betalingen per opbrengstregel'
+
+	column VerkoopfactuurDocumentKey
+		dataType: int64
+		formatString: 0
+		summarizeBy: count
+		sourceColumn: VerkoopfactuurDocumentKey
+
+		annotation SummarizationSetBy = Automatic
+
+	column ProjectKey
+		dataType: int64
+		formatString: 0
+		summarizeBy: none
+		sourceColumn: ProjectKey
+
+		annotation SummarizationSetBy = Automatic
+
+	column DispuutKey
+		dataType: int64
+		formatString: 0
+		summarizeBy: none
+		sourceColumn: DispuutKey
+
+		annotation SummarizationSetBy = Automatic
+
+	column OrderregelKey
+		dataType: int64
+		summarizeBy: count
+		sourceColumn: OrderregelKey
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column Opbrengst
+		dataType: double
+		summarizeBy: sum
+		sourceColumn: Opbrengst
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column Debiteur
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Debiteur
+
+		annotation SummarizationSetBy = Automatic
+
+	column Factuurdatum
+		dataType: dateTime
+		formatString: dd-mm-yyyy
+		summarizeBy: none
+		sourceColumn: Factuurdatum
+
+		annotation SummarizationSetBy = Automatic
+
+	column Betaaltermijn
+		dataType: int64
+		formatString: 0
+		summarizeBy: sum
+		sourceColumn: Betaaltermijn
+
+		annotation SummarizationSetBy = Automatic
+
+	column Vervaldatum
+		dataType: dateTime
+		formatString: dd-mm-yyyy
+		summarizeBy: none
+		sourceColumn: Vervaldatum
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'document status'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: document status
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Document code'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Document code
+
+		annotation SummarizationSetBy = Automatic
+
+	column BetaaldExclBTW
+		dataType: double
+		summarizeBy: sum
+		sourceColumn: BetaaldExclBTW
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column OpenstaandExclBTW
+		dataType: double
+		summarizeBy: sum
+		sourceColumn: OpenstaandExclBTW
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column DebiteurRelatieKey
+		dataType: int64
+		formatString: 0
+		summarizeBy: count
+		sourceColumn: DebiteurRelatieKey
+
+		annotation SummarizationSetBy = Automatic
+
+	column Betaaldatum
+		dataType: dateTime
+		formatString: dd-mm-yyyy
+		summarizeBy: none
+		sourceColumn: Betaaldatum
+
+		annotation SummarizationSetBy = Automatic
+
+	column OpbrengstRegelKey
+		dataType: int64
+		formatString: 0
+		summarizeBy: count
+		sourceColumn: OpbrengstRegelKey
+
+		annotation SummarizationSetBy = Automatic
+
+	partition 'Betalingen per opbrengstregel' = m
+		mode: import
+		queryGroup: Projecten
+		source =
+				let
+				    View = "SSM Betalingen per opbrengstregel",
+				    Source = PostgreSQL.Database(#"3_server",#"4_database"),
+				    #"Notifica_SSM" = Source{[Schema=#"5_schema",Item=View]}[Data]
+				in
+				    #"Notifica_SSM"
+
+	annotation PBI_ResultType = Table
+
+	annotation PBI_NavigationStepName = Navigation
+

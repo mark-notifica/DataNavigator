@@ -1,0 +1,29 @@
+﻿table 'Methode bepalen uitvoertijd onderhoud'
+
+	column Methode
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Methode
+
+		annotation SummarizationSetBy = Automatic
+
+	column ID
+		dataType: string
+		summarizeBy: none
+		sourceColumn: ID
+
+		annotation SummarizationSetBy = Automatic
+
+	partition 'Methode bepalen uitvoertijd onderhoud' = m
+		mode: import
+		queryGroup: Methodes
+		source =
+				let
+				    Source = Table.FromRows(Json.Document(Binary.Decompress(Binary.FromText("i45WCi9zUkhKLS5JzS5ILEpML0pMTFPSUTJUitWJVnJPzc1MSUnNSUlVKM0sKctPLSrJzEpRyM9LSS3KyC9NASo0UoqNBQA=", BinaryEncoding.Base64), Compression.Deflate)), let _t = ((type nullable text) meta [Serialized.Text = true]) in type table [Methode = _t, ID = _t])
+				in
+				    Source
+
+	annotation PBI_ResultType = Table
+
+	annotation PBI_NavigationStepName = Navigation
+

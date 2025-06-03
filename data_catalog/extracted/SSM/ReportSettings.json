@@ -1,0 +1,12 @@
+{
+  "Version": 4,
+  "ReportSettings": {
+    "ShowHiddenFields": true,
+    "IsRelationshipAutodetectionEnabled": false,
+    "IsQnaEnabledForThisFile": false,
+    "UserConsentsToCompositeModels": true
+  },
+  "QueriesSettings": {
+    "Version": "2.123.424.0"
+  }
+}

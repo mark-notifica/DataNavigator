@@ -1,0 +1,108 @@
+{
+  "name": "002b12468cd1b412c7ca",
+  "layouts": [
+    {
+      "id": 0,
+      "position": {
+        "x": 979.94579945799467,
+        "y": 17.604336043360433,
+        "z": 500,
+        "width": 300.05420054200545,
+        "height": 236.7479674796748,
+        "tabOrder": 18000
+      }
+    }
+  ],
+  "singleVisual": {
+    "visualType": "textbox",
+    "drillFilterOtherVisuals": true,
+    "objects": {
+      "general": [
+        {
+          "properties": {
+            "paragraphs": [
+              {
+                "textRuns": [
+                  {
+                    "value": "Filters; 70 px"
+                  }
+                ]
+              },
+              {
+                "textRuns": [
+                  {
+                    "value": "Eerste per rij op; 15px van links"
+                  }
+                ]
+              },
+              {
+                "textRuns": [
+                  {
+                    "value": "afstand tussen rijen; 80 px "
+                  }
+                ]
+              },
+              {
+                "textRuns": [
+                  {
+                    "value": "(120/200/280/360/440/520/600/...)"
+                  }
+                ]
+              },
+              {
+                "textRuns": [
+                  {
+                    "value": ""
+                  }
+                ]
+              },
+              {
+                "textRuns": [
+                  {
+                    "value": "filter vierkant;"
+                  }
+                ]
+              },
+              {
+                "textRuns": [
+                  {
+                    "value": "positie; 0px/96px"
+                  }
+                ]
+              },
+              {
+                "textRuns": [
+                  {
+                    "value": "formaat; ="
+                  }
+                ]
+              },
+              {
+                "textRuns": [
+                  {
+                    "value": "-maximale breedte"
+                  }
+                ]
+              },
+              {
+                "textRuns": [
+                  {
+                    "value": "-hoogte; even hoog als y-positie laatste rij"
+                  }
+                ]
+              },
+              {
+                "textRuns": [
+                  {
+                    "value": "(bijv. laatste rij is 3e rij op 280; dan vierkant ook 280px hoog)"
+                  }
+                ]
+              }
+            ]
+          }
+        }
+      ]
+    }
+  },
+  "parentGroupName": "774339a561f054e6ec93"
+}

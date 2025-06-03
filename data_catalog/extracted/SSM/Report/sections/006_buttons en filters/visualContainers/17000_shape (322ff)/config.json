@@ -1,0 +1,49 @@
+{
+  "name": "322ff3821318bdb46c07",
+  "layouts": [
+    {
+      "id": 0,
+      "position": {
+        "x": 929.64769647696482,
+        "y": 71.371273712737121,
+        "z": 750,
+        "width": 47.696476964769651,
+        "height": 136.15176151761517,
+        "tabOrder": 17000
+      }
+    }
+  ],
+  "singleVisual": {
+    "visualType": "shape",
+    "drillFilterOtherVisuals": true,
+    "objects": {
+      "shape": [
+        {
+          "properties": {
+            "tileShape": {
+              "expr": {
+                "Literal": {
+                  "Value": "'arrow'"
+                }
+              }
+            }
+          }
+        }
+      ],
+      "rotation": [
+        {
+          "properties": {
+            "shapeAngle": {
+              "expr": {
+                "Literal": {
+                  "Value": "90L"
+                }
+              }
+            }
+          }
+        }
+      ]
+    }
+  },
+  "parentGroupName": "774339a561f054e6ec93"
+}

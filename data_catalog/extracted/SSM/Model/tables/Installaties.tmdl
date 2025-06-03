@@ -1,0 +1,259 @@
+﻿/// MH 20231111; vooralsnog niet nodig. Installatie informatie toegevoegd aan besteksparagrafen.
+table Installaties
+
+	column InstallatieKey
+		dataType: int64
+		formatString: 0
+		summarizeBy: none
+		sourceColumn: InstallatieKey
+
+		annotation SummarizationSetBy = Automatic
+
+	column ParentInstallatieKey
+		dataType: int64
+		formatString: 0
+		summarizeBy: count
+		sourceColumn: ParentInstallatieKey
+
+		annotation SummarizationSetBy = Automatic
+
+	column ObjectKey
+		dataType: int64
+		formatString: 0
+		summarizeBy: none
+		sourceColumn: ObjectKey
+
+		annotation SummarizationSetBy = Automatic
+
+	column InstallatieStatus
+		dataType: string
+		summarizeBy: none
+		sourceColumn: InstallatieStatus
+
+		annotation SummarizationSetBy = Automatic
+
+	column Fase
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Fase
+
+		annotation SummarizationSetBy = Automatic
+
+	column Garantiedatum
+		dataType: dateTime
+		formatString: Long Date
+		summarizeBy: none
+		sourceColumn: Garantiedatum
+
+		annotation SummarizationSetBy = Automatic
+
+	column Overnamedatum
+		dataType: dateTime
+		formatString: General Date
+		summarizeBy: none
+		sourceColumn: Overnamedatum
+
+		annotation SummarizationSetBy = Automatic
+
+	column Complexiteit
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Complexiteit
+
+		annotation SummarizationSetBy = Automatic
+
+	column Bouwjaar
+		dataType: int64
+		formatString: 0
+		summarizeBy: sum
+		sourceColumn: Bouwjaar
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Technische levensduur'
+		dataType: int64
+		formatString: 0
+		summarizeBy: sum
+		sourceColumn: Technische levensduur
+
+		annotation SummarizationSetBy = Automatic
+
+	column Vervangingswaarde
+		dataType: double
+		summarizeBy: sum
+		sourceColumn: Vervangingswaarde
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column Vervangingsdatum
+		dataType: dateTime
+		formatString: Long Date
+		summarizeBy: none
+		sourceColumn: Vervangingsdatum
+
+		annotation SummarizationSetBy = Automatic
+
+	column Vervangingsstatus
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Vervangingsstatus
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Installatiesoort Code'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Installatiesoort Code
+
+		annotation SummarizationSetBy = Automatic
+
+	column Installatiesoort
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Installatiesoort
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Apparaat Code'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Apparaat Code
+
+		annotation SummarizationSetBy = Automatic
+
+	column Apparaat
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Apparaat
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Apparaat Soort'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Apparaat Soort
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Geplaatst Door'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Geplaatst Door
+
+		annotation SummarizationSetBy = Automatic
+
+	column ApparaatKey
+		dataType: int64
+		isHidden
+		formatString: 0
+		summarizeBy: count
+		sourceColumn: ApparaatKey
+
+		annotation SummarizationSetBy = Automatic
+
+	column MerkKey
+		dataType: int64
+		isHidden
+		formatString: 0
+		summarizeBy: count
+		sourceColumn: MerkKey
+
+		annotation SummarizationSetBy = Automatic
+
+	column MerktypeKey
+		dataType: int64
+		isHidden
+		formatString: 0
+		summarizeBy: count
+		sourceColumn: MerktypeKey
+
+		annotation SummarizationSetBy = Automatic
+
+	column ApparaatMerkKey
+		dataType: int64
+		isHidden
+		formatString: 0
+		summarizeBy: count
+		sourceColumn: ApparaatMerkKey
+
+		annotation SummarizationSetBy = Automatic
+
+	column ApparaatMerktypeKey
+		dataType: int64
+		isHidden
+		formatString: 0
+		summarizeBy: count
+		sourceColumn: ApparaatMerktypeKey
+
+		annotation SummarizationSetBy = Automatic
+
+	column InstallatiesoortKey
+		dataType: int64
+		isHidden
+		formatString: 0
+		summarizeBy: count
+		sourceColumn: InstallatiesoortKey
+
+		annotation SummarizationSetBy = Automatic
+
+	column Plaatsingsdatum
+		dataType: dateTime
+		formatString: General Date
+		summarizeBy: none
+		sourceColumn: Plaatsingsdatum
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Installatiesoort Type'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Installatiesoort Type
+
+		annotation SummarizationSetBy = Automatic
+
+	column Aanmaakdatum
+		dataType: dateTime
+		formatString: General Date
+		summarizeBy: none
+		sourceColumn: Aanmaakdatum
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Installatiesoort kenmerk'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Installatiesoort kenmerk
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Installatie Code'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Installatie Code
+
+		annotation SummarizationSetBy = Automatic
+
+	column Installatie
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Installatie
+
+		annotation SummarizationSetBy = Automatic
+
+	partition Installaties = m
+		mode: import
+		queryGroup: Stam
+		source =
+				let
+				    View = "SSM Installaties",
+				    Source =PostgreSQL.Database(#"3_server",#"4_database"),
+				    #"Notifica_SSM" = Source{[Schema=#"5_schema",Item=View]}[Data]
+				in
+				    #"Notifica_SSM"
+
+	annotation PBI_ResultType = Table
+
+	annotation PBI_NavigationStepName = Navigation
+

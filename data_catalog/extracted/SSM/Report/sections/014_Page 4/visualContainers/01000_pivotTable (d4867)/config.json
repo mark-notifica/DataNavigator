@@ -1,0 +1,377 @@
+{
+  "name": "d48676768ad3badc00e7",
+  "layouts": [
+    {
+      "id": 0,
+      "position": {
+        "x": 0,
+        "y": 78.624078624078621,
+        "z": 0,
+        "width": 1262.7027027027027,
+        "height": 199.7051597051597,
+        "tabOrder": 1000
+      }
+    }
+  ],
+  "singleVisual": {
+    "visualType": "pivotTable",
+    "projections": {
+      "Rows": [
+        {
+          "queryRef": "Project eenmalige orderregels.Debiteur met betaaltermijn",
+          "active": true
+        },
+        {
+          "queryRef": "Project eenmalige orderregels.Order"
+        },
+        {
+          "queryRef": "Project eenmalige orderregels.Regelnummer en omschrijving"
+        }
+      ],
+      "Values": [
+        {
+          "queryRef": "Formules.Orderbedrag"
+        },
+        {
+          "queryRef": "Formules.Prognose factureerdatum"
+        },
+        {
+          "queryRef": "Formules.Nog te factureren - Totaal"
+        },
+        {
+          "queryRef": "Formules.Openstaand bedrag via orderregel"
+        },
+        {
+          "queryRef": "Formules.Onverwerkte opbrengstregels via orders"
+        },
+        {
+          "queryRef": "Formules.Vervallen betalingstermijnen via orderregel"
+        },
+        {
+          "queryRef": "Formules.Betaald bedrag via orderregel"
+        }
+      ]
+    },
+    "prototypeQuery": {
+      "Version": 2,
+      "From": [
+        {
+          "Name": "p",
+          "Entity": "Project eenmalige orderregels",
+          "Type": 0
+        },
+        {
+          "Name": "f",
+          "Entity": "Formules",
+          "Type": 0
+        }
+      ],
+      "Select": [
+        {
+          "Column": {
+            "Expression": {
+              "SourceRef": {
+                "Source": "p"
+              }
+            },
+            "Property": "Debiteur met betaaltermijn"
+          },
+          "Name": "Project eenmalige orderregels.Debiteur met betaaltermijn",
+          "NativeReferenceName": "Debiteur met betaaltermijn"
+        },
+        {
+          "Column": {
+            "Expression": {
+              "SourceRef": {
+                "Source": "p"
+              }
+            },
+            "Property": "Order"
+          },
+          "Name": "Project eenmalige orderregels.Order",
+          "NativeReferenceName": "Order"
+        },
+        {
+          "Column": {
+            "Expression": {
+              "SourceRef": {
+                "Source": "p"
+              }
+            },
+            "Property": "Regelnummer en omschrijving"
+          },
+          "Name": "Project eenmalige orderregels.Regelnummer en omschrijving",
+          "NativeReferenceName": "Regelnummer en omschrijving"
+        },
+        {
+          "Measure": {
+            "Expression": {
+              "SourceRef": {
+                "Source": "f"
+              }
+            },
+            "Property": "Orderbedrag"
+          },
+          "Name": "Formules.Orderbedrag",
+          "NativeReferenceName": "Orderbedrag"
+        },
+        {
+          "Measure": {
+            "Expression": {
+              "SourceRef": {
+                "Source": "f"
+              }
+            },
+            "Property": "Prognose factureerdatum"
+          },
+          "Name": "Formules.Prognose factureerdatum",
+          "NativeReferenceName": "Prognose factureerdatum"
+        },
+        {
+          "Measure": {
+            "Expression": {
+              "SourceRef": {
+                "Source": "f"
+              }
+            },
+            "Property": "Nog te factureren - Totaal"
+          },
+          "Name": "Formules.Nog te factureren - Totaal",
+          "NativeReferenceName": "Nog te factureren - Totaal"
+        },
+        {
+          "Measure": {
+            "Expression": {
+              "SourceRef": {
+                "Source": "f"
+              }
+            },
+            "Property": "Openstaand bedrag via orderregel"
+          },
+          "Name": "Formules.Openstaand bedrag via orderregel",
+          "NativeReferenceName": "Openstaand bedrag via orderregel"
+        },
+        {
+          "Measure": {
+            "Expression": {
+              "SourceRef": {
+                "Source": "f"
+              }
+            },
+            "Property": "Onverwerkte opbrengstregels via orders"
+          },
+          "Name": "Formules.Onverwerkte opbrengstregels via orders",
+          "NativeReferenceName": "Onverwerkte opbrengstregels via orders"
+        },
+        {
+          "Measure": {
+            "Expression": {
+              "SourceRef": {
+                "Source": "f"
+              }
+            },
+            "Property": "Vervallen betalingstermijnen via orderregel"
+          },
+          "Name": "Formules.Vervallen betalingstermijnen via orderregel",
+          "NativeReferenceName": "Vervallen betalingstermijnen via orderregel"
+        },
+        {
+          "Measure": {
+            "Expression": {
+              "SourceRef": {
+                "Source": "f"
+              }
+            },
+            "Property": "Betaald bedrag via orderregel"
+          },
+          "Name": "Formules.Betaald bedrag via orderregel",
+          "NativeReferenceName": "Betaald bedrag via orderregel"
+        }
+      ],
+      "OrderBy": [
+        {
+          "Direction": 1,
+          "Expression": {
+            "Column": {
+              "Expression": {
+                "SourceRef": {
+                  "Source": "p"
+                }
+              },
+              "Property": "Debiteur met betaaltermijn"
+            }
+          }
+        }
+      ]
+    },
+    "expansionStates": [
+      {
+        "roles": [
+          "Rows"
+        ],
+        "levels": [
+          {
+            "queryRefs": [
+              "Project eenmalige orderregels.Debiteur met betaaltermijn"
+            ],
+            "isCollapsed": true,
+            "identityKeys": [
+              {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Project eenmalige orderregels"
+                    }
+                  },
+                  "Property": "Debiteur met betaaltermijn"
+                }
+              }
+            ],
+            "isPinned": true
+          },
+          {
+            "queryRefs": [
+              "Project eenmalige orderregels.Order"
+            ],
+            "isCollapsed": true,
+            "identityKeys": [
+              {
+                "Column": {
+                  "Expression": {
+                    "SourceRef": {
+                      "Entity": "Project eenmalige orderregels"
+                    }
+                  },
+                  "Property": "Order"
+                }
+              }
+            ],
+            "isPinned": true
+          },
+          {
+            "queryRefs": [
+              "Project eenmalige orderregels.Regelnummer en omschrijving"
+            ],
+            "isCollapsed": true,
+            "isPinned": true
+          }
+        ],
+        "root": {
+          "identityValues": null,
+          "children": [
+            {
+              "identityValues": [
+                {
+                  "Literal": {
+                    "Value": "'10611 - Van Dorp Installaties B.V. (Betaaltermijn: 30)'"
+                  }
+                }
+              ],
+              "children": [
+                {
+                  "identityValues": [
+                    {
+                      "Literal": {
+                        "Value": "'Order: 22000083 Project: 2022-051 - RKZ Beverwijk'"
+                      }
+                    }
+                  ],
+                  "isToggled": true
+                }
+              ]
+            }
+          ]
+        }
+      }
+    ],
+    "drillFilterOtherVisuals": true,
+    "objects": {
+      "columnWidth": [
+        {
+          "properties": {
+            "value": {
+              "expr": {
+                "Literal": {
+                  "Value": "81.2309774896516D"
+                }
+              }
+            }
+          },
+          "selector": {
+            "metadata": "Formules.Nog te factureren - Totaal"
+          }
+        },
+        {
+          "properties": {
+            "value": {
+              "expr": {
+                "Literal": {
+                  "Value": "104.39065664137692D"
+                }
+              }
+            }
+          },
+          "selector": {
+            "metadata": "Formules.Prognose factureerdatum"
+          }
+        },
+        {
+          "properties": {
+            "value": {
+              "expr": {
+                "Literal": {
+                  "Value": "102.65846805757155D"
+                }
+              }
+            }
+          },
+          "selector": {
+            "metadata": "Formules.Betaald bedrag via orderregel"
+          }
+        },
+        {
+          "properties": {
+            "value": {
+              "expr": {
+                "Literal": {
+                  "Value": "132.38428670670703D"
+                }
+              }
+            }
+          },
+          "selector": {
+            "metadata": "Formules.Vervallen betalingstermijnen via orderregel"
+          }
+        },
+        {
+          "properties": {
+            "value": {
+              "expr": {
+                "Literal": {
+                  "Value": "118.05649101510681D"
+                }
+              }
+            }
+          },
+          "selector": {
+            "metadata": "Formules.Onverwerkte opbrengstregels via orders"
+          }
+        },
+        {
+          "properties": {
+            "value": {
+              "expr": {
+                "Literal": {
+                  "Value": "102.92628496642733D"
+                }
+              }
+            }
+          },
+          "selector": {
+            "metadata": "Formules.Openstaand bedrag via orderregel"
+          }
+        }
+      ]
+    }
+  }
+}

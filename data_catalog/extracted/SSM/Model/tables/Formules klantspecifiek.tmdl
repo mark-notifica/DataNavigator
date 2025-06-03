@@ -1,0 +1,65 @@
+﻿table 'Formules klantspecifiek'
+
+	measure 'KS voorbeeld measure' = ```
+			
+			/*
+			Op basis van een Direct Query met de SMM kunnen measures worden toegevoegd. 
+			
+			Best Practice;
+			1. Elke measure beginnen met 'KS'
+			2. De measure plaatsen in de map [Formules] -> [3.Klantspecifieke objecten]
+			3. De measure omschrijven met onder de kop Functie.
+			4. Aanpassingen bijhouden inclusief datum en naam. 
+			5. Gebruik van variabelen in measure waarbij {Result} altijd de laatste variabele is.
+			6. Measure in regels onder elkaar uitschrijven. Zie {daxformatter.com}
+			
+			-------------------------------------------------
+			
+			Functie:
+			Omschrijving van doel en werking van de measure. Dit kan ook zijn de werkwijze binnen jullie organisatie 
+			inclusief groepering en filtering van data.
+			
+			
+			Aanpassing:
+			2. 06-12-2023 - <<Naam>>; voorbeeld aanpassing 2
+			1. 05-12-2023 - <<Naam>>; voorbeeld aanpassing 1 
+			
+			Auteur: <<Naam>>
+			Datum: <<Aanmaakdatum>>
+			 
+			*/
+			
+			VAR _var1 = 0
+			
+			VAR _var2 = _var1 + 0
+			
+			VAR Result = _var2
+			
+			RETURN
+			    result
+			```
+		displayFolder: 3. Klant Specifieke objecten
+
+	column NietGebruiken
+		dataType: string
+		isHidden
+		summarizeBy: none
+		sourceColumn: NietGebruiken
+
+		changedProperty = IsHidden
+
+		annotation SummarizationSetBy = Automatic
+
+	partition 'Formules klantspecifiek' = m
+		mode: import
+		queryGroup: Algemeen
+		source =
+				let
+				    Source = Table.FromRows(Json.Document(Binary.Decompress(Binary.FromText("i44FAA==", BinaryEncoding.Base64), Compression.Deflate)), let _t = ((type nullable text) meta [Serialized.Text = true]) in type table [NietGebruiken = _t])
+				in
+				    Source
+
+	annotation PBI_ResultType = Table
+
+	annotation PBI_NavigationStepName = Navigation
+

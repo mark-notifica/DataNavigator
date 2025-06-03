@@ -1,0 +1,55 @@
+﻿table Band
+
+	column Band_Code
+		dataType: int64
+		formatString: 0
+		summarizeBy: none
+		sourceColumn: Band_Code
+
+		annotation SummarizationSetBy = Automatic
+
+	column Name
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Name
+
+		annotation SummarizationSetBy = Automatic
+
+	column From
+		dataType: int64
+		formatString: 0
+		summarizeBy: none
+		sourceColumn: From
+
+		annotation SummarizationSetBy = Automatic
+
+	column To
+		dataType: int64
+		formatString: 0
+		summarizeBy: none
+		sourceColumn: To
+
+		annotation SummarizationSetBy = Automatic
+
+	column Order
+		dataType: int64
+		formatString: 0
+		summarizeBy: none
+		sourceColumn: Order
+
+		annotation SummarizationSetBy = Automatic
+
+	partition Band = m
+		mode: import
+		queryGroup: Stam
+		source =
+				let
+				    Source = Table.FromRows(Json.Document(Binary.Decompress(Binary.FromText("JYzLDcAwCEN34dog8UkqdRbE/msUO5GInzFQJS5LTNMgUwSXXiUB6/qyjTFSMEtY18+o85GS2YZ19TAC7hE303P9Q+Em3uiR7h8=", BinaryEncoding.Base64), Compression.Deflate)), let _t = ((type text) meta [Serialized.Text = true]) in type table [Band_Code = _t, Name = _t, From = _t, To = _t, Order = _t]),
+				    #"Changed Type" = Table.TransformColumnTypes(Source,{{"Band_Code", Int64.Type}, {"Name", type text}, {"From", Int64.Type}, {"To", Int64.Type}, {"Order", Int64.Type}})
+				in
+				    #"Changed Type"
+
+	annotation PBI_ResultType = Table
+
+	annotation PBI_NavigationStepName = Navigation
+

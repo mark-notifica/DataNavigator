@@ -1,0 +1,163 @@
+﻿/// MH 20231111; vooralsnog niet nodig. Installatie informatie toegevoegd aan besteksparagrafen.
+table Objecten
+
+	column ObjectKey
+		dataType: int64
+		formatString: 0
+		summarizeBy: none
+		sourceColumn: ObjectKey
+
+		annotation SummarizationSetBy = Automatic
+
+	column ParentObjectKey
+		dataType: int64
+		formatString: 0
+		summarizeBy: count
+		sourceColumn: ParentObjectKey
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Object code'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Object code
+
+		annotation SummarizationSetBy = Automatic
+
+	column Object
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Object
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Object status'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Object status
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Object bouwjaar'
+		dataType: int64
+		formatString: 0
+		summarizeBy: sum
+		sourceColumn: Object bouwjaar
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Objectsoort code'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Objectsoort code
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Zelfstandig object (Ja-Nee)'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Zelfstandig object (Ja-Nee)
+
+		annotation SummarizationSetBy = Automatic
+
+	column Objectsoort
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Objectsoort
+
+		annotation SummarizationSetBy = Automatic
+
+	column Postcode
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Postcode
+
+		annotation SummarizationSetBy = Automatic
+
+	column Plaats
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Plaats
+
+		annotation SummarizationSetBy = Automatic
+
+	column Adres
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Adres
+
+		annotation SummarizationSetBy = Automatic
+
+	column Eigenaar
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Eigenaar
+
+		annotation SummarizationSetBy = Automatic
+
+	column Gebruiker
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Gebruiker
+
+		annotation SummarizationSetBy = Automatic
+
+	column Beheerder
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Beheerder
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Object omschrijving'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Object omschrijving
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Object referentie'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Object referentie
+
+		annotation SummarizationSetBy = Automatic
+
+	column Complexcode
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Complexcode
+
+		annotation SummarizationSetBy = Automatic
+
+	column Wijzigdatum
+		dataType: dateTime
+		formatString: General Date
+		summarizeBy: none
+		sourceColumn: Wijzigdatum
+
+		annotation SummarizationSetBy = Automatic
+
+	column Aanmaakdatum
+		dataType: dateTime
+		formatString: General Date
+		summarizeBy: none
+		sourceColumn: Aanmaakdatum
+
+		annotation SummarizationSetBy = Automatic
+
+	partition Objecten = m
+		mode: import
+		queryGroup: Stam
+		source =
+				let
+				    View = "SSM Objecten",
+				    Source =PostgreSQL.Database(#"3_server",#"4_database"),
+				    #"Notifica_SSM" = Source{[Schema=#"5_schema",Item=View]}[Data]
+				in
+				    #"Notifica_SSM"
+
+	annotation PBI_ResultType = Table
+
+	annotation PBI_NavigationStepName = Navigation
+

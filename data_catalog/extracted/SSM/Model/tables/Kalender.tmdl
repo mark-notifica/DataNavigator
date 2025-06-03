@@ -1,0 +1,286 @@
+﻿table Kalender
+
+	column Datum
+		dataType: dateTime
+		formatString: dd-mm-yyyy
+		summarizeBy: none
+		sourceColumn: Datum
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation UnderlyingDateTimeDataType = Date
+
+	column Jaar
+		dataType: int64
+		formatString: 0
+		summarizeBy: none
+		sourceColumn: Jaar
+
+		annotation SummarizationSetBy = User
+
+	column Maandnummer
+		dataType: int64
+		formatString: 0
+		summarizeBy: none
+		sourceColumn: Maandnummer
+
+		annotation SummarizationSetBy = User
+
+	column Maand
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Maand
+		sortByColumn: Maandnummer
+
+		changedProperty = SortByColumn
+
+		annotation SummarizationSetBy = Automatic
+
+	column Weeknummer
+		dataType: double
+		formatString: 0
+		summarizeBy: sum
+		sourceColumn: Weeknummer
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Dagnummer van de week'
+		dataType: int64
+		formatString: 0
+		summarizeBy: sum
+		sourceColumn: Dagnummer van de week
+
+		annotation SummarizationSetBy = Automatic
+
+	column Dagnaam
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Dagnaam
+		sortByColumn: 'Dagnummer van de week'
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Dag van de maand'
+		dataType: double
+		formatString: 0
+		summarizeBy: sum
+		sourceColumn: Dag van de maand
+
+		annotation SummarizationSetBy = Automatic
+
+	column Kwartaal
+		dataType: int64
+		summarizeBy: none
+		sourceColumn: Kwartaal
+
+		annotation SummarizationSetBy = User
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column YYYYMM
+		dataType: int64
+		formatString: 0
+		summarizeBy: sum
+		sourceColumn: YYYYMM
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Begindatum Maand'
+		dataType: dateTime
+		formatString: dd-mm-yyyy
+		summarizeBy: none
+		sourceColumn: Begindatum Maand
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation UnderlyingDateTimeDataType = Date
+
+	column 'Begindatum Kwartaal'
+		dataType: dateTime
+		formatString: dd-mm-yyyy
+		summarizeBy: none
+		sourceColumn: Begindatum Kwartaal
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation UnderlyingDateTimeDataType = Date
+
+	column 'Begindatum Jaar'
+		dataType: dateTime
+		formatString: dd-mm-yyyy
+		summarizeBy: none
+		sourceColumn: Begindatum Jaar
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation UnderlyingDateTimeDataType = Date
+
+	column 'Einddatum Maand'
+		dataType: dateTime
+		formatString: dd-mm-yyyy
+		summarizeBy: none
+		sourceColumn: Einddatum Maand
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation UnderlyingDateTimeDataType = Date
+
+	column 'Einddatum Kwartaal'
+		dataType: dateTime
+		formatString: dd-mm-yyyy
+		summarizeBy: none
+		sourceColumn: Einddatum Kwartaal
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation UnderlyingDateTimeDataType = Date
+
+	column 'Einddatum Jaar'
+		dataType: dateTime
+		formatString: dd-mm-yyyy
+		summarizeBy: none
+		sourceColumn: Einddatum Jaar
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation UnderlyingDateTimeDataType = Date
+
+	column 'Begindatum Week'
+		dataType: dateTime
+		formatString: dd-mm-yyyy
+		summarizeBy: none
+		sourceColumn: Begindatum Week
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation UnderlyingDateTimeDataType = Date
+
+	column 'Einddatum Week'
+		dataType: dateTime
+		formatString: dd-mm-yyyy
+		summarizeBy: none
+		sourceColumn: Einddatum Week
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation UnderlyingDateTimeDataType = Date
+
+	column 'Jaar index'
+		dataType: double
+		formatString: 0
+		summarizeBy: sum
+		sourceColumn: Jaar index
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Kwartaal index'
+		dataType: double
+		formatString: 0
+		summarizeBy: sum
+		sourceColumn: Kwartaal index
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Maand index'
+		dataType: double
+		formatString: 0
+		summarizeBy: sum
+		sourceColumn: Maand index
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Week index'
+		dataType: double
+		formatString: 0
+		summarizeBy: sum
+		sourceColumn: Week index
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Dag index'
+		dataType: int64
+		formatString: 0
+		summarizeBy: sum
+		sourceColumn: Dag index
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Jaar index tekst'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Jaar index tekst
+		sortByColumn: 'Jaar index'
+
+		changedProperty = SortByColumn
+
+		annotation SummarizationSetBy = Automatic
+
+	column Werkdag
+		dataType: int64
+		formatString: 0
+		summarizeBy: sum
+		sourceColumn: Werkdag
+
+		annotation SummarizationSetBy = Automatic
+
+	column Standdatum
+		dataType: dateTime
+		formatString: dd-mm-yyyy
+		summarizeBy: none
+		sourceColumn: Standdatum
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation UnderlyingDateTimeDataType = Date
+
+	column 'standdatum tekst'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: standdatum tekst
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Maand kort'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Maand kort
+
+		annotation SummarizationSetBy = Automatic
+
+	hierarchy 'Kalender Hierarchy'
+
+		level Jaar
+			column: Jaar
+
+		level Maand
+			column: Maand
+
+		level Weeknummer
+			column: Weeknummer
+
+		level Datum
+			column: Datum
+
+	partition Kalender-89080572-bc59-4606-bbb0-c7c13e2b5748 = m
+		mode: import
+		queryGroup: Kalenders
+		source =
+				let
+				    View = "SSM Kalender",
+				    Source =PostgreSQL.Database(#"3_server",#"4_database"),
+				    #"Notifica_SSM" = Source{[Schema=#"5_schema",Item=View]}[Data]
+				in
+				    #"Notifica_SSM"
+
+	changedProperty = IsHidden
+
+	annotation PBI_Id = 58109941-91a5-4cb1-81df-8e88dda0a630
+
+	annotation LinkedQueryName = Uitvoerdatum kalender
+
+	annotation PBI_QueryRelationships = {"columnCount":10,"keyColumnNames":[],"queryRelationships":[],"columnIdentities":["Server.Database\\/2/SQL/1127.bisqq.nl;DWH1127/stam/stam.Datums.{Datum,0}","Server.Database\\/2/SQL/1127.bisqq.nl;DWH1127/stam/stam.Datums.{Jaar,1}","Server.Database\\/2/SQL/1127.bisqq.nl;DWH1127/stam/stam.Datums.{Maandnummer,2}","Server.Database\\/2/SQL/1127.bisqq.nl;DWH1127/stam/stam.Datums.{Maand,3}","Server.Database\\/2/SQL/1127.bisqq.nl;DWH1127/stam/stam.Datums.{Weeknummer,4}","Server.Database\\/2/SQL/1127.bisqq.nl;DWH1127/stam/stam.Datums.{Dagnummer van de week,5}","Server.Database\\/2/SQL/1127.bisqq.nl;DWH1127/stam/stam.Datums.{Dagnaam,6}","Server.Database\\/2/SQL/1127.bisqq.nl;DWH1127/stam/stam.Datums.{Dag van de maand,7}","Server.Database\\/2/SQL/1127.bisqq.nl;DWH1127/stam/stam.Datums.{YYMM,8}","Server.Database\\/2/SQL/1127.bisqq.nl;DWH1127/stam/stam.Datums.{Kwartaal,9}"],"ColumnCount":10,"KeyColumnNames":[],"ColumnIdentities":["Server.Database\\/2/SQL/1127.bisqq.nl;DWH1127/stam/stam.Datums.{Datum,0}","Server.Database\\/2/SQL/1127.bisqq.nl;DWH1127/stam/stam.Datums.{Jaar,1}","Server.Database\\/2/SQL/1127.bisqq.nl;DWH1127/stam/stam.Datums.{Maandnummer,2}","Server.Database\\/2/SQL/1127.bisqq.nl;DWH1127/stam/stam.Datums.{Maand,3}","Server.Database\\/2/SQL/1127.bisqq.nl;DWH1127/stam/stam.Datums.{Weeknummer,4}","Server.Database\\/2/SQL/1127.bisqq.nl;DWH1127/stam/stam.Datums.{Dagnummer van de week,5}","Server.Database\\/2/SQL/1127.bisqq.nl;DWH1127/stam/stam.Datums.{Dagnaam,6}","Server.Database\\/2/SQL/1127.bisqq.nl;DWH1127/stam/stam.Datums.{Dag van de maand,7}","Server.Database\\/2/SQL/1127.bisqq.nl;DWH1127/stam/stam.Datums.{YYMM,8}","Server.Database\\/2/SQL/1127.bisqq.nl;DWH1127/stam/stam.Datums.{Kwartaal,9}"],"RelationshipInfo":[]}
+
+	annotation PBI_ResultType = Table
+
+	annotation PBI_NavigationStepName = Navigation
+

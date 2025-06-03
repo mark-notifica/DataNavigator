@@ -1,0 +1,600 @@
+{
+  "objects": {
+    "columnHeaders": [
+      {
+        "properties": {
+          "backColor": {
+            "solid": {
+              "color": {
+                "expr": {
+                  "ThemeDataColor": {
+                    "ColorId": 4,
+                    "Percent": 0
+                  }
+                }
+              }
+            }
+          },
+          "bold": {
+            "expr": {
+              "Literal": {
+                "Value": "true"
+              }
+            }
+          }
+        }
+      }
+    ],
+    "values": [
+      {
+        "properties": {
+          "fontSize": {
+            "expr": {
+              "Literal": {
+                "Value": "10D"
+              }
+            }
+          }
+        }
+      },
+      {
+        "properties": {
+          "icon": {
+            "kind": "Icon",
+            "layout": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Before'"
+                }
+              }
+            },
+            "verticalAlignment": {
+              "expr": {
+                "Literal": {
+                  "Value": "'Top'"
+                }
+              }
+            },
+            "value": {
+              "expr": {
+                "Conditional": {
+                  "Cases": [
+                    {
+                      "Condition": {
+                        "Comparison": {
+                          "ComparisonKind": 0,
+                          "Left": {
+                            "Aggregation": {
+                              "Expression": {
+                                "Column": {
+                                  "Expression": {
+                                    "SourceRef": {
+                                      "Entity": "Administraties"
+                                    }
+                                  },
+                                  "Property": "Actief via instellingen app"
+                                }
+                              },
+                              "Function": 3
+                            }
+                          },
+                          "Right": {
+                            "Literal": {
+                              "Value": "'Nee'"
+                            }
+                          }
+                        },
+                        "Annotations": {
+                          "PowerBI.SQExprEvaluationKind": 1,
+                          "PowerBI.SQExprTextOperatorOption": 2
+                        }
+                      },
+                      "Value": {
+                        "Literal": {
+                          "Value": "'CircleSymbolLow'"
+                        }
+                      }
+                    },
+                    {
+                      "Condition": {
+                        "Comparison": {
+                          "ComparisonKind": 0,
+                          "Left": {
+                            "Aggregation": {
+                              "Expression": {
+                                "Column": {
+                                  "Expression": {
+                                    "SourceRef": {
+                                      "Entity": "Administraties"
+                                    }
+                                  },
+                                  "Property": "Actief via instellingen app"
+                                }
+                              },
+                              "Function": 3
+                            }
+                          },
+                          "Right": {
+                            "Literal": {
+                              "Value": "'Ja'"
+                            }
+                          }
+                        },
+                        "Annotations": {
+                          "PowerBI.SQExprEvaluationKind": 1,
+                          "PowerBI.SQExprTextOperatorOption": 2
+                        }
+                      },
+                      "Value": {
+                        "Literal": {
+                          "Value": "'CircleSymbolHigh'"
+                        }
+                      }
+                    },
+                    {
+                      "Condition": {
+                        "Comparison": {
+                          "ComparisonKind": 0,
+                          "Left": {
+                            "Aggregation": {
+                              "Expression": {
+                                "Column": {
+                                  "Expression": {
+                                    "SourceRef": {
+                                      "Entity": "Administraties"
+                                    }
+                                  },
+                                  "Property": "Actief via instellingen app"
+                                }
+                              },
+                              "Function": 3
+                            }
+                          },
+                          "Right": {
+                            "Literal": {
+                              "Value": "''"
+                            }
+                          }
+                        },
+                        "Annotations": {
+                          "PowerBI.SQExprEvaluationKind": 1,
+                          "PowerBI.SQExprTextOperatorOption": 11
+                        }
+                      },
+                      "Value": {
+                        "Literal": {
+                          "Value": "'CircleSymbolMedium'"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "selector": {
+          "data": [
+            {
+              "dataViewWildcard": {
+                "matchingOption": 1
+              }
+            }
+          ],
+          "metadata": "Administraties.Actief via instellingen app"
+        }
+      }
+    ],
+    "total": [
+      {
+        "properties": {
+          "totals": {
+            "expr": {
+              "Literal": {
+                "Value": "false"
+              }
+            }
+          }
+        }
+      }
+    ]
+  },
+  "projectionOrdering": {
+    "Values": [
+      6,
+      1,
+      4,
+      8,
+      7,
+      0,
+      9,
+      2,
+      3,
+      5
+    ]
+  },
+  "queryMetadata": {
+    "Select": [
+      {
+        "Restatement": "Actief via instellingen app",
+        "Name": "Administraties.Actief via instellingen app",
+        "Type": 2048
+      },
+      {
+        "Restatement": "Administratie",
+        "Name": "Administraties.Administratie",
+        "Type": 2048
+      },
+      {
+        "Restatement": "Administratie kenmerk",
+        "Name": "Administraties.Administratie kenmerk",
+        "Type": 2048
+      },
+      {
+        "Restatement": "Administratie relatie",
+        "Name": "Administraties.Administratie relatie",
+        "Type": 2048
+      },
+      {
+        "Restatement": "AdministratieKey",
+        "Name": "Administraties.AdministratieKey",
+        "Type": 3,
+        "Format": "0"
+      },
+      {
+        "Restatement": "AdministratieRelatieKey",
+        "Name": "Administraties.AdministratieRelatieKey",
+        "Type": 3,
+        "Format": "0"
+      },
+      {
+        "Restatement": "Code",
+        "Name": "Administraties.Code",
+        "Type": 2048
+      },
+      {
+        "Restatement": "Status",
+        "Name": "Administraties.Status",
+        "Type": 2048
+      },
+      {
+        "Restatement": "UniekeAdministratieID",
+        "Name": "Administraties.UniekeAdministratieID",
+        "Type": 2048
+      },
+      {
+        "Restatement": "logo",
+        "Name": "Formules.logo",
+        "Type": 2048,
+        "DataCategory": 9
+      }
+    ],
+    "Filters": [
+      {
+        "type": 0,
+        "expression": {
+          "Column": {
+            "Expression": {
+              "SourceRef": {
+                "Entity": "Administraties"
+              }
+            },
+            "Property": "Administratie"
+          }
+        }
+      }
+    ]
+  },
+  "visualElements": [
+    {
+      "DataRoles": [
+        {
+          "Name": "Values",
+          "Projection": 6,
+          "isActive": false
+        },
+        {
+          "Name": "Values",
+          "Projection": 1,
+          "isActive": false
+        },
+        {
+          "Name": "Values",
+          "Projection": 4,
+          "isActive": false
+        },
+        {
+          "Name": "Values",
+          "Projection": 8,
+          "isActive": false
+        },
+        {
+          "Name": "Values",
+          "Projection": 7,
+          "isActive": false
+        },
+        {
+          "Name": "Values",
+          "Projection": 0,
+          "isActive": false
+        },
+        {
+          "Name": "Values",
+          "Projection": 9,
+          "isActive": false
+        },
+        {
+          "Name": "Values",
+          "Projection": 2,
+          "isActive": false
+        },
+        {
+          "Name": "Values",
+          "Projection": 3,
+          "isActive": false
+        },
+        {
+          "Name": "Values",
+          "Projection": 5,
+          "isActive": false
+        }
+      ]
+    }
+  ],
+  "selects": [
+    {
+      "displayName": "Actief via instellingen app",
+      "queryName": "Administraties.Actief via instellingen app",
+      "roles": {
+        "Values": true
+      },
+      "type": {
+        "category": null,
+        "underlyingType": 1
+      },
+      "expr": {
+        "Column": {
+          "Expression": {
+            "SourceRef": {
+              "Entity": "Administraties"
+            }
+          },
+          "Property": "Actief via instellingen app"
+        }
+      }
+    },
+    {
+      "displayName": "Administratie",
+      "queryName": "Administraties.Administratie",
+      "roles": {
+        "Values": true
+      },
+      "type": {
+        "category": null,
+        "underlyingType": 1
+      },
+      "expr": {
+        "Column": {
+          "Expression": {
+            "SourceRef": {
+              "Entity": "Administraties"
+            }
+          },
+          "Property": "Administratie"
+        }
+      }
+    },
+    {
+      "displayName": "Administratie kenmerk",
+      "queryName": "Administraties.Administratie kenmerk",
+      "roles": {
+        "Values": true
+      },
+      "type": {
+        "category": null,
+        "underlyingType": 1
+      },
+      "expr": {
+        "Column": {
+          "Expression": {
+            "SourceRef": {
+              "Entity": "Administraties"
+            }
+          },
+          "Property": "Administratie kenmerk"
+        }
+      }
+    },
+    {
+      "displayName": "Administratie relatie",
+      "queryName": "Administraties.Administratie relatie",
+      "roles": {
+        "Values": true
+      },
+      "type": {
+        "category": null,
+        "underlyingType": 1
+      },
+      "expr": {
+        "Column": {
+          "Expression": {
+            "SourceRef": {
+              "Entity": "Administraties"
+            }
+          },
+          "Property": "Administratie relatie"
+        }
+      }
+    },
+    {
+      "displayName": "AdministratieKey",
+      "format": "0",
+      "queryName": "Administraties.AdministratieKey",
+      "roles": {
+        "Values": true
+      },
+      "type": {
+        "category": null,
+        "underlyingType": 260
+      },
+      "expr": {
+        "Column": {
+          "Expression": {
+            "SourceRef": {
+              "Entity": "Administraties"
+            }
+          },
+          "Property": "AdministratieKey"
+        }
+      }
+    },
+    {
+      "displayName": "AdministratieRelatieKey",
+      "format": "0",
+      "queryName": "Administraties.AdministratieRelatieKey",
+      "roles": {
+        "Values": true
+      },
+      "type": {
+        "category": null,
+        "underlyingType": 260
+      },
+      "expr": {
+        "Column": {
+          "Expression": {
+            "SourceRef": {
+              "Entity": "Administraties"
+            }
+          },
+          "Property": "AdministratieRelatieKey"
+        }
+      }
+    },
+    {
+      "displayName": "Code",
+      "queryName": "Administraties.Code",
+      "roles": {
+        "Values": true
+      },
+      "sort": 1,
+      "sortOrder": 0,
+      "type": {
+        "category": null,
+        "underlyingType": 1
+      },
+      "expr": {
+        "Column": {
+          "Expression": {
+            "SourceRef": {
+              "Entity": "Administraties"
+            }
+          },
+          "Property": "Code"
+        }
+      }
+    },
+    {
+      "displayName": "Status",
+      "queryName": "Administraties.Status",
+      "roles": {
+        "Values": true
+      },
+      "type": {
+        "category": null,
+        "underlyingType": 1
+      },
+      "expr": {
+        "Column": {
+          "Expression": {
+            "SourceRef": {
+              "Entity": "Administraties"
+            }
+          },
+          "Property": "Status"
+        }
+      }
+    },
+    {
+      "displayName": "UniekeAdministratieID",
+      "queryName": "Administraties.UniekeAdministratieID",
+      "roles": {
+        "Values": true
+      },
+      "type": {
+        "category": null,
+        "underlyingType": 1
+      },
+      "expr": {
+        "Column": {
+          "Expression": {
+            "SourceRef": {
+              "Entity": "Administraties"
+            }
+          },
+          "Property": "UniekeAdministratieID"
+        }
+      }
+    },
+    {
+      "displayName": "logo",
+      "queryName": "Formules.logo",
+      "roles": {
+        "Values": true
+      },
+      "type": {
+        "category": "ImageUrl",
+        "underlyingType": 13174785
+      },
+      "expr": {
+        "Measure": {
+          "Expression": {
+            "SourceRef": {
+              "Entity": "Formules"
+            }
+          },
+          "Property": "logo"
+        }
+      }
+    },
+    {
+      "displayName": "First Actief via instellingen app",
+      "queryName": "Min(Administraties.Actief via instellingen app)",
+      "roles": {},
+      "type": {
+        "category": null,
+        "underlyingType": 1
+      },
+      "expr": {
+        "Aggregation": {
+          "Expression": {
+            "Column": {
+              "Expression": {
+                "SourceRef": {
+                  "Entity": "Administraties"
+                }
+              },
+              "Property": "Actief via instellingen app"
+            }
+          },
+          "Function": 3
+        }
+      },
+      "relatedObjects": {
+        "values": {
+          "icon": [
+            {
+              "data": [
+                {
+                  "kind": 4,
+                  "_matchingOption": 1,
+                  "_key": {}
+                }
+              ],
+              "metadata": "Administraties.Actief via instellingen app"
+            }
+          ]
+        }
+      }
+    }
+  ]
+}

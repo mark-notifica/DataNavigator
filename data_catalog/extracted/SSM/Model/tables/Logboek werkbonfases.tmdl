@@ -1,0 +1,71 @@
+﻿table 'Logboek werkbonfases'
+
+	column RegelKey
+		dataType: int64
+		formatString: 0
+		summarizeBy: count
+		sourceColumn: RegelKey
+
+		annotation SummarizationSetBy = Automatic
+
+	column GebruikerKey
+		dataType: int64
+		formatString: 0
+		summarizeBy: count
+		sourceColumn: GebruikerKey
+
+		annotation SummarizationSetBy = Automatic
+
+	column AdministratieKey
+		dataType: int64
+		formatString: 0
+		summarizeBy: count
+		sourceColumn: AdministratieKey
+
+		annotation SummarizationSetBy = Automatic
+
+	column WerkbonDocumentKey
+		dataType: int64
+		formatString: 0
+		summarizeBy: none
+		sourceColumn: WerkbonDocumentKey
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Datum en tijd'
+		dataType: dateTime
+		formatString: General Date
+		summarizeBy: none
+		sourceColumn: Datum en tijd
+
+		annotation SummarizationSetBy = Automatic
+
+	column Waarde
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Waarde
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Type fase'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Type fase
+
+		annotation SummarizationSetBy = Automatic
+
+	partition 'Logboek werkbonfases' = m
+		mode: import
+		queryGroup: 'Feiten algemeen'
+		source =
+				let
+				    View = "SSM Logboek werkbonfases",
+				    Source =PostgreSQL.Database(#"3_server",#"4_database"),
+				    #"Notifica_SSM" = Source{[Schema=#"5_schema",Item=View]}[Data]
+				in
+				    #"Notifica_SSM"
+
+	annotation PBI_NavigationStepName = Navigation
+
+	annotation PBI_ResultType = Table
+

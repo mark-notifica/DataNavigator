@@ -1,0 +1,48 @@
+﻿table Rekeningschemas
+
+	column RekeningSchemaKey
+		dataType: int64
+		isHidden
+		formatString: 0
+		summarizeBy: none
+		sourceColumn: RekeningSchemaKey
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Rekeningschema Code'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Rekeningschema Code
+
+		annotation SummarizationSetBy = Automatic
+
+	column Rekeningschema
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Rekeningschema
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Status rekeningschema'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Status rekeningschema
+
+		annotation SummarizationSetBy = Automatic
+
+	partition Rekeningschemas = m
+		mode: import
+		queryGroup: Stam
+		source = ```
+				let
+				    View = "SSM Rekeningschemas",
+				    Source =PostgreSQL.Database(#"3_server",#"4_database"),  
+				    #"Notifica_SSM" = Source{[Schema=#"5_schema",Item=View]}[Data]
+				in
+				    #"Notifica_SSM"
+				```
+
+	annotation PBI_ResultType = Table
+
+	annotation PBI_NavigationStepName = Navigation
+

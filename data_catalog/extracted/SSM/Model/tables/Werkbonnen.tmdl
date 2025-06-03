@@ -1,0 +1,504 @@
+﻿table Werkbonnen
+
+	column WerkbonDocumentKey
+		dataType: int64
+		isHidden
+		formatString: 0
+		summarizeBy: none
+		sourceColumn: WerkbonDocumentKey
+
+		annotation SummarizationSetBy = Automatic
+
+	column HoofdwerkbonDocumentKey
+		dataType: int64
+		isHidden
+		formatString: 0
+		summarizeBy: count
+		sourceColumn: HoofdwerkbonDocumentKey
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Hoofdwerkbon Documentstatus'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Hoofdwerkbon Documentstatus
+
+		annotation SummarizationSetBy = Automatic
+
+	column Hoofdwerkbon
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Hoofdwerkbon
+
+		annotation SummarizationSetBy = Automatic
+
+	column Werkbon
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Werkbon
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Hoofdwerkbon uitvoeringstatus'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Hoofdwerkbon uitvoeringstatus
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Hoofdwerkbon aanmaakdatum'
+		dataType: dateTime
+		formatString: Long Date
+		summarizeBy: none
+		sourceColumn: Hoofdwerkbon aanmaakdatum
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Hoofdwerkbon boekdatum'
+		dataType: dateTime
+		formatString: Long Date
+		summarizeBy: none
+		sourceColumn: Hoofdwerkbon boekdatum
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Hoofdwerkbon dagboek'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Hoofdwerkbon dagboek
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Hoofdwerkbon soort'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Hoofdwerkbon soort
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Hoofdwerkbon monteur'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Hoofdwerkbon monteur
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Hoofdwerkbon bloktijd'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Hoofdwerkbon bloktijd
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Hoofdwerkbon bloktijd kenmerk'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Hoofdwerkbon bloktijd kenmerk
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Hoofdwerkbon prioriteit'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Hoofdwerkbon prioriteit
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Hoofdwerkbon prioriteit kenmerk'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Hoofdwerkbon prioriteit kenmerk
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Hoofdwerkbon administratieve fase'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Hoofdwerkbon administratieve fase
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Hoofdwerkbon Onderaannemer'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Hoofdwerkbon Onderaannemer
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Werkbon niveau omschrijving'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Werkbon niveau omschrijving
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Werkbon niveau'
+		dataType: int64
+		formatString: 0
+		summarizeBy: sum
+		sourceColumn: Werkbon niveau
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Hoofdwerkbon afspraakdatum'
+		dataType: dateTime
+		formatString: Long Date
+		summarizeBy: none
+		sourceColumn: Hoofdwerkbon afspraakdatum
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Hoofdwerkbon type'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Hoofdwerkbon type
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Aantal werkbonnen incl. hoofdwerkbon'
+		dataType: int64
+		formatString: 0
+		summarizeBy: sum
+		sourceColumn: Aantal werkbonnen incl. hoofdwerkbon
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Hoofdwerkbon betreft onderaannemer'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Hoofdwerkbon betreft onderaannemer
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Hoofdwerkbon klant'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Hoofdwerkbon klant
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Hoofdwerkbon debiteur'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Hoofdwerkbon debiteur
+
+		annotation SummarizationSetBy = Automatic
+
+	column Documentstatus
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Documentstatus
+
+		annotation SummarizationSetBy = Automatic
+
+	column Status
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Status
+
+		annotation SummarizationSetBy = Automatic
+
+	column AfspraakDatum
+		dataType: dateTime
+		formatString: Long Date
+		summarizeBy: none
+		sourceColumn: AfspraakDatum
+
+		annotation SummarizationSetBy = Automatic
+
+	column Type
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Type
+
+		annotation SummarizationSetBy = Automatic
+
+	column Dagboek
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Dagboek
+
+		annotation SummarizationSetBy = Automatic
+
+	column Soort
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Soort
+
+		annotation SummarizationSetBy = Automatic
+
+	column AfspraakTijd
+		dataType: dateTime
+		formatString: General Date
+		summarizeBy: none
+		sourceColumn: AfspraakTijd
+
+		annotation SummarizationSetBy = Automatic
+
+	column MeldDatum
+		dataType: dateTime
+		formatString: General Date
+		summarizeBy: none
+		sourceColumn: MeldDatum
+
+		annotation SummarizationSetBy = Automatic
+
+	column MeldTijd
+		dataType: dateTime
+		formatString: General Date
+		summarizeBy: none
+		sourceColumn: MeldTijd
+
+		annotation SummarizationSetBy = Automatic
+
+	column Bloktijd
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Bloktijd
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Bloktijd kenmerk'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Bloktijd kenmerk
+
+		annotation SummarizationSetBy = Automatic
+
+	column Prioriteit
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Prioriteit
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Prioriteit kenmerk'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Prioriteit kenmerk
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Administratieve fase'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Administratieve fase
+
+		annotation SummarizationSetBy = Automatic
+
+	column Onderaannemer
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Onderaannemer
+
+		annotation SummarizationSetBy = Automatic
+
+	column Debiteur
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Debiteur
+
+		annotation SummarizationSetBy = Automatic
+
+	column Aanmaakdatum
+		dataType: dateTime
+		formatString: Long Date
+		summarizeBy: none
+		sourceColumn: Aanmaakdatum
+
+		annotation SummarizationSetBy = Automatic
+
+	column MeldDatumTijd
+		dataType: dateTime
+		formatString: General Date
+		summarizeBy: none
+		sourceColumn: MeldDatumTijd
+
+		annotation SummarizationSetBy = Automatic
+
+	column Opleverdatum
+		dataType: dateTime
+		formatString: General Date
+		summarizeBy: none
+		sourceColumn: Opleverdatum
+
+		annotation SummarizationSetBy = Automatic
+
+	column Inkoopnummer
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Inkoopnummer
+
+		annotation SummarizationSetBy = Automatic
+
+	column Werkorder
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Werkorder
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Laatste aankondiging'
+		dataType: dateTime
+		formatString: General Date
+		summarizeBy: none
+		sourceColumn: Laatste aankondiging
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Aantal aankondigingen'
+		dataType: int64
+		formatString: 0
+		summarizeBy: sum
+		sourceColumn: Aantal aankondigingen
+
+		annotation SummarizationSetBy = Automatic
+
+	column Afspraakdatumtijd
+		dataType: dateTime
+		formatString: General Date
+		summarizeBy: none
+		sourceColumn: Afspraakdatumtijd
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Hoofdwerkbon afspraakdatumtijd'
+		dataType: dateTime
+		formatString: General Date
+		summarizeBy: none
+		sourceColumn: Hoofdwerkbon afspraakdatumtijd
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Hoofdwerkbon melddatum'
+		dataType: dateTime
+		formatString: General Date
+		summarizeBy: none
+		sourceColumn: Hoofdwerkbon melddatum
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Hoofdwerkbon meldtijd'
+		dataType: dateTime
+		formatString: General Date
+		summarizeBy: none
+		sourceColumn: Hoofdwerkbon meldtijd
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Hoofdwerkbon melddatumtijd'
+		dataType: dateTime
+		formatString: General Date
+		summarizeBy: none
+		sourceColumn: Hoofdwerkbon melddatumtijd
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Hoofdwerkbon afspraaktijd'
+		dataType: dateTime
+		formatString: General Date
+		summarizeBy: none
+		sourceColumn: Hoofdwerkbon afspraaktijd
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Document eigenaar'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Document eigenaar
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Document eigenaar code'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Document eigenaar code
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Document eigenaar afdeling'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Document eigenaar afdeling
+
+		annotation SummarizationSetBy = Automatic
+
+	column Werkboncode
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Werkboncode
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Werkbon titel'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Werkbon titel
+
+		annotation SummarizationSetBy = Automatic
+
+	column Hoofdwerkboncode
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Hoofdwerkboncode
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Hoofdwerkbon titel'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Hoofdwerkbon titel
+
+		annotation SummarizationSetBy = Automatic
+
+	column Monteur
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Monteur
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Betreft onderaannemer'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Betreft onderaannemer
+
+		annotation SummarizationSetBy = Automatic
+
+	column Klant
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Klant
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Aankondigen Ja / Nee'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Aankondigen Ja / Nee
+
+		annotation SummarizationSetBy = Automatic
+
+	hierarchy 'Werkbon Hierarchy'
+
+		level Hoofdwerkbon
+			column: Hoofdwerkbon
+
+		level Werkbon
+			column: Werkbon
+
+	partition Werkbonnen = m
+		mode: import
+		queryGroup: Werkbonnen
+		source =
+				let
+				    View = "SSM Werkbonnen",
+				    Source =PostgreSQL.Database(#"3_server",#"4_database"),
+				    #"Notifica_SSM" = Source{[Schema=#"5_schema",Item=View]}[Data]
+				in
+				    #"Notifica_SSM"
+
+	annotation PBI_ResultType = Table
+
+	annotation PBI_NavigationStepName = Navigation
+

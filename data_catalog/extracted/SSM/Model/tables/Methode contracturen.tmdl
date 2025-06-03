@@ -1,0 +1,29 @@
+﻿table 'Methode contracturen'
+
+	column Key
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Key
+
+		annotation SummarizationSetBy = Automatic
+
+	column Bron
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Bron
+
+		annotation SummarizationSetBy = Automatic
+
+	partition 'Methode contracturen' = m
+		mode: import
+		queryGroup: Methodes
+		source =
+				let
+				    Source = Table.FromRows(Json.Document(Binary.Decompress(Binary.FromText("i45WMjQwVNJRcixKSs1MKS5ILCnKz89TitUBSRgBJXxTU1LLU4uyU4uUYmMB", BinaryEncoding.Base64), Compression.Deflate)), let _t = ((type nullable text) meta [Serialized.Text = true]) in type table [Key = _t, Bron = _t])
+				in
+				    Source
+
+	annotation PBI_ResultType = Table
+
+	annotation PBI_NavigationStepName = Navigation
+

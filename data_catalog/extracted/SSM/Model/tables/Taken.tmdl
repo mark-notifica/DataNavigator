@@ -1,0 +1,167 @@
+﻿table Taken
+
+	column TaakKey
+		dataType: int64
+		isHidden
+		formatString: 0
+		summarizeBy: none
+		sourceColumn: TaakKey
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Taak Code'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Taak Code
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Taak omschrijving'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Taak omschrijving
+
+		annotation SummarizationSetBy = Automatic
+
+	column KostensoortKey
+		dataType: int64
+		formatString: 0
+		summarizeBy: count
+		sourceColumn: KostensoortKey
+
+		annotation SummarizationSetBy = Automatic
+
+	column Tarief
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Tarief
+
+		annotation SummarizationSetBy = Automatic
+
+	column TariefCode
+		dataType: string
+		summarizeBy: none
+		sourceColumn: TariefCode
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Tarief prijs aantal'
+		dataType: double
+		summarizeBy: sum
+		sourceColumn: Tarief prijs aantal
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column 'Tarief verrekenprijs'
+		dataType: double
+		summarizeBy: sum
+		sourceColumn: Tarief verrekenprijs
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column 'Tarief BrutoVerkoopprijs'
+		dataType: double
+		summarizeBy: sum
+		sourceColumn: Tarief BrutoVerkoopprijs
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column 'Tarief consumentenprijs'
+		dataType: double
+		summarizeBy: sum
+		sourceColumn: Tarief consumentenprijs
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column 'Tariefsoort code'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Tariefsoort code
+
+		annotation SummarizationSetBy = Automatic
+
+	column Tariefsoort
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Tariefsoort
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Tariefsoort contracturen'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Tariefsoort contracturen
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Urensoort code'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Urensoort code
+
+		annotation SummarizationSetBy = Automatic
+
+	column Urensoort
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Urensoort
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Taak status'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Taak status
+
+		annotation SummarizationSetBy = Automatic
+
+	column unieketaakid
+		dataType: string
+		summarizeBy: none
+		sourceColumn: unieketaakid
+
+		annotation SummarizationSetBy = Automatic
+
+	column taak
+		dataType: string
+		summarizeBy: none
+		sourceColumn: taak
+
+		annotation SummarizationSetBy = Automatic
+
+	column Type
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Type
+
+		annotation SummarizationSetBy = Automatic
+
+	partition Taken-c3246466-fccf-4153-8c97-54a977c4a37f = m
+		mode: import
+		queryGroup: Stam
+		source =
+				let
+				    View = "SSM Taken",
+				    Source =PostgreSQL.Database(#"3_server",#"4_database"),
+				    #"Notifica_SSM" = Source{[Schema=#"5_schema",Item=View]}[Data]
+				in
+				    #"Notifica_SSM"
+
+	annotation PBI_Id = 601d1dee-e522-4168-9147-497f85b73882
+
+	annotation LinkedQueryName = Taken
+
+	annotation PBI_QueryRelationships = {"columnCount":10,"keyColumnNames":[],"queryRelationships":[],"columnIdentities":["Section1/Taken/Duplicated Column.{TaakKey,0}","Section1/Taken/Duplicated Column.{TariefKey,1}","Section1/Taken/Duplicated Column.{UrensoortKey,2}","Section1/Taken/Duplicated Column.{AdministratieKey,3}","Section1/Taken/Duplicated Column.{Taak Code,4}","Section1/Taken/Duplicated Column.{Taak,5}","Section1/Taken/Duplicated Column.{Korte naam,6}","Section1/Taken/Duplicated Column.{Urensoort,7}","Section1/Taken/Duplicated Column.{Kostensoort Type,8}","Section1/Taken/Duplicated Column.{Taak - Copy,9}"],"ColumnCount":10,"KeyColumnNames":[],"ColumnIdentities":["Section1/Taken/Duplicated Column.{TaakKey,0}","Section1/Taken/Duplicated Column.{TariefKey,1}","Section1/Taken/Duplicated Column.{UrensoortKey,2}","Section1/Taken/Duplicated Column.{AdministratieKey,3}","Section1/Taken/Duplicated Column.{Taak Code,4}","Section1/Taken/Duplicated Column.{Taak,5}","Section1/Taken/Duplicated Column.{Korte naam,6}","Section1/Taken/Duplicated Column.{Urensoort,7}","Section1/Taken/Duplicated Column.{Kostensoort Type,8}","Section1/Taken/Duplicated Column.{Taak - Copy,9}"],"RelationshipInfo":[]}
+
+	annotation PBI_ResultType = Table
+
+	annotation PBI_NavigationStepName = Navigation
+

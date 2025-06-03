@@ -1,0 +1,46 @@
+﻿table Functies
+
+	column FunctieKey
+		dataType: int64
+		formatString: 0
+		summarizeBy: count
+		sourceColumn: FunctieKey
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Functie Code'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Functie Code
+
+		annotation SummarizationSetBy = Automatic
+
+	column Functie
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Functie
+
+		annotation SummarizationSetBy = Automatic
+
+	column Status
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Status
+
+		annotation SummarizationSetBy = Automatic
+
+	partition Functies = m
+		mode: import
+		queryGroup: Stam
+		source =
+				let
+				    View = "SSM Functies",
+				    Source =PostgreSQL.Database(#"3_server",#"4_database"),
+				    #"Notifica_SSM" = Source{[Schema=#"5_schema",Item=View]}[Data]
+				in
+				    #"Notifica_SSM"
+
+	annotation PBI_ResultType = Table
+
+	annotation PBI_NavigationStepName = Navigation
+

@@ -1,0 +1,146 @@
+﻿table 'Materieel kosten'
+
+	column DocumentKey
+		dataType: int64
+		formatString: 0
+		summarizeBy: none
+		sourceColumn: DocumentKey
+
+		annotation SummarizationSetBy = Automatic
+
+	column MaterieelKey
+		dataType: int64
+		formatString: 0
+		summarizeBy: none
+		sourceColumn: MaterieelKey
+
+		annotation SummarizationSetBy = Automatic
+
+	column AdministratieKey
+		dataType: int64
+		formatString: 0
+		summarizeBy: none
+		sourceColumn: AdministratieKey
+
+		annotation SummarizationSetBy = Automatic
+
+	column KostensoortKey
+		dataType: int64
+		formatString: 0
+		summarizeBy: none
+		sourceColumn: KostensoortKey
+
+		annotation SummarizationSetBy = Automatic
+
+	column KostenplaatsKey
+		dataType: int64
+		formatString: 0
+		summarizeBy: none
+		sourceColumn: KostenplaatsKey
+
+		annotation SummarizationSetBy = Automatic
+
+	column Aantal
+		dataType: double
+		summarizeBy: sum
+		sourceColumn: Aantal
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column Kostprijs
+		dataType: double
+		summarizeBy: sum
+		sourceColumn: Kostprijs
+
+		annotation SummarizationSetBy = Automatic
+
+		annotation PBI_FormatHint = {"isGeneralNumber":true}
+
+	column Kostenbron
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Kostenbron
+
+		annotation SummarizationSetBy = Automatic
+
+	column Kostenstatus
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Kostenstatus
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Pakbon Status'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Pakbon Status
+
+		annotation SummarizationSetBy = Automatic
+
+	column Factureerstatus
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Factureerstatus
+
+		annotation SummarizationSetBy = Automatic
+
+	column Boekdatum
+		dataType: dateTime
+		formatString: dd-mm-yyyy
+		summarizeBy: none
+		sourceColumn: Boekdatum
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Document code'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Document code
+
+		annotation SummarizationSetBy = Automatic
+
+	column Document
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Document
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Dagboek code'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Dagboek code
+
+		annotation SummarizationSetBy = Automatic
+
+	column Dagboek
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Dagboek
+
+		annotation SummarizationSetBy = Automatic
+
+	column 'Document status'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Document status
+
+		annotation SummarizationSetBy = Automatic
+
+	partition 'Materieel kosten' = m
+		mode: import
+		queryGroup: 'Feiten algemeen'
+		source =
+				let
+				    View = "SSM Materieel kosten",
+				    Source =PostgreSQL.Database(#"3_server",#"4_database"),
+				    #"Notifica_SSM" = Source{[Schema=#"5_schema",Item=View]}[Data]
+				in
+				    #"Notifica_SSM"
+
+	annotation PBI_ResultType = Table
+
+	annotation PBI_NavigationStepName = Navigation
+
