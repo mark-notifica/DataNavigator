@@ -1,0 +1,8 @@
+[project]
+name = "datanavigator"
+version = "0.1.0"
+description = "Combineert datamodelgeneratie en catalogus onder één platform"
+dependencies = []
+
+[tool.setuptools.packages.find]
+where = ["."]
