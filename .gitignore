@@ -21,3 +21,5 @@ venv/
 # Test output, tijdelijk
 *.tmp
 *.bak
+
+*.code-workspace
