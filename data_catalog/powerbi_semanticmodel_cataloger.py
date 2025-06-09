@@ -14,11 +14,24 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
+ENV_PATTERN = re.compile(r'^\${(.+)}$')
+
+def _resolve_env(obj):
+    if isinstance(obj, dict):
+        return {k: _resolve_env(v) for k, v in obj.items()}
+    if isinstance(obj, list):
+        return [_resolve_env(v) for v in obj]
+    if isinstance(obj, str):
+        m = ENV_PATTERN.match(obj)
+        if m:
+            return os.getenv(m.group(1), obj)
+    return obj
+
 def load_db_config(path="servers_config.yaml"):
     import yaml
     with open(path, "r") as f:
         config = yaml.safe_load(f)
-    return config["catalog_db"]
+    return _resolve_env(config.get("catalog_db", {}))
 
 def extract_dax_expression(lines, start_idx):
     expr_lines = []

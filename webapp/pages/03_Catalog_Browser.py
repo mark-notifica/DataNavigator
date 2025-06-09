@@ -3,6 +3,8 @@ import pandas as pd
 import sqlalchemy as sa
 import yaml
 from pathlib import Path
+import os
+import re
 
 st.title("Catalog Browser")
 
@@ -11,6 +13,13 @@ def get_engine():
     config_path = Path(__file__).resolve().parents[2] / 'data_catalog' / 'db_config.yaml'
     with open(config_path) as f:
         cfg = yaml.safe_load(f)
+
+    env_pattern = re.compile(r'^\${(.+)}$')
+    for key, val in list(cfg.items()):
+        if isinstance(val, str):
+            m = env_pattern.match(val)
+            if m:
+                cfg[key] = os.getenv(m.group(1), val)
     url = sa.engine.URL.create(
         'postgresql+psycopg2',
         username=cfg.get('user'),
