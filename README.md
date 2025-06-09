@@ -1,8 +1,15 @@
 # DataNavigator
 
 De DataNavigator combineert:
+- **Data Catalogus**: 
+Voor het inzichtelijk maken van beschikbare data (o.a. tabellen, kolommen,datatypes) ná eerste extractie uit brondata. Start vanaf ruwe data in analyse database of data lake. 
+
+- **Brondata-herkomstmodule**: 
+- **Informatiebehoefte-module**: 
+- **Behoefte↔Bron-koppeling**:
 - **Uniforme Datamodel Generator**: voor het automatisch genereren van consistente SQL-datamodellen
-- **Data Catalogus**: voor het inzichtelijk maken van beschikbare databronnen en kolommen
+- **Feedback-loop & validatie**:
+
 
 🎯 Doel: inzicht bieden in wat er is en wat nodig is, vanuit zowel brondata als informatiebehoefte.
 
