@@ -17,6 +17,16 @@ Voor het inzichtelijk maken van beschikbare data (o.a. tabellen, kolommen,dataty
 - `datamodel_generator/` – logica voor het genereren van modellen
 - `data_catalog/` – extractie en opslag van metadata
 
+## Webapp draaien
+
+Installeer de vereiste pakketten (bijvoorbeeld via `pip install -r requirements.txt`).
+Start vervolgens de Streamlit-app:
+
+```bash
+streamlit run webapp/app.py
+```
+
+
 ## Data Catalog Extractor
 
 A version-aware PostgreSQL metadata extraction tool that catalogs schemas, tables, and columns from remote PostgreSQL servers into a central metadata repository. Built for use across multiple environments (e.g. VPS1, VPS3) and stores results in a central catalog (e.g. on VPS2).
