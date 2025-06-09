@@ -1,10 +1,20 @@
 import yaml
 from pathlib import Path
+import os
+import re
 
 # Invoerbestanden
 db_config_path = Path("data_catalog/db_config.yaml")
 server_config_path = Path("data_catalog/servers_config.yaml")
 output_path = Path(".env.generated")
+ENV_PATTERN = re.compile(r'^\${(.+)}$')
+
+def _resolve_env(value):
+    if isinstance(value, str):
+        m = ENV_PATTERN.match(value)
+        if m:
+            return os.getenv(m.group(1), value)
+    return value
 
 lines = []
 
@@ -13,11 +23,11 @@ if db_config_path.exists():
     with db_config_path.open() as f:
         db_conf = yaml.safe_load(f)
     lines.extend([
-        f"DB_HOST={db_conf.get('host', '')}",
-        f"DB_PORT={db_conf.get('port', '')}",
-        f"DB_NAME={db_conf.get('database', '')}",
-        f"DB_USER={db_conf.get('user', '')}",
-        f"DB_PASSWORD={db_conf.get('password', '')}",
+        f"DB_HOST={_resolve_env(db_conf.get('host', ''))}",
+        f"DB_PORT={_resolve_env(db_conf.get('port', ''))}",
+        f"DB_NAME={_resolve_env(db_conf.get('database', ''))}",
+        f"DB_USER={_resolve_env(db_conf.get('user', ''))}",
+        f"DB_PASSWORD={_resolve_env(db_conf.get('password', ''))}",
         ""
     ])
 

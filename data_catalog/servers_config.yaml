@@ -2,18 +2,18 @@ servers:
   - name: VPS1
     host: 10.3.152.2
     user: postgres
-    password: gripopdata
+    password: ${SERVER1_PASSWORD}
 
   - name: VPS3
     host: 10.3.152.9
     user: postgres
-    password: TQwSTtLM9bSaLD
+    password: ${SERVER2_PASSWORD}
 
 catalog_db:
   host: localhost
   dbname: data_catalog
   user: catalog_admin
-  password: u698zPsMA7q9g
+  password: ${CATALOG_DB_PASSWORD}
 
 tools:
   pbi_tools_path: C:/tools/pbi-tools/pbi-tools.exe

@@ -1,6 +1,7 @@
 import psycopg2
 import psycopg2.extras
 import yaml
+import re
 import datetime
 import argparse
 import logging
@@ -127,13 +128,26 @@ def mark_deleted_columns(cur, seen_set, now, table_ids):
         logger.error(f"Error marking deleted columns: {e}")
         raise
 
+ENV_PATTERN = re.compile(r'^\${(.+)}$')
+
+def _resolve_env(obj):
+    if isinstance(obj, dict):
+        return {k: _resolve_env(v) for k, v in obj.items()}
+    if isinstance(obj, list):
+        return [_resolve_env(v) for v in obj]
+    if isinstance(obj, str):
+        m = ENV_PATTERN.match(obj)
+        if m:
+            return os.getenv(m.group(1), obj)
+    return obj
+
 def load_config(path='servers_config.yaml'):
     try:
         with open(path, 'r') as f:
             config = yaml.safe_load(f)
             if not config:
                 raise ValueError("Config file is empty")
-            return config
+            return _resolve_env(config)
     except Exception as e:
         logger.error(f"Failed to load config file: {e}")
         raise

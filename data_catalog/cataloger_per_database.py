@@ -7,6 +7,7 @@ import logging
 from logging.handlers import RotatingFileHandler
 import os
 import sys
+import re
 
 # Setup logging
 os.makedirs('logfiles', exist_ok=True)
@@ -35,9 +36,23 @@ summary = {
     'columns_deleted': 0
 }
 
+ENV_PATTERN = re.compile(r'^\${(.+)}$')
+
+def _resolve_env(obj):
+    if isinstance(obj, dict):
+        return {k: _resolve_env(v) for k, v in obj.items()}
+    if isinstance(obj, list):
+        return [_resolve_env(v) for v in obj]
+    if isinstance(obj, str):
+        m = ENV_PATTERN.match(obj)
+        if m:
+            return os.getenv(m.group(1), obj)
+    return obj
+
 def load_config(path='servers_config.yaml'):
     with open(path, 'r') as f:
-        return yaml.safe_load(f)
+        data = yaml.safe_load(f)
+    return _resolve_env(data)
 
 def connect_db(config, dbname=None):
     return psycopg2.connect(
