@@ -1,196 +1,81 @@
 # DataNavigator
 
-De DataNavigator combineert:
-- **Data Catalogus**: 
-Voor het inzichtelijk maken van beschikbare data (o.a. tabellen, kolommen,datatypes) ná eerste extractie uit brondata. Start vanaf ruwe data in analyse database of data lake. 
+The **DataNavigator** combines the following components:
 
-- **Brondata-herkomstmodule**: 
-- **Informatiebehoefte-module**: 
-- **Behoefte↔Bron-koppeling**:
-- **Uniforme Datamodel Generator**: voor het automatisch genereren van consistente SQL-datamodellen
-- **Feedback-loop & validatie**:
+## 📚 Data Catalog
 
+Provides visibility into available data (e.g., tables, columns, data types) after the initial extraction from source systems.  
+It starts from raw data in an analytics database or data lake.  
+**Data stewards** and **functional data modelers** can enrich these objects with metadata, giving users more context and meaning.
 
-🎯 Doel: inzicht bieden in wat er is en wat nodig is, vanuit zowel brondata als informatiebehoefte.
+## 🧠 Information Needs Module
 
-## Structuur
-- `datamodel_generator/` – logica voor het genereren van modellen
-- `data_catalog/` – extractie en opslag van metadata
+Allows documentation of the organization's or business's information requirements.
 
-## Webapp draaien
+## 🔄 Needs ↔ Source Mapping
 
-Installeer de vereiste pakketten (bijvoorbeeld via `pip install -r requirements.txt`).
-Start vervolgens de Streamlit-app:
+Enables mapping and matching of information needs to technical data delivery.  
+It includes information about data origin — whether directly from the source or derived/calculated.
 
-```bash
-streamlit run webapp/app.py
-```
+## 🏗️ Uniform Data Model Generator
 
+Automatically generates consistent SQL data models.  
+The goal is to automate the generation of correct SQL, while still allowing for manual development first before integration into the generator.
 
-## Data Catalog Extractor
+## ✅ Feedback Loop & Validation
 
-A version-aware PostgreSQL metadata extraction tool that catalogs schemas, tables, and columns from remote PostgreSQL servers into a central metadata repository. Built for use across multiple environments (e.g. VPS1, VPS3) and stores results in a central catalog (e.g. on VPS2).
+Facilitates the evaluation of the technical solution against the original information needs.
 
 ---
 
-### 🔧 Features
+🎯 **Objective**:  
+To provide insight into **what exists** and **what is needed**, from both the source data and business perspectives.  
+From this insight, the actual data model can be created and managed — supporting ETL automation.
 
-* Extracts metadata from any number of PostgreSQL databases
-* Tracks current and previous versions with `curr_id`, `date_created`, `date_updated`, and `date_deleted`
-* Differentiates between updated and deleted records:
-  * If metadata changes: **old row is marked inactive**, new version inserted
-  * If metadata disappears: **old row is marked as deleted**
-* CLI filters for selecting specific server or database
-* Auto-generates summary after execution
-* Logs to rotating timestamped files **and** the console
-* Designed to support later external descriptions, UI browsing, and reporting
 
----
 
 ### 🛠 Requirements
 
-* Python 3.10+
-* PostgreSQL 13+
-* Python packages:
-
-  ```bash
-  pip install psycopg2-binary pyyaml
-  ```
-* Permissions:
-
-  * The user connecting to remote PostgreSQL DBs must have read access to `information_schema`
-  * The catalog DB user must have `SELECT`, `INSERT`, `UPDATE` on the `metadata` schema tables and sequences
-
+```
+To be filed
+```
 ---
 
 ### 🗂 File Structure
 
 ```
-data-catalog/
-├── extract_metadata.py       # Main runner script
-├── extract_metadata_updated.py # Extended versioning + deletion logic
-├── servers_config.yaml       # Host/credential config
-├── catalog_extraction_*.log  # Generated log files
-└── README.md                 # This file
+To be filed later
 ```
-
 ---
 
 ## ▶️ Usage
 
-```bash
-python extract_metadata.py \
-  --server 10.3.152.2 \
-  --dbname ENK_DEV1
 ```
-
-#### Optional CLI Arguments
-
-| Flag       | Description                                |
-| ---------- | ------------------------------------------ |
-| `--server` | Filter to a specific PostgreSQL host       |
-| `--dbname` | Filter to a specific database on that host |
-
+To be filed later
+```
 ---
 
 ### 📝 Configuration (`servers_config.yaml`)
 
-```yaml
-servers:
-  - name: VPS1
-    host: 10.3.152.2
-    user: postgres
-    password: your_password
-
-  - name: VPS3
-    host: 10.3.152.9
-    user: postgres
-    password: your_password
-
-catalog_db:
-  host: localhost
-  dbname: data_catalog
-  user: catalog_user
-  password: catalog_password
+```
+To be filed later
 ```
 
 ---
 
-### 🧠 Versioning Logic
-
-Each metadata object (database, schema, table, column) is versioned with:
-
-* `curr_id = 'Y'` → Current active version
-* `curr_id = 'N'` → Replaced or deleted
-* `date_updated` → When a **change** was detected
-* `date_deleted` → When an object is **no longer present** in source
-
-Tracked by compound uniqueness (no DB constraints needed):
-
-- `catalog_databases`: `server_address + database_name`
-- `catalog_schemas`: `server_address + database_name + schema_name`
-- `catalog_tables`: `server_address + database_name + schema_name + table_name`
-- `catalog_columns`: `server_address + database_name + schema_name + table_name + column_name`
-
-> ℹ️ Note: Since new versions are inserted when changes are detected, an object may appear multiple times with `curr_id = 'N'` in historical form, and once with `curr_id = 'Y'` if still active.
-
----
-
-### ✅ Sample Output
-
-```bash
-Summary:
-Databases Added: 1
-Schemas Added: 6
-Tables Added: 393
-Tables Updated: 2
-Columns Added: 4279
-Columns Updated: 3
-Tables Deleted: 1
-Columns Deleted: 17
-```
-
-Logs are saved to:
-
-```
-catalog_extraction_20250507_103000.log
-```
----
-## 2. Descriptions and Annotation
-
-To support documentation and reporting, optional external descriptions can be linked to catalog entries.
-
-Each catalog level (database, schema, table, column) has a corresponding `_descriptions` table:
-
-- `catalog_database_descriptions`
-- `catalog_schema_descriptions`
-- `catalog_table_descriptions`
-- `catalog_column_descriptions`
-
-Each table includes:
-
-* Descriptive fields like `description_short`, `description_long`
-* Administrative metadata: `author_created`, `author_updated`, `date_updated`
-
-### Linking Logic
-
-Descriptions are linked using the compound uniqueness of the corresponding catalog objects:
-
-- `server_address + database_name`
-- `server_address + database_name + schema_name`
-- `server_address + database_name + schema_name + table_name`
-- `server_address + database_name + schema_name + table_name + column_name`
-
-This allows description rows to stay attached to the most recent version (`curr_id = 'Y'`) of a catalog entry.
-
-Descriptions do **not** use foreign keys and are preserved across version changes.
-
----
 
 
-## 🔄 3. Next Features (Optional)
 
-* External reference tables for descriptions
-* HTML/React UI to browse the catalog
-* JSON/CSV export
+## 🔄 3. Roadmap
+
+* Store data navigator database credentials in .env
+* Webapp interface for setting up connections to datasources to be cataloged including credentials to datasources.
+  - Postgress database server
+  - Azure SQL server
+  - Power BI semantic model (project)
+* Webapp interface for actual cataloging (one-time and periodically) 
+* Webapp interface (HTML/React UI) to browse the catalog and add metadata like descriptions.
+* Create webinterface to set-up initial data navigator database and store credentials outside code base.
+* Introduce users and userrights in webapp interface to create connections and access connections. 
+* Add additionnal datasource connectors (like Azure Data Lake Storage V2 and Farbic Lakehouse).
 
