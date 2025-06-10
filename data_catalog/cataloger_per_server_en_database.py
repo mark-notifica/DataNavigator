@@ -488,7 +488,7 @@ def process_database(server_config, catalog_conn, dbname, now):
 def run():
     parser = argparse.ArgumentParser()
     parser.add_argument('--server', help='Process only this server')
-    parser.add_argument('--dbname', help='Process only this database')
+    parser.add_argument('--dbname', help='Process only these databases (comma-separated)')
     args = parser.parse_args()
 
     config = load_config()
@@ -506,11 +506,12 @@ def run():
             admin_conn = connect_db(server)
             dbs = get_user_databases(admin_conn)
             
-            if args.dbname:  # Filter to specific DB if requested
-                if args.dbname not in dbs:
-                    logger.error(f"Database {args.dbname} not found on server {server['name']}")
-                    continue
-                dbs = [args.dbname]
+            if args.dbname:  # Filter to specific DBs if requested
+                requested_dbs = set(args.dbname.split(','))
+                missing_dbs = requested_dbs - set(dbs)
+                if missing_dbs:
+                    logger.error(f"Databases {', '.join(missing_dbs)} not found on server {server['name']}")
+                dbs = list(requested_dbs & set(dbs))
 
             for dbname in dbs:
                 try:

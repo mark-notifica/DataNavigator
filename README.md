@@ -37,28 +37,28 @@ From this insight, the actual data model can be created and managed — supporti
 ### 🛠 Requirements
 
 ```
-To be filed
+To be filled later
 ```
 ---
 
 ### 🗂 File Structure
 
 ```
-To be filed later
+To be filled later
 ```
 ---
 
 ## ▶️ Usage
 
 ```
-To be filed later
+To be filled later
 ```
 ---
 
 ### 📝 Configuration (`servers_config.yaml`)
 
 ```
-To be filed later
+To be filled later
 ```
 
 ---

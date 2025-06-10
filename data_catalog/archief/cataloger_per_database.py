@@ -320,10 +320,78 @@ def mark_deleted_columns(cur, seen_set, now, table_ids, processed_columns=None):
         logger.error(f"Failed to mark deleted columns: {e}")
         raise
 
+def process_database(server, catalog_conn, dbname, now):
+    seen_schemas = set()
+    schema_ids = set()
+    processed_schemas = []
+
+    try:
+        db_conn = connect_db(server, dbname)
+        with catalog_conn.cursor() as cur:
+            db_id = upsert_database(cur, dbname, server['name'], now)
+            schemas = get_schemas(db_conn)
+
+            for schema in schemas:
+                processed_schemas.append(schema)
+                seen_tables = set()
+                table_ids = set()
+
+                schema_id = upsert_schema(cur, schema, db_id, now)
+                seen_schemas.add((schema, db_id))
+                schema_ids.add(schema_id)
+
+                tables = get_tables(db_conn, schema)
+                processed_tables = []
+
+                for tbl in tables:
+                    processed_tables.append(tbl['table_name'])
+                    seen_columns = set()
+
+                    table_id = upsert_table(cur, schema_id, tbl['table_name'], tbl['table_type'], now)
+                    seen_tables.add((tbl['table_name'], schema_id))
+                    table_ids.add(table_id)
+
+                    columns = get_columns(db_conn, schema, tbl['table_name'])
+                    processed_columns = [c['column_name'] for c in columns]
+
+                    for col in columns:
+                        upsert_column(cur, table_id, col, now)
+                        seen_columns.add((col['column_name'], table_id))
+
+                    # Mark deleted columns
+                    deleted_cols = mark_deleted_columns(
+                        cur, seen_columns, now, [table_id],
+                        processed_columns
+                    )
+                    summary['columns_deleted'] += deleted_cols
+
+                # Mark deleted tables
+                deleted_tables = mark_deleted_tables(
+                    cur, seen_tables, now, [schema_id],
+                    processed_tables
+                )
+                summary['tables_deleted'] += deleted_tables
+
+            # Mark deleted schemas
+            deleted_schemas = mark_deleted_schemas(
+                cur, seen_schemas, now, db_id,
+                processed_schemas
+            )
+            summary['schemas_deleted'] += deleted_schemas
+
+            catalog_conn.commit()
+
+    except Exception as e:
+        logger.error(f"Error processing database {dbname}: {e}")
+        catalog_conn.rollback()
+    finally:
+        if 'db_conn' in locals():
+            db_conn.close()
+
 def run():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--server')
-    parser.add_argument('--dbname')
+    parser.add_argument('--server', help='Process only this server')
+    parser.add_argument('--dbname', help='Process only this database')
     args = parser.parse_args()
 
     config = load_config()
@@ -334,108 +402,38 @@ def run():
         if args.server and server['name'] != args.server:
             continue
 
-        seen_dbs = set()
+        logger.info(f"Processing server: {server['name']}")
+        admin_conn = None
+        
         try:
             admin_conn = connect_db(server)
             dbs = get_user_databases(admin_conn)
             
             if args.dbname:  # Filter to specific DB if requested
                 if args.dbname not in dbs:
-                    logger.error(f"Database {args.dbname} not found")
+                    logger.error(f"Database {args.dbname} not found on server {server['name']}")
                     continue
                 dbs = [args.dbname]
 
-            with catalog_conn.cursor() as cur:
-                processed_dbs = []
-                
-                for dbname in dbs:
-                    processed_dbs.append(dbname)
-                    seen_schemas = set()
-                    schema_ids = set()
+            for dbname in dbs:
+                try:
+                    process_database(server, catalog_conn, dbname, now)
+                except Exception as e:
+                    logger.error(f"Skipping database {dbname} due to errors")
+                    continue
                     
-                    try:
-                        db_conn = connect_db(server, dbname)
-                        db_id = upsert_database(cur, dbname, server['name'], now)
-                        seen_dbs.add((dbname, server['name']))
-                        
-                        schemas = get_schemas(db_conn)
-                        processed_schemas = []
-                        
-                        for schema in schemas:
-                            processed_schemas.append(schema)
-                            seen_tables = set()
-                            table_ids = set()
-                            
-                            schema_id = upsert_schema(cur, schema, db_id, now)
-                            seen_schemas.add((schema, db_id))
-                            schema_ids.add(schema_id)
-                            
-                            tables = get_tables(db_conn, schema)
-                            processed_tables = []
-                            
-                            for tbl in tables:
-                                processed_tables.append(tbl['table_name'])
-                                seen_columns = set()
-                                
-                                table_id = upsert_table(cur, schema_id, tbl['table_name'], tbl['table_type'], now)
-                                seen_tables.add((tbl['table_name'], schema_id))
-                                table_ids.add(table_id)
-                                
-                                columns = get_columns(db_conn, schema, tbl['table_name'])
-                                processed_columns = [c['column_name'] for c in columns]
-                                
-                                for col in columns:
-                                    upsert_column(cur, table_id, col, now)
-                                    seen_columns.add((col['column_name'], table_id))
-                                
-                                # Mark deleted columns
-                                deleted_cols = mark_deleted_columns(
-                                    cur, seen_columns, now, [table_id],
-                                    processed_columns if args.dbname else None
-                                )
-                                summary['columns_deleted'] += deleted_cols
-                            
-                            # Mark deleted tables
-                            deleted_tables = mark_deleted_tables(
-                                cur, seen_tables, now, [schema_id],
-                                processed_tables if args.dbname else None
-                            )
-                            summary['tables_deleted'] += deleted_tables
-                        
-                        # Mark deleted schemas
-                        deleted_schemas = mark_deleted_schemas(
-                            cur, seen_schemas, now, db_id,
-                            processed_schemas if args.dbname else None
-                        )
-                        summary['schemas_deleted'] += deleted_schemas
-                        
-                    except Exception as e:
-                        logger.error(f"Error processing {dbname}: {e}")
-                        catalog_conn.rollback()
-                    finally:
-                        if 'db_conn' in locals():
-                            db_conn.close()
-                
-                # Mark deleted databases
-                deleted_dbs = mark_deleted_databases(
-                    cur, seen_dbs, now, server['name'],
-                    processed_dbs if args.dbname else None
-                )
-                summary['databases_deleted'] += deleted_dbs
-                
-                catalog_conn.commit()
-                
         except Exception as e:
-            logger.error(f"Error processing server {server['name']}: {e}")
+            logger.error(f"Error processing server {server['name']}: {str(e)}")
         finally:
-            if 'admin_conn' in locals():
+            if admin_conn:
                 admin_conn.close()
 
     catalog_conn.close()
     logger.info("Catalog update complete")
     print("\nSummary:")
     for key, val in summary.items():
-        print(f"{key.replace('_', ' ').title()}: {val}")
+        if val > 0:  # Only show metrics with changes
+            print(f"{key.replace('_', ' ').title()}: {val}")
 
 if __name__ == '__main__':
     run()
