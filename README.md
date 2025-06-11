@@ -33,7 +33,6 @@ To provide insight into **what exists** and **what is needed**, from both the so
 From this insight, the actual data model can be created and managed — supporting ETL automation.
 
 
-
 ### 🛠 Requirements
 
 ```
