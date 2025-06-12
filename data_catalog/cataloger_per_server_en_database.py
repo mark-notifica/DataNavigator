@@ -1,5 +1,6 @@
 import psycopg2
 import psycopg2.extras
+import pyodbc
 import yaml
 import datetime
 import argparse
@@ -8,6 +9,10 @@ from logging.handlers import RotatingFileHandler
 import os
 import sys
 import re
+from dotenv import load_dotenv
+
+# Load environment variables
+load_dotenv()
 
 # Setup logging
 os.makedirs('logfiles', exist_ok=True)
@@ -25,7 +30,9 @@ logger = logging.getLogger(__name__)
 
 summary = {
     'databases_added': 0,
+    'databases_updated': 0,    
     'schemas_added': 0,
+    'schemas_updated': 0,
     'tables_added': 0,
     'tables_updated': 0,
     'columns_added': 0,
@@ -36,6 +43,90 @@ summary = {
     'columns_deleted': 0
 }
 
+# DataNavigator database connection configuration
+CATALOG_DB_CONFIG = {
+    'host': os.getenv('NAV_DB_HOST'),
+    'port': os.getenv('NAV_DB_PORT'),
+    'database': os.getenv('NAV_DB_NAME'),  
+    'user': os.getenv('NAV_DB_USER'),
+    'password': os.getenv('NAV_DB_PASSWORD')
+}
+
+# Catalog schema name
+CATALOG_SCHEMA = 'catalog'
+
+def get_catalog_connection():
+    """Get connection to the DataNavigator catalog database"""
+    try:
+        conn = psycopg2.connect(**CATALOG_DB_CONFIG)
+        logger.info(f"Connected to DataNavigator catalog database: {CATALOG_DB_CONFIG['host']}:{CATALOG_DB_CONFIG['port']}/{CATALOG_DB_CONFIG['database']}")
+        return conn
+    except Exception as e:
+        logger.error(f"Failed to connect to catalog database: {e}")
+        raise
+
+def get_source_connections():
+    """Get all source database connections from config.connections table"""
+    catalog_conn = get_catalog_connection()
+    try:
+        with catalog_conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cursor:
+            cursor.execute("""
+                SELECT id, name, connection_type, host, port, username, password, database_name 
+                FROM config.connections 
+                WHERE connection_type IN ('PostgreSQL', 'Azure SQL Server')
+                ORDER BY id
+            """)
+            connections = cursor.fetchall()
+            logger.info(f"Found {len(connections)} source database connections")
+            return connections
+    finally:
+        catalog_conn.close()
+
+def connect_to_source_database(connection_info):
+    """Connect to a source database using connection info from config.connections"""
+    try:
+        if connection_info['connection_type'] == 'PostgreSQL':
+            # For PostgreSQL, connect to specific database or default to 'postgres'
+            database_name = connection_info['database_name'] or 'postgres'
+            conn = psycopg2.connect(
+                host=connection_info['host'],
+                port=connection_info['port'],
+                database=database_name,
+                user=connection_info['username'],
+                password=connection_info['password']
+            )
+            logger.info(f"Connected to PostgreSQL database: {database_name} on {connection_info['host']}")
+            
+        elif connection_info['connection_type'] == 'Azure SQL Server':
+            # For Azure SQL Server, connect to specific database or default to 'master'
+            database_name = connection_info['database_name'] or 'master'
+            
+            connection_string = (
+                f"DRIVER={{ODBC Driver 18 for SQL Server}};"
+                f"SERVER={connection_info['host']};"
+                f"PORT={connection_info['port']};"
+                f"DATABASE={database_name};"
+                f"UID={connection_info['username']};"
+                f"PWD={connection_info['password']};"
+                f"Encrypt=yes;"
+                f"TrustServerCertificate=no;"
+                f"Connection Timeout=30;"
+            )
+            
+            conn = pyodbc.connect(connection_string)
+            logger.info(f"Connected to Azure SQL Server database: {database_name} on {connection_info['host']}")
+        
+        else:
+            logger.error(f"Unknown connection type: {connection_info['connection_type']}")
+            return None
+        
+        return conn
+        
+    except Exception as e:
+        logger.error(f"Failed to connect to source database {connection_info['name']}: {e}")
+        return None
+
+# Remove or update the old env resolution functions since we're using .env now
 ENV_PATTERN = re.compile(r'^\${(.+)}$')
 
 def _resolve_env(obj):
@@ -49,489 +140,671 @@ def _resolve_env(obj):
             return os.getenv(m.group(1), obj)
     return obj
 
-def load_config(path='servers_config.yaml'):
-    with open(path, 'r') as f:
-        data = yaml.safe_load(f)
-    return _resolve_env(data)
+# Update any existing functions that reference the old schema to use 'catalog'
 
-def connect_db(config, dbname=None):
-    return psycopg2.connect(
-        host=config["host"],
-        port=5432,
-        dbname=dbname or "postgres",
-        user=config["user"],
-        password=config["password"],
-        connect_timeout=5
-    )
-
-def get_user_databases(conn):
-    with conn.cursor() as cur:
-        cur.execute("""
-            SELECT datname FROM pg_database
-            WHERE datistemplate = false AND datname NOT IN ('postgres')
-        """)
-        return [row[0] for row in cur.fetchall()]
-
-def get_schemas(conn):
-    with conn.cursor() as cur:
-        cur.execute("""
-            SELECT schema_name FROM information_schema.schemata
-            WHERE schema_name NOT IN ('pg_catalog', 'information_schema')
-        """)
-        return [row[0] for row in cur.fetchall()]
-
-def get_tables(conn, schema):
-    with conn.cursor(cursor_factory=psycopg2.extras.DictCursor) as cur:
-        cur.execute("""
-            SELECT table_name, table_type
-            FROM information_schema.tables
-            WHERE table_schema = %s
-        """, (schema,))
-        return cur.fetchall()
-
-def get_columns(conn, schema, table):
-    with conn.cursor(cursor_factory=psycopg2.extras.DictCursor) as cur:
-        cur.execute("""
-            SELECT column_name, data_type, is_nullable, column_default, ordinal_position
-            FROM information_schema.columns
-            WHERE table_schema = %s AND table_name = %s
-        """, (schema, table))
-        return cur.fetchall()
-
-def upsert_database(cur, dbname, server_name, now):
-    cur.execute("""
-        SELECT id FROM metadata.catalog_databases
-        WHERE database_name = %s AND server_name = %s AND curr_id = 'Y'
-    """, (dbname, server_name))
-    existing = cur.fetchone()
-
-    if not existing:
-        cur.execute("""
-            INSERT INTO metadata.catalog_databases (database_name, server_name, date_created, curr_id)
-            VALUES (%s, %s, %s, 'Y') RETURNING id
-        """, (dbname, server_name, now))
-        summary['databases_added'] += 1
-        return cur.fetchone()[0]
-    return existing[0]
-
-def upsert_schema(cur, schema_name, db_id, now):
-    cur.execute("""
-        SELECT id FROM metadata.catalog_schemas
-        WHERE schema_name = %s AND database_id = %s AND curr_id = 'Y'
-    """, (schema_name, db_id))
-    existing = cur.fetchone()
-
-    if not existing:
-        cur.execute("""
-            INSERT INTO metadata.catalog_schemas (schema_name, database_id, date_created, curr_id)
-            VALUES (%s, %s, %s, 'Y') RETURNING id
-        """, (schema_name, db_id, now))
-        summary['schemas_added'] += 1
-        return cur.fetchone()[0]
-    return existing[0]
-
-def upsert_table(cur, schema_id, table_name, table_type,  row_count_estimated, now):
-    cur.execute("""
-        SELECT id, table_type, row_count_estimated
-        FROM metadata.catalog_tables
-        WHERE schema_id = %s AND table_name = %s AND curr_id = 'Y'
-    """, (schema_id, table_name))
-    existing = cur.fetchone()
-
-    if existing:
-        existing_id, existing_type, existing_count = existing
-          # CASE 1: Table type is different → create new version
-        if existing_type == table_type:
-            cur.execute("""
-                UPDATE metadata.catalog_tables
-                SET curr_id = 'N', date_updated = %s
-                WHERE id = %s
-            """, (now, existing_id))
-            summary['tables_updated'] += 1
-
-
-            cur.execute("""
-                INSERT INTO metadata.catalog_tables (
-                    schema_id, table_name, table_type, row_count_estimated, row_count_updated,
-                    date_created, curr_id
-                ) VALUES (%s, %s, %s, %s, %s, %s, 'Y') RETURNING id
-            """, (schema_id, table_name, table_type, row_count_estimated, now, now))
-            return cur.fetchone()[0]
-
-        # CASE 2: Only row count changed → update only that field
-        elif existing_count != row_count_estimated:
-            cur.execute("""
-                UPDATE metadata.catalog_tables
-                SET row_count_estimated = %s, row_count_updated = %s
-                WHERE id = %s
-            """, (row_count_estimated, now, existing_id))
-
-        return existing_id    
+def main():
+    """Main cataloging process"""
+    # Enhanced argument parsing
+    parser = argparse.ArgumentParser(description='Catalog database metadata')
+    parser.add_argument('--connection-id', type=int, help='Specific connection ID to catalog')
+    parser.add_argument('--databases', type=str, help='Comma-separated list of databases to catalog')
+    args = parser.parse_args()
     
-    # CASE 3: New table → insert fresh record
-    summary['tables_added'] += 1
-    cur.execute("""
-        INSERT INTO metadata.catalog_tables (
-            schema_id, table_name, table_type, row_count_estimated, row_count_updated,
-            date_created, curr_id
-        ) VALUES (%s, %s, %s, %s, %s, %s, 'Y') RETURNING id
-    """, (schema_id, table_name, table_type, row_count_estimated, now, now))
-    return cur.fetchone()[0]
+    logger.info("Starting catalog extraction process")
+    
+    # Get source database connections
+    if args.connection_id:
+        logger.info(f"Cataloging specific connection ID: {args.connection_id}")
+        source_connections = get_specific_connection(args.connection_id)
+        
+        # Override database_name if provided via command line
+        if args.databases and source_connections:
+            logger.info(f"Overriding database selection with: {args.databases}")
+            source_connections[0]['database_name'] = args.databases
+    else:
+        logger.info("Cataloging all connections")
+        source_connections = get_source_connections()
+    
+    if not source_connections:
+        logger.warning("No source database connections found")
+        return
+    
+    # Process each source database connection
+    for connection_info in source_connections:
+        logger.info(f"Processing connection: {connection_info['name']}")
+        catalog_connection_databases(connection_info)
+    
+    # Log summary
+    logger.info("Catalog extraction completed")
+    logger.info(f"Summary: {summary}")
 
-def get_estimated_rowcount(conn, schema, table):
+def catalog_connection_databases(connection_info):
+    """Catalog databases for a connection based on database_name field"""
+    
+    # Step 1: Get list of all databases on the server
+    all_databases = get_databases_on_server(connection_info)
+    
+    if not all_databases:
+        logger.warning(f"No databases found on server {connection_info['host']}")
+        return
+    
+    # Step 2: Filter databases based on database_name field
+    if connection_info['database_name']:
+        # Parse database_name field (could be comma-separated)
+        requested_databases = [db.strip() for db in connection_info['database_name'].split(',')]
+        
+        # Filter: only catalog databases that exist AND are requested
+        databases_to_catalog = []
+        for requested_db in requested_databases:
+            if requested_db in all_databases:
+                databases_to_catalog.append(requested_db)
+                logger.info(f"Database '{requested_db}' found on server - will catalog")
+            else:
+                logger.warning(f"Database '{requested_db}' not found on server {connection_info['host']}")
+        
+        if not databases_to_catalog:
+            logger.error(f"None of the requested databases exist on server {connection_info['host']}")
+            return
+            
+    else:
+        # No specific databases requested - catalog all databases
+        databases_to_catalog = all_databases
+        logger.info(f"No specific databases requested - cataloging all {len(databases_to_catalog)} databases")
+    
+    # Step 3: Catalog each database in the filtered list
+    logger.info(f"Cataloging {len(databases_to_catalog)} database(s): {', '.join(databases_to_catalog)}")
+    
+    for database_name in databases_to_catalog:
+        logger.info(f"Processing database: {database_name}")
+        
+        # Create connection info for this specific database
+        db_connection_info = connection_info.copy()
+        db_connection_info['database_name'] = database_name
+        
+        # Connect to this specific database and catalog it
+        source_conn = connect_to_source_database(db_connection_info)
+        if source_conn:
+            try:
+                catalog_single_database(source_conn, db_connection_info)
+            finally:
+                source_conn.close()
+        else:
+            logger.error(f"Failed to connect to database: {database_name}")
+
+def get_databases_on_server(connection_info):
+    """Get list of all databases on the server"""
+    logger.info(f"Discovering databases on server: {connection_info['host']}")
+    
+    # Connect to master/system database to enumerate databases
+    master_connection_info = connection_info.copy()
+    
+    if connection_info['connection_type'] == 'PostgreSQL':
+        master_connection_info['database_name'] = 'postgres'
+    elif connection_info['connection_type'] == 'Azure SQL Server':
+        master_connection_info['database_name'] = 'master'
+    else:
+        logger.error(f"Unsupported connection type: {connection_info['connection_type']}")
+        return []
+    
+    master_conn = connect_to_source_database(master_connection_info)
+    if not master_conn:
+        logger.error(f"Could not connect to master database on {connection_info['host']}")
+        return []
+    
     try:
-        with conn.cursor() as cur:
-            cur.execute("""
-                SELECT c.reltuples::BIGINT
+        if connection_info['connection_type'] == 'PostgreSQL':
+            # PostgreSQL query to get databases
+            with master_conn.cursor() as cursor:
+                cursor.execute("""
+                    SELECT datname 
+                    FROM pg_database 
+                    WHERE datistemplate = false 
+                    AND datname NOT IN ('postgres', 'template0', 'template1')
+                    ORDER BY datname
+                """)
+                databases = [row[0] for row in cursor.fetchall()]
+                
+        elif connection_info['connection_type'] == 'Azure SQL Server':
+            # Azure SQL Server query to get databases
+            with master_conn.cursor() as cursor:
+                cursor.execute("""
+                    SELECT name 
+                    FROM sys.databases 
+                    WHERE database_id > 4  -- Skip system databases (master, tempdb, model, msdb)
+                    AND state = 0  -- Only online databases
+                    AND is_read_only = 0  -- Skip read-only databases
+                    ORDER BY name
+                """)
+                databases = [row[0] for row in cursor.fetchall()]
+        
+        logger.info(f"Found {len(databases)} databases: {', '.join(databases)}")
+        return databases
+        
+    except Exception as e:
+        logger.error(f"Error getting database list from {connection_info['host']}: {e}")
+        return []
+    finally:
+        master_conn.close()
+
+def start_catalog_run(catalog_conn, connection_info):
+    """Start a new catalog run and return the run ID"""
+    with catalog_conn.cursor() as cursor:
+        cursor.execute("""
+            INSERT INTO catalog.catalog_runs 
+            (connection_id, connection_name, connection_type, connection_host, connection_port, 
+             run_started_at, run_status)
+            VALUES (%s, %s, %s, %s, %s, CURRENT_TIMESTAMP, 'running')
+            RETURNING id
+        """, (
+            connection_info['id'],
+            connection_info['name'],
+            connection_info['connection_type'],
+            connection_info['host'],
+            connection_info['port']
+        ))
+        
+        run_id = cursor.fetchone()[0]
+        logger.info(f"Started catalog run {run_id} for connection {connection_info['name']}")
+        return run_id
+
+def complete_catalog_run(catalog_conn, run_id, summary):
+    """Mark catalog run as completed with summary stats"""
+    with catalog_conn.cursor() as cursor:
+        cursor.execute("""
+            UPDATE catalog.catalog_runs 
+            SET run_completed_at = CURRENT_TIMESTAMP,
+                run_status = 'completed',
+                databases_processed = %s,
+                schemas_processed = %s,
+                tables_processed = %s,
+                columns_processed = %s
+            WHERE id = %s
+        """, (
+            summary['databases_added'] + summary['databases_updated'],
+            summary['schemas_added'],
+            summary['tables_added'] + summary['tables_updated'],
+            summary['columns_added'] + summary['columns_updated'],
+            run_id
+        ))
+        logger.info(f"Completed catalog run {run_id}")
+
+def fail_catalog_run(catalog_conn, run_id, error_message):
+    """Mark catalog run as failed with error message"""
+    with catalog_conn.cursor() as cursor:
+        cursor.execute("""
+            UPDATE catalog.catalog_runs 
+            SET run_completed_at = CURRENT_TIMESTAMP,
+                run_status = 'failed',
+                error_message = %s
+            WHERE id = %s
+        """, (str(error_message), run_id))
+        logger.error(f"Failed catalog run {run_id}: {error_message}")
+
+def upsert_database_temporal(catalog_conn, connection_info, catalog_run_id):
+    """Insert or create new version of database with temporal versioning"""
+    with catalog_conn.cursor() as cursor:
+        # Check if current record exists
+        cursor.execute("""
+            SELECT id, server_name FROM catalog.catalog_databases 
+            WHERE database_name = %s AND server_name = %s 
+            AND date_deleted IS NULL AND is_current = true
+        """, (connection_info.get('database_name', ''), connection_info['host']))
+        
+        result = cursor.fetchone()
+        
+        if result:
+            current_id, current_server = result
+            
+            # Check if anything actually changed
+            if current_server != connection_info['host']:
+                # Something changed - create new version
+                
+                # 1. Mark current record as no longer current
+                cursor.execute("""
+                    UPDATE catalog.catalog_databases 
+                    SET is_current = false,
+                        date_updated = CURRENT_TIMESTAMP
+                    WHERE id = %s
+                """, (current_id,))
+                
+                # 2. Insert new current version
+                cursor.execute("""
+                    INSERT INTO catalog.catalog_databases 
+                    (database_name, server_name, date_created, is_current, catalog_run_id)
+                    VALUES (%s, %s, CURRENT_TIMESTAMP, true, %s)
+                    RETURNING id
+                """, (
+                    connection_info.get('database_name', connection_info['name']), 
+                    connection_info['host'],
+                    catalog_run_id
+                ))
+                
+                database_id = cursor.fetchone()[0]
+                summary['databases_updated'] += 1
+                logger.debug(f"Created new version of database: {connection_info.get('database_name', connection_info['name'])}")
+                
+            else:
+                # No changes - don't update anything
+                database_id = current_id
+                
+        else:
+            # Insert new database (first time seeing it)
+            cursor.execute("""
+                INSERT INTO catalog.catalog_databases 
+                (database_name, server_name, date_created, is_current, catalog_run_id)
+                VALUES (%s, %s, CURRENT_TIMESTAMP, true, %s)
+                RETURNING id
+            """, (
+                connection_info.get('database_name', connection_info['name']), 
+                connection_info['host'],
+                catalog_run_id
+            ))
+            
+            database_id = cursor.fetchone()[0]
+            summary['databases_added'] += 1
+            logger.debug(f"Added new database: {connection_info.get('database_name', connection_info['name'])}")
+        
+        return database_id
+
+def catalog_single_database(source_conn, connection_info):
+    """Catalog a single specific database with catalog run tracking"""
+    logger.info(f"Starting catalog of database: {connection_info['database_name']} on {connection_info['host']}")
+    
+    catalog_conn = get_catalog_connection()
+    
+    # Start catalog run
+    catalog_run_id = start_catalog_run(catalog_conn, connection_info)
+    
+    try:
+        # 1. Insert/Update database entry
+        database_id = upsert_database_temporal(catalog_conn, connection_info, catalog_run_id)
+        
+        # 2. Get schemas from source database
+        schemas = get_source_schemas(source_conn)
+        logger.info(f"Found {len(schemas)} schemas in {connection_info['database_name']}")
+        
+        # 3. Process each schema
+        for schema_name in schemas:
+            logger.info(f"Processing schema: {schema_name}")
+            schema_id = upsert_schema_temporal(catalog_conn, database_id, schema_name, catalog_run_id)
+            
+            # 4. Get tables from schema
+            tables = get_source_tables(source_conn, schema_name)
+            logger.info(f"Found {len(tables)} tables in schema {schema_name}")
+            
+            # 5. Process each table
+            for table_info in tables:
+                logger.debug(f"Processing table: {schema_name}.{table_info['table_name']}")
+                table_id = upsert_table_temporal(catalog_conn, schema_id, table_info, catalog_run_id)
+                
+                # 6. Get columns from table
+                columns = get_source_columns(source_conn, schema_name, table_info['table_name'])
+                
+                # 7. Process each column
+                for column_info in columns:
+                    upsert_column_temporal(catalog_conn, table_id, column_info, catalog_run_id)
+                
+                # 8. Get row count estimate
+                row_count = get_table_row_count(source_conn, schema_name, table_info['table_name'], connection_info['connection_type'])
+                if row_count is not None:
+                    update_table_row_count_temporal(catalog_conn, table_id, row_count, catalog_run_id)
+        
+        # Complete the catalog run
+        complete_catalog_run(catalog_conn, catalog_run_id, summary)
+        
+        catalog_conn.commit()
+        logger.info(f"Successfully cataloged database: {connection_info['database_name']}")
+        
+    except Exception as e:
+        # Mark run as failed
+        fail_catalog_run(catalog_conn, catalog_run_id, str(e))
+        catalog_conn.rollback()
+        logger.error(f"Error cataloging database {connection_info['database_name']}: {e}")
+        raise
+    finally:
+        catalog_conn.close()
+
+def get_specific_connection(connection_id):
+    """Get a specific connection by ID"""
+    catalog_conn = get_catalog_connection()
+    try:
+        with catalog_conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cursor:
+            cursor.execute("""
+                SELECT id, name, connection_type, host, port, username, password, database_name 
+                FROM config.connections 
+                WHERE id = %s AND connection_type IN ('PostgreSQL', 'Azure SQL Server')
+            """, (connection_id,))  # This should be a tuple with the connection_id
+            connections = cursor.fetchall()
+            if connections:
+                logger.info(f"Found connection: {connections[0]['name']} (ID: {connection_id})")
+            else:
+                logger.warning(f"No connection found with ID: {connection_id}")
+            return connections
+    finally:
+        catalog_conn.close()
+
+def upsert_schema_temporal(catalog_conn, database_id, schema_name, catalog_run_id):
+    """Insert or create new version of schema with temporal versioning"""
+    with catalog_conn.cursor() as cursor:
+        # Check if current record exists
+        cursor.execute("""
+            SELECT id FROM catalog.catalog_schemas 
+            WHERE database_id = %s AND schema_name = %s 
+            AND date_deleted IS NULL AND is_current = true
+        """, (database_id, schema_name))
+        
+        result = cursor.fetchone()
+        
+        if result:
+            current_id = result[0]
+            # Schema exists and no changes - do nothing!
+            schema_id = current_id
+        else:
+            # Insert new schema (first time seeing it)
+            cursor.execute("""
+                INSERT INTO catalog.catalog_schemas (database_id, schema_name, date_created, is_current, catalog_run_id)
+                VALUES (%s, %s, CURRENT_TIMESTAMP, true, %s)
+                RETURNING id
+            """, (database_id, schema_name, catalog_run_id))
+            
+            schema_id = cursor.fetchone()[0]
+            summary['schemas_added'] += 1
+            logger.debug(f"Added new schema: {schema_name}")
+        
+        return schema_id
+
+def upsert_table_temporal(catalog_conn, schema_id, table_info, catalog_run_id):
+    """Insert or create new version of table with temporal versioning"""
+    with catalog_conn.cursor() as cursor:
+        # Check if current record exists
+        cursor.execute("""
+            SELECT id, table_type FROM catalog.catalog_tables 
+            WHERE schema_id = %s AND table_name = %s 
+            AND date_deleted IS NULL AND is_current = true
+        """, (schema_id, table_info['table_name']))
+        
+        result = cursor.fetchone()
+        
+        if result:
+            current_id, current_table_type = result
+            
+            # Check if table type changed
+            if current_table_type != table_info.get('table_type'):
+                # Table type changed - create new version
+                
+                # 1. Mark current record as no longer current
+                cursor.execute("""
+                    UPDATE catalog.catalog_tables 
+                    SET is_current = false,
+                        date_updated = CURRENT_TIMESTAMP
+                    WHERE id = %s
+                """, (current_id,))
+                
+                # 2. Insert new current version
+                cursor.execute("""
+                    INSERT INTO catalog.catalog_tables (schema_id, table_name, table_type, date_created, is_current, catalog_run_id)
+                    VALUES (%s, %s, %s, CURRENT_TIMESTAMP, true, %s)
+                    RETURNING id
+                """, (schema_id, table_info['table_name'], table_info.get('table_type'), catalog_run_id))
+                
+                table_id = cursor.fetchone()[0]
+                summary['tables_updated'] += 1
+                logger.debug(f"Created new version of table: {table_info['table_name']}")
+                
+            else:
+                # No changes - don't update anything
+                table_id = current_id
+                
+        else:
+            # Insert new table (first time seeing it)
+            cursor.execute("""
+                INSERT INTO catalog.catalog_tables (schema_id, table_name, table_type, date_created, is_current, catalog_run_id)
+                VALUES (%s, %s, %s, CURRENT_TIMESTAMP, true, %s)
+                RETURNING id
+            """, (schema_id, table_info['table_name'], table_info.get('table_type'), catalog_run_id))
+            
+            table_id = cursor.fetchone()[0]
+            summary['tables_added'] += 1
+            logger.debug(f"Added new table: {table_info['table_name']}")
+        
+        return table_id
+
+def upsert_column_temporal(catalog_conn, table_id, column_info, catalog_run_id):
+    """Insert or create new version of column with temporal versioning"""
+    with catalog_conn.cursor() as cursor:
+        # Check if current record exists
+        cursor.execute("""
+            SELECT id, data_type, is_nullable, column_default, ordinal_position FROM catalog.catalog_columns 
+            WHERE table_id = %s AND column_name = %s 
+            AND date_deleted IS NULL AND is_current = true
+        """, (table_id, column_info['column_name']))
+        
+        result = cursor.fetchone()
+        
+        if result:
+            current_id, current_data_type, current_nullable, current_default, current_position = result
+            
+            # Check if anything changed
+            changed = (
+                current_data_type != column_info['data_type'] or
+                current_nullable != column_info['is_nullable'] or
+                current_default != column_info['column_default'] or
+                current_position != column_info['ordinal_position']
+            )
+            
+            if changed:
+                # Column definition changed - create new version
+                
+                # 1. Mark current record as no longer current
+                cursor.execute("""
+                    UPDATE catalog.catalog_columns 
+                    SET is_current = false,
+                        date_updated = CURRENT_TIMESTAMP
+                    WHERE id = %s
+                """, (current_id,))
+                
+                # 2. Insert new current version
+                cursor.execute("""
+                    INSERT INTO catalog.catalog_columns 
+                    (table_id, column_name, data_type, is_nullable, column_default, ordinal_position, date_created, is_current, catalog_run_id)
+                    VALUES (%s, %s, %s, %s, %s, %s, CURRENT_TIMESTAMP, true, %s)
+                """, (
+                    table_id,
+                    column_info['column_name'],
+                    column_info['data_type'],
+                    column_info['is_nullable'],
+                    column_info['column_default'],
+                    column_info['ordinal_position'],
+                    catalog_run_id
+                ))
+                
+                summary['columns_updated'] += 1
+                logger.debug(f"Created new version of column: {column_info['column_name']}")
+                
+            # If no changes, do nothing
+                
+        else:
+            # Insert new column (first time seeing it)
+            cursor.execute("""
+                INSERT INTO catalog.catalog_columns 
+                (table_id, column_name, data_type, is_nullable, column_default, ordinal_position, date_created, is_current, catalog_run_id)
+                VALUES (%s, %s, %s, %s, %s, %s, CURRENT_TIMESTAMP, true, %s)
+            """, (
+                table_id,
+                column_info['column_name'],
+                column_info['data_type'],
+                column_info['is_nullable'],
+                column_info['column_default'],
+                column_info['ordinal_position'],
+                catalog_run_id
+            ))
+            
+            summary['columns_added'] += 1
+            logger.debug(f"Added new column: {column_info['column_name']}")
+
+def update_table_row_count_temporal(catalog_conn, table_id, row_count, catalog_run_id):
+    """Update table row count with catalog run tracking"""
+    with catalog_conn.cursor() as cursor:
+        # Update main table
+        cursor.execute("""
+            UPDATE catalog.catalog_tables 
+            SET row_count_estimated = %s, 
+                row_count_updated = CURRENT_TIMESTAMP
+            WHERE id = %s AND is_current = true
+        """, (row_count, table_id))
+        
+        # Log in rowcounts table with run reference
+        cursor.execute("""
+            INSERT INTO catalog.catalog_table_rowcounts (table_id, row_count_estimated, collected_at, catalog_run_id)
+            VALUES (%s, %s, CURRENT_TIMESTAMP, %s)
+        """, (table_id, row_count, catalog_run_id))
+
+# Add helper functions to extract data from source databases
+def get_source_schemas(source_conn):
+    """Get list of schemas from source database"""
+    # Check if it's a pyodbc connection (Azure SQL) or psycopg2 (PostgreSQL)
+    if hasattr(source_conn, 'cursor') and 'pyodbc' in str(type(source_conn)):
+        # Azure SQL Server using pyodbc
+        with source_conn.cursor() as cursor:
+            cursor.execute("""
+                SELECT schema_name 
+                FROM information_schema.schemata 
+                WHERE schema_name NOT IN ('information_schema', 'sys', 'db_owner', 'db_accessadmin', 'db_securityadmin', 'db_ddladmin', 'db_backupoperator', 'db_datareader', 'db_datawriter', 'db_denydatareader', 'db_denydatawriter')
+                ORDER BY schema_name
+            """)
+            return [row[0] for row in cursor.fetchall()]
+    else:
+        # PostgreSQL using psycopg2
+        with source_conn.cursor() as cursor:
+            cursor.execute("""
+                SELECT schema_name 
+                FROM information_schema.schemata 
+                WHERE schema_name NOT IN ('information_schema', 'pg_catalog', 'pg_toast')
+                ORDER BY schema_name
+            """)
+            return [row[0] for row in cursor.fetchall()]
+
+def get_source_tables(source_conn, schema_name):
+    """Get list of tables from source schema"""
+    if hasattr(source_conn, 'cursor') and 'pyodbc' in str(type(source_conn)):
+        # Azure SQL Server
+        with source_conn.cursor() as cursor:
+            cursor.execute("""
+                SELECT table_name, table_type
+                FROM information_schema.tables 
+                WHERE table_schema = ?
+                ORDER BY table_name
+            """, schema_name)
+            return [{'table_name': row[0], 'table_type': row[1]} for row in cursor.fetchall()]
+    else:
+        # PostgreSQL
+        with source_conn.cursor() as cursor:
+            cursor.execute("""
+                SELECT table_name, table_type
+                FROM information_schema.tables 
+                WHERE table_schema = %s
+                ORDER BY table_name
+            """, (schema_name,))
+            return [{'table_name': row[0], 'table_type': row[1]} for row in cursor.fetchall()]
+
+def get_source_columns(source_conn, schema_name, table_name):
+    """Get list of columns from source table"""
+    if hasattr(source_conn, 'cursor') and 'pyodbc' in str(type(source_conn)):
+        # Azure SQL Server
+        with source_conn.cursor() as cursor:
+            cursor.execute("""
+                SELECT column_name, data_type, is_nullable, column_default, ordinal_position
+                FROM information_schema.columns 
+                WHERE table_schema = ? AND table_name = ?
+                ORDER BY ordinal_position
+            """, schema_name, table_name)
+            return [
+                {
+                    'column_name': row[0],
+                    'data_type': row[1],
+                    'is_nullable': row[2] == 'YES',
+                    'column_default': row[3],
+                    'ordinal_position': row[4]
+                }
+                for row in cursor.fetchall()
+            ]
+    else:
+        # PostgreSQL
+        with source_conn.cursor() as cursor:
+            cursor.execute("""
+                SELECT column_name, data_type, is_nullable, column_default, ordinal_position
+                FROM information_schema.columns 
+                WHERE table_schema = %s AND table_name = %s
+                ORDER BY ordinal_position
+            """, (schema_name, table_name))
+            return [
+                {
+                    'column_name': row[0],
+                    'data_type': row[1],
+                    'is_nullable': row[2] == 'YES',
+                    'column_default': row[3],
+                    'ordinal_position': row[4]
+                }
+                for row in cursor.fetchall()
+            ]
+
+def get_table_row_count(source_conn, schema_name, table_name, connection_type):
+    """Get estimated row count for table (database-specific implementation)"""
+    
+    if connection_type == 'PostgreSQL':
+        return get_table_row_count_postgresql(source_conn, schema_name, table_name)
+    elif connection_type == 'Azure SQL Server':
+        return get_table_row_count_sqlserver(source_conn, schema_name, table_name)
+    else:
+        logger.warning(f"Row count not implemented for connection type: {connection_type}")
+        return None
+
+def get_table_row_count_postgresql(source_conn, schema_name, table_name):
+    """Get estimated row count for PostgreSQL table"""
+    try:
+        with source_conn.cursor() as cursor:
+            # First try pg_stat_user_tables (fast but requires ANALYZE)
+            cursor.execute("""
+                SELECT n_tup_ins - n_tup_del as row_count
+                FROM pg_stat_user_tables 
+                WHERE schemaname = %s AND relname = %s
+            """, (schema_name, table_name))
+            result = cursor.fetchone()
+            
+            if result and result[0] is not None:
+                return result[0]
+            
+            # Fallback to pg_class (less accurate but doesn't require ANALYZE)
+            cursor.execute("""
+                SELECT c.reltuples::bigint as row_count
                 FROM pg_class c
                 JOIN pg_namespace n ON n.oid = c.relnamespace
                 WHERE n.nspname = %s AND c.relname = %s
-            """, (schema, table))
-            result = cur.fetchone()
-            return result[0] if result else None
+            """, (schema_name, table_name))
+            result = cursor.fetchone()
+            return result[0] if result and result[0] else 0
+            
     except Exception as e:
-        logger.warning(f"Kon geschatte rowcount niet ophalen voor {schema}.{table}: {e}")
+        logger.warning(f"Could not get row count for {schema_name}.{table_name}: {e}")
         return None
 
-def log_table_rowcount_estimate_if_changed(cur, table_id, row_count_estimated, now):
+def get_table_row_count_sqlserver(source_conn, schema_name, table_name):
+    """Get estimated row count for SQL Server table"""
     try:
-        # Check laatste logged waarde
-        cur.execute("""
-            SELECT row_count_estimated, collected_at
-            FROM metadata.catalog_table_rowcounts
-            WHERE table_id = %s
-            ORDER BY collected_at DESC
-            LIMIT 1
-        """, (table_id,))
-        last = cur.fetchone()
-
-        should_log = False
-
-        if last is None:
-            should_log = True
-        else:
-            last_count, last_time = last
-            same_day = last_time.date() == now.date()
-            changed = last_count != row_count_estimated
-
-            if changed or not same_day:
-                should_log = True
-
-        if should_log:
-            cur.execute("""
-                INSERT INTO metadata.catalog_table_rowcounts (table_id, row_count_estimated, collected_at)
-                VALUES (%s, %s, %s)
-            """, (table_id, row_count_estimated, now))
-            # logger.debug(f"Logged rowcount: {row_count_estimated} voor table_id {table_id}")
-        else:
-            logger.debug(f"Geen log nodig voor table_id {table_id}: waarde ongewijzigd op dezelfde dag")
-
+        with source_conn.cursor() as cursor:
+            cursor.execute("""
+                SELECT SUM(p.rows) as row_count
+                FROM sys.tables t
+                INNER JOIN sys.partitions p ON t.object_id = p.object_id
+                INNER JOIN sys.schemas s ON t.schema_id = s.schema_id
+                WHERE s.name = ? AND t.name = ? 
+                AND p.index_id IN (0,1)
+            """, schema_name, table_name)
+            result = cursor.fetchone()
+            return result[0] if result and result[0] else 0
     except Exception as e:
-        logger.warning(f"Fout bij loggen van rowcount voor table_id {table_id}: {e}")
+        logger.warning(f"Could not get row count for {schema_name}.{table_name}: {e}")
+        return None
 
-def upsert_column(cur, table_id, column, now):
-    cur.execute("""
-        SELECT id, data_type, is_nullable, column_default, ordinal_position
-        FROM metadata.catalog_columns
-        WHERE table_id = %s AND column_name = %s AND curr_id = 'Y'
-    """, (table_id, column['column_name']))
-    existing = cur.fetchone()
-
-    if existing:
-        existing_id, dt, nullable, default, pos = existing
-        if (dt == column['data_type'] and
-            nullable == (column['is_nullable'] == 'YES') and
-            default == column['column_default'] and
-            pos == column['ordinal_position']):
-            return existing_id
-        cur.execute("""
-            UPDATE metadata.catalog_columns
-            SET curr_id = 'N', date_updated = %s
-            WHERE id = %s
-        """, (now, existing_id))
-        summary['columns_updated'] += 1
-    else:
-        summary['columns_added'] += 1
-
-    cur.execute("""
-        INSERT INTO metadata.catalog_columns (
-            table_id, column_name, data_type, is_nullable, column_default,
-            ordinal_position, date_created, curr_id
-        ) VALUES (%s, %s, %s, %s, %s, %s, %s, 'Y') RETURNING id
-    """, (
-        table_id,
-        column['column_name'],
-        column['data_type'],
-        column['is_nullable'] == 'YES',
-        column['column_default'],
-        column['ordinal_position'],
-        now
-    ))
-    return cur.fetchone()[0]
-
-def mark_deleted_databases(cur, seen_set, now, server_name, processed_dbs=None):
-    """Only mark databases as deleted if they were processed in this run"""
-    try:
-        # Base query
-        query = """
-            SELECT database_name, server_name
-            FROM metadata.catalog_databases
-            WHERE curr_id = 'Y' AND server_name = %s
-        """
-        params = [server_name]
-        
-        # Add scope filter if processing specific databases
-        if processed_dbs:
-            query += " AND database_name = ANY(%s)"
-            params.append(processed_dbs)
-        
-        cur.execute(query, params)
-        existing = {tuple(row) for row in cur.fetchall()}
-        to_delete = existing - seen_set
-        
-        for dbname, srvname in to_delete:
-            cur.execute("""
-                UPDATE metadata.catalog_databases
-                SET curr_id = 'N', date_updated = %s, date_deleted = %s
-                WHERE curr_id = 'Y' AND database_name = %s AND server_name = %s
-            """, (now, now, dbname, srvname))
-        
-        count = len(to_delete)
-        if count > 0:
-            logger.info(f"Marked {count} databases as deleted (Scope: {'processed' if processed_dbs else 'all'})")
-        return count
-    except Exception as e:
-        logger.error(f"Failed to mark deleted databases: {e}")
-        raise
-
-def mark_deleted_schemas(cur, seen_set, now, db_id, processed_schemas=None):
-    try:
-        query = """
-            SELECT schema_name, database_id
-            FROM metadata.catalog_schemas
-            WHERE curr_id = 'Y' AND database_id = %s
-        """
-        params = [db_id]
-        
-        if processed_schemas:
-            query += " AND schema_name = ANY(%s)"
-            params.append(processed_schemas)
-        
-        cur.execute(query, params)
-        existing = {tuple(row) for row in cur.fetchall()}
-        to_delete = existing - seen_set
-        
-        for schema_name, dbid in to_delete:
-            cur.execute("""
-                UPDATE metadata.catalog_schemas
-                SET curr_id = 'N', date_updated = %s, date_deleted = %s
-                WHERE curr_id = 'Y' AND schema_name = %s AND database_id = %s
-            """, (now, now, schema_name, dbid))
-        
-        count = len(to_delete)
-        if count > 0:
-            logger.info(f"Marked {count} schemas as deleted")
-        return count
-    except Exception as e:
-        logger.error(f"Failed to mark deleted schemas: {e}")
-        raise
-
-def mark_deleted_tables(cur, seen_set, now, schema_ids, processed_tables=None):
-    try:
-        query = """
-            SELECT table_name, schema_id
-            FROM metadata.catalog_tables
-            WHERE curr_id = 'Y' AND schema_id = ANY(%s)
-        """
-        params = [list(schema_ids)]
-        
-        if processed_tables:
-            query += " AND table_name = ANY(%s)"
-            params.append(processed_tables)
-        
-        cur.execute(query, params)
-        existing = {tuple(row) for row in cur.fetchall()}
-        to_delete = existing - seen_set
-        
-        for table_name, sid in to_delete:
-            cur.execute("""
-                UPDATE metadata.catalog_tables
-                SET curr_id = 'N', date_updated = %s, date_deleted = %s
-                WHERE curr_id = 'Y' AND table_name = %s AND schema_id = %s
-            """, (now, now, table_name, sid))
-        
-        count = len(to_delete)
-        if count > 0:
-            logger.info(f"Marked {count} tables as deleted")
-        return count
-    except Exception as e:
-        logger.error(f"Failed to mark deleted tables: {e}")
-        raise
-
-def mark_deleted_columns(cur, seen_set, now, table_ids, processed_columns=None):
-    try:
-        query = """
-            SELECT column_name, table_id
-            FROM metadata.catalog_columns
-            WHERE curr_id = 'Y' AND table_id = ANY(%s)
-        """
-        params = [list(table_ids)]
-        
-        if processed_columns:
-            query += " AND column_name = ANY(%s)"
-            params.append(processed_columns)
-        
-        cur.execute(query, params)
-        existing = {tuple(row) for row in cur.fetchall()}
-        to_delete = existing - seen_set
-        
-        for col_name, tid in to_delete:
-            cur.execute("""
-                UPDATE metadata.catalog_columns
-                SET curr_id = 'N', date_updated = %s, date_deleted = %s
-                WHERE curr_id = 'Y' AND column_name = %s AND table_id = %s
-            """, (now, now, col_name, tid))
-        
-        count = len(to_delete)
-        if count > 0:
-            logger.info(f"Marked {count} columns as deleted")
-        return count
-    except Exception as e:
-        logger.error(f"Failed to mark deleted columns: {e}")
-        raise
-
-def process_database(server_config, catalog_conn, dbname, now):
-    logger.info(f"Processing database: {dbname}")
-    db_conn = None
-    try:
-        db_conn = connect_db(server_config, dbname)
-        
-        with catalog_conn.cursor() as cur:
-            # Process database
-            db_id = upsert_database(cur, dbname, server_config['name'], now)
-            seen_dbs = {(dbname, server_config['name'])}
-            
-            # Process schemas
-            schemas = get_schemas(db_conn)
-            seen_schemas = set()
-            schema_ids = set()
-            processed_schemas = []
-            
-            for schema in schemas:
-                processed_schemas.append(schema)
-                schema_id = upsert_schema(cur, schema, db_id, now)
-                seen_schemas.add((schema, db_id))
-                schema_ids.add(schema_id)
-                
-                # Process tables
-                tables = get_tables(db_conn, schema)
-                seen_tables = set()
-                table_ids = set()
-                processed_tables = []
-                
-                for tbl in tables:
-                    processed_tables.append(tbl['table_name'])
-                    row_count_estimated = get_estimated_rowcount(db_conn, schema, tbl['table_name'])
-                    table_id = upsert_table(cur, schema_id, tbl['table_name'], tbl['table_type'], row_count_estimated, now)
-                    if row_count_estimated is not None:
-                        log_table_rowcount_estimate_if_changed(cur, table_id, row_count_estimated, now)
-                    seen_tables.add((tbl['table_name'], schema_id))
-                    table_ids.add(table_id)
-                    
-                    # Process columns
-                    columns = get_columns(db_conn, schema, tbl['table_name'])
-                    seen_columns = set()
-                    processed_columns = [c['column_name'] for c in columns]
-                    
-                    for col in columns:
-                        upsert_column(cur, table_id, col, now)
-                        seen_columns.add((col['column_name'], table_id))
-                    
-                    # Mark deleted columns for this table
-                    deleted_cols = mark_deleted_columns(
-                        cur, seen_columns, now, [table_id],
-                        processed_columns
-                    )
-                    summary['columns_deleted'] += deleted_cols
-                
-                # Mark deleted tables for this schema
-                deleted_tables = mark_deleted_tables(
-                    cur, seen_tables, now, [schema_id],
-                    processed_tables
-                )
-                summary['tables_deleted'] += deleted_tables
-            
-            # Mark deleted schemas for this database
-            deleted_schemas = mark_deleted_schemas(
-                cur, seen_schemas, now, db_id,
-                processed_schemas
-            )
-            summary['schemas_deleted'] += deleted_schemas
-            
-            # Mark deleted databases (only this one if we're processing specific DBs)
-            deleted_dbs = mark_deleted_databases(
-                cur, seen_dbs, now, server_config['name'],
-                [dbname]
-            )
-            summary['databases_deleted'] += deleted_dbs
-            
-            catalog_conn.commit()
-            
-    except Exception as e:
-        logger.error(f"Error processing database {dbname}: {str(e)}")
-        catalog_conn.rollback()
-        raise
-    finally:
-        if db_conn:
-            db_conn.close()
-
-def run():
-    parser = argparse.ArgumentParser()
-    parser.add_argument('--server', help='Process only this server')
-    parser.add_argument('--dbname', help='Process only these databases (comma-separated)')
-    args = parser.parse_args()
-
-    config = load_config()
-    catalog_conn = psycopg2.connect(**config['catalog_db'])
-    now = datetime.datetime.now()
-
-    for server in config['servers']:
-        if args.server and server['name'] != args.server:
-            continue
-
-        logger.info(f"Processing server: {server['name']}")
-        admin_conn = None
-        
-        try:
-            admin_conn = connect_db(server)
-            dbs = get_user_databases(admin_conn)
-            
-            if args.dbname:  # Filter to specific DBs if requested
-                requested_dbs = set(args.dbname.split(','))
-                missing_dbs = requested_dbs - set(dbs)
-                if missing_dbs:
-                    logger.error(f"Databases {', '.join(missing_dbs)} not found on server {server['name']}")
-                dbs = list(requested_dbs & set(dbs))
-
-            for dbname in dbs:
-                try:
-                    process_database(server, catalog_conn, dbname, now)
-                except Exception as e:
-                    logger.error(f"Skipping database {dbname} due to errors")
-                    continue
-                    
-        except Exception as e:
-            logger.error(f"Error processing server {server['name']}: {str(e)}")
-        finally:
-            if admin_conn:
-                admin_conn.close()
-
-    catalog_conn.close()
-    logger.info("Catalog update complete")
-    print("\nSummary:")
-    for key, val in summary.items():
-        if val > 0:  # Only show metrics with changes
-            print(f"{key.replace('_', ' ').title()}: {val}")
-
-if __name__ == '__main__':
-    run()
+if __name__ == "__main__":
+    main()

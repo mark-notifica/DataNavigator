@@ -17,7 +17,7 @@ MarkupSafe==3.0.2
 narwhals==1.42.0
 numpy==2.3.0
 packaging==24.2
-pandas==2.3.0
+pandas==2.1.1
 pillow==11.2.1
 protobuf==6.31.1
 psycopg2==2.9.10
@@ -26,15 +26,15 @@ pyarrow==20.0.0
 pydeck==0.9.1
 pyodbc==5.2.0
 python-dateutil==2.9.0.post0
-python-dotenv==1.1.0
+python-dotenv==1.0.1
 pytz==2025.2
 referencing==0.36.2
 requests==2.32.4
 rpds-py==0.25.1
 six==1.17.0
 smmap==5.0.2
-SQLAlchemy==2.0.41
-streamlit==1.45.1
+SQLAlchemy==2.0.20
+streamlit==1.25.0
 tenacity==9.1.2
 toml==0.10.2
 tornado==6.5.1
@@ -42,3 +42,4 @@ typing_extensions==4.14.0
 tzdata==2025.2
 urllib3==2.4.0
 watchdog==6.0.0
+PyYAML==6.0.2
