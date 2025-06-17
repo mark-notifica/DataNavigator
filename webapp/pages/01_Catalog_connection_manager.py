@@ -1,14 +1,31 @@
 import streamlit as st
+
+# Add page config as the FIRST Streamlit command
+st.set_page_config(
+    page_title="DataNavigator - Catalog Execution",
+    page_icon="📊",
+    layout="wide",
+    initial_sidebar_state="expanded"
+)
+
+
 import pandas as pd
 import sqlalchemy as sa
 from dotenv import load_dotenv
+from pathlib import Path
 import os
 import sys
 import pyodbc
 
+
+# Apply styling
+sys.path.append(str(Path(__file__).parent.parent))
+from shared_utils import apply_compact_styling
+apply_compact_styling()
+
 # Print Python executable path
-print("Python executable:", sys.executable)
-st.write(st.__version__)
+# print("Python executable:", sys.executable)
+# st.write(st.__version__)
 
 # Load environment variables for the DataNavigator database
 load_dotenv(dotenv_path=os.path.join(os.path.dirname(__file__), "../.env"))

@@ -1,0 +1,158 @@
+/* DataNavigator Streamlit Custom Styles */
+
+/* Main container - WIDER VERSION */
+.main .block-container {
+    padding-top: 1rem !important;
+    padding-bottom: 1rem !important;
+    padding-left: 0.5rem !important;  /* Less padding for more space */
+    padding-right: 0.5rem !important; /* Less padding for more space */
+    max-width: 98% !important;        /* Use almost full width */
+    width: 98% !important;            /* Force wider width */
+}
+
+/* Make the main content area use full viewport width */
+.main {
+    max-width: none !important;
+    width: 100% !important;
+}
+
+/* Ensure the app uses full screen width */
+.appview-container {
+    max-width: none !important;
+    width: 100% !important;
+}
+
+/* Remove any width restrictions */
+section.main > div {
+    max-width: none !important;
+    padding-left: 1rem !important;
+    padding-right: 1rem !important;
+}
+
+/* Headers */
+h1 { 
+    font-size: 1.5rem !important; 
+    margin-bottom: 0.5rem !important; 
+    margin-top: 0.5rem !important;
+}
+h2 { 
+    font-size: 1.3rem !important; 
+    margin-bottom: 0.4rem !important; 
+    margin-top: 0.4rem !important;
+}
+h3 { 
+    font-size: 1.1rem !important; 
+    margin-bottom: 0.3rem !important; 
+    margin-top: 0.3rem !important;
+}
+
+/* Compact all elements */
+.element-container {
+    margin-bottom: 0.3rem !important;
+}
+
+/* Compact metrics */
+[data-testid="metric-container"] {
+    background-color: #f8f9fa !important;
+    border: 1px solid #dee2e6 !important;
+    padding: 0.3rem 0.5rem !important;
+    border-radius: 0.25rem !important;
+    margin: 0.1rem 0 !important;
+}
+
+[data-testid="metric-container"] label {
+    font-size: 0.75rem !important;
+    font-weight: 600 !important;
+}
+
+[data-testid="metric-container"] [data-testid="metric-value"] {
+    font-size: 1.1rem !important;
+    font-weight: 700 !important;
+}
+
+/* Smaller buttons */
+.stButton > button {
+    padding: 0.25rem 0.6rem !important;
+    font-size: 0.85rem !important;
+    height: 2rem !important;
+    border-radius: 0.3rem !important;
+    margin: 0.1rem !important;
+}
+
+/* Compact form elements */
+.stSelectbox > div > div {
+    min-height: 2rem !important;
+    font-size: 0.9rem !important;
+}
+
+.stTextInput > div > div > input {
+    height: 2rem !important;
+    font-size: 0.9rem !important;
+    padding: 0.25rem 0.5rem !important;
+}
+
+.stTextArea textarea {
+    min-height: 100px !important;
+    font-size: 0.85rem !important;
+    padding: 0.4rem !important;
+}
+
+/* Compact expanders */
+.streamlit-expanderHeader {
+    font-size: 0.9rem !important;
+    padding: 0.25rem 0.5rem !important;
+    background-color: #f8f9fa !important;
+    border-radius: 0.25rem !important;
+}
+
+.streamlit-expanderContent {
+    padding: 0.4rem !important;
+}
+
+/* Tighter columns */
+.row-widget {
+    margin-bottom: 0.4rem !important;
+}
+
+/* Compact alerts */
+.stAlert {
+    padding: 0.4rem 0.6rem !important;
+    margin: 0.2rem 0 !important;
+    font-size: 0.9rem !important;
+}
+
+/* Code blocks */
+.stCode {
+    font-size: 0.85rem !important;
+    padding: 0.4rem !important;
+}
+
+/* Dividers */
+hr {
+    margin: 0.8rem 0 !important;
+}
+
+/* Sidebar (if used) */
+.css-1d391kg {
+    padding-top: 1rem !important;
+}
+
+/* Radio buttons */
+.stRadio > label {
+    font-size: 0.9rem !important;
+}
+
+/* Checkbox */
+.stCheckbox > label {
+    font-size: 0.9rem !important;
+}
+
+/* Tables */
+.dataframe {
+    font-size: 0.85rem !important;
+}
+
+/* Progress bars */
+.stProgress > div > div {
+    height: 0.6rem !important;
+}

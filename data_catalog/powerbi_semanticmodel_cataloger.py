@@ -8,9 +8,16 @@ import sys
 import re
 
 # Setup logging
+script_dir = Path(__file__).parent  # data_catalog directory
+log_dir = script_dir / 'logfiles' / 'powerbi_semanticmodel'  # ← New path
+log_dir.mkdir(parents=True, exist_ok=True)
+
+log_filename = log_dir / f"powerbi_catalog_{datetime.now().strftime('%Y%m%d_%H%M%S')}.log"
+
 logging.basicConfig(
     level=logging.DEBUG,
-    format="%(asctime)s [%(levelname)s] %(message)s"
+    format="%(asctime)s [%(levelname)s] %(message)s",
+    filename=log_filename
 )
 logger = logging.getLogger(__name__)
 
