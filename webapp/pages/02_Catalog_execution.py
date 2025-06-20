@@ -43,6 +43,61 @@ engine = sa.create_engine(db_url)
 
 # === FUNCTION DEFINITIONS ===
 
+def get_order_column(sort_by):
+    """Get the database column name for sorting"""
+    mapping = {
+        "ID": "id",
+        "Name": "name", 
+        "Type": "connection_type",
+        "Host": "host"
+    }
+    return mapping.get(sort_by, "id")
+
+def get_sort_direction():
+    """Get sort direction (could be made configurable)"""
+    return "ASC"
+
+def execute_powerbi_cataloging(connection_info, folder_path):
+    """Execute PowerBI semantic model cataloging"""
+    try:
+        # Close any existing database connections
+        try:
+            engine.dispose()
+        except:
+            pass
+        
+        # Set monitoring info
+        st.session_state["monitoring_connection_id"] = connection_info[0]
+        st.session_state["monitoring_connection_name"] = connection_info[1]
+        st.session_state["cataloging_type"] = "powerbi"
+        
+        # Get project paths
+        paths = get_project_paths()
+        working_dir = str(paths['project_root'])
+        
+        # Build PowerBI cataloger command
+        cmd = f'venv\\Scripts\\python.exe data_catalog\\powerbi_semanticmodel_cataloger.py --connection-id {connection_info[0]} --project-folder "{folder_path}"'
+        
+        # Start subprocess with better isolation
+        process = subprocess.Popen(
+            cmd,
+            cwd=working_dir,
+            shell=True,
+            creationflags=subprocess.CREATE_NEW_PROCESS_GROUP,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL
+        )
+        
+        # Set session state and show success
+        st.session_state["cataloging_active"] = True
+        st.success(f"🚀 PowerBI cataloger started successfully for {connection_info[1]}!")
+        st.info("👆 Switch to Live Cataloging view to monitor progress")
+        
+        time.sleep(1)
+        st.rerun()
+        
+    except Exception as e:
+        st.error(f"❌ Failed to start PowerBI cataloger: {e}")
 
 def get_absolute_log_path(relative_log_filename):
     """Convert relative log filename to absolute path"""
@@ -201,7 +256,7 @@ def get_connections_for_dropdown():
     try:
         with engine.connect() as conn:
             result = conn.execute(sa.text("""
-                SELECT id, name, connection_type, host, port, database_name
+                SELECT id, name, connection_type, host, port, username, password, database_name, folder_path
                 FROM config.connections
                 ORDER BY name ASC
             """))
@@ -358,8 +413,11 @@ def get_latest_catalog_log():
 
 def get_databases_preview(connection_info):
     """Preview available databases on a server without cataloging"""
-    st.write("Debug - connection_info length:", len(connection_info))
-    st.write("Debug - connection_info contents:", connection_info)
+    DEBUG_MODE = False  # Set to True when you need debugging
+
+    if DEBUG_MODE:
+        st.write("Debug - connection_info length:", len(connection_info))
+        st.write("Debug - connection_info contents:", connection_info)
     try:
         # Get connection details from the tuple
         conn_id = connection_info[0]
@@ -610,27 +668,39 @@ tab1, tab2 = st.tabs(["🚀 Execute Cataloging", "📊 Manage Catalog Runs"])
 with tab1:
     st.subheader("Select connection to catalog")
 
-    # Sorting controls for single connection dropdown
-    col1, col2 = st.columns([1, 3])
-    with col1:
-        single_sort_by = st.selectbox(
-            "Sort dropdown by:",
-            ["ID", "Name", "Type", "Host"],
-            index=1,  # Default to Name
-            key="single_sort_by"
-        )
-    with col2:
-        single_sort_order = st.radio(
-            "Order:",
-            ["Ascending", "Descending"],
-            index=0,  # Default to Ascending
-            horizontal=True,
-            key="single_sort_order"
+    col_filter1, col_filter2 = st.columns(2)
+
+    with col_filter1:
+        # Connection type filter
+        connection_type_options = ["All Types", "PostgreSQL", "Azure SQL Server", "Power BI Semantic Model"]
+        selected_connection_type = st.selectbox(
+            "Connection Type:",
+            options=connection_type_options,
+            key="single_connection_type_filter"
         )
 
-    # Fetch available connections for dropdown with sorting
+    with col_filter2:
+        # Sort controls
+        single_sort_by = st.selectbox(
+            "Sort by:",
+            ["ID", "Name", "Type", "Host"],
+            index=1,  # Default to Name
+            key="single_sort_by_filter"  # Make this key unique
+        )
+
+    # Fetch available connections with filter and sorting
     try:
-        # Determine sort column and order for single connection
+        # Build where clause for connection type filter
+        where_conditions = ["connection_type IN ('PostgreSQL', 'Azure SQL Server', 'Power BI Semantic Model')"]
+        params = {}
+        
+        if selected_connection_type != "All Types":
+            where_conditions.append("connection_type = :conn_type")
+            params["conn_type"] = selected_connection_type
+        
+        where_clause = " WHERE " + " AND ".join(where_conditions)
+        
+        # Determine sort column and order
         sort_column_map = {
             "ID": "id",
             "Name": "name",
@@ -639,43 +709,48 @@ with tab1:
         }
         
         sort_column = sort_column_map[single_sort_by]
-        sort_direction = "ASC" if single_sort_order == "Ascending" else "DESC"
+        sort_direction = "ASC"  # Always ascending for now
         
+        # Single query with filter and sorting
         with engine.connect() as db_conn:
             query = f"""
-                SELECT id, name, connection_type, host, port, database_name
+                SELECT id, name, connection_type, host, port, username, password, database_name, folder_path
                 FROM config.connections 
-                WHERE connection_type IN ('PostgreSQL', 'Azure SQL Server')
+                {where_clause}
                 ORDER BY {sort_column} {sort_direction}
             """
-            result = db_conn.execute(sa.text(query))
+            result = db_conn.execute(sa.text(query), params)
             connections = result.fetchall()
             
         if connections:
-            # Show connection count and sorting info
-            st.write(f"**{len(connections)} connection(s) available** - Sorted by {single_sort_by} ({single_sort_order})")
+            # Display connection count with filter info
+            if selected_connection_type != "All Types":
+                st.info(f"📊 Found {len(connections)} {selected_connection_type} connections")
+            else:
+                st.info(f"📊 Found {len(connections)} connections")
             
             # Create dropdown options with ID, Name, Type, and Host
-            if single_sort_by == "ID":
-                connection_options = [
-                    f"ID: {conn[0]} - {conn[1]} ({conn[2]}) - {conn[3]}:{conn[4]}"
-                    for conn in connections
-                ]
-            elif single_sort_by == "Name":
-                connection_options = [
-                    f"{conn[1]} - ID: {conn[0]} ({conn[2]}) - {conn[3]}:{conn[4]}"
-                    for conn in connections
-                ]
-            elif single_sort_by == "Type":
-                connection_options = [
-                    f"{conn[2]}: {conn[1]} - ID: {conn[0]} - {conn[3]}:{conn[4]}"
-                    for conn in connections
-                ]
-            else:  # Host
-                connection_options = [
-                    f"{conn[3]}:{conn[4]} - {conn[1]} - ID: {conn[0]} ({conn[2]})"
-                    for conn in connections
-                ]
+            connection_options = []
+            for conn in connections:
+                if conn[2] == "Power BI Semantic Model":  # PowerBI connection
+                    folder_display = Path(conn[8]).name if conn[8] else "No folder"
+                    if single_sort_by == "ID":
+                        connection_options.append(f"ID: {conn[0]} - {conn[1]} ({conn[2]}) - {folder_display}")
+                    elif single_sort_by == "Name":
+                        connection_options.append(f"{conn[1]} - ID: {conn[0]} ({conn[2]}) - {folder_display}")
+                    elif single_sort_by == "Type":
+                        connection_options.append(f"{conn[2]}: {conn[1]} - ID: {conn[0]} - {folder_display}")
+                    else:  # Host
+                        connection_options.append(f"PowerBI: {folder_display} - {conn[1]} - ID: {conn[0]}")
+                else:  # Database connection
+                    if single_sort_by == "ID":
+                        connection_options.append(f"ID: {conn[0]} - {conn[1]} ({conn[2]}) - {conn[3]}:{conn[4]}")
+                    elif single_sort_by == "Name":
+                        connection_options.append(f"{conn[1]} - ID: {conn[0]} ({conn[2]}) - {conn[3]}:{conn[4]}")
+                    elif single_sort_by == "Type":
+                        connection_options.append(f"{conn[2]}: {conn[1]} - ID: {conn[0]} - {conn[3]}:{conn[4]}")
+                    else:  # Host
+                        connection_options.append(f"{conn[3]}:{conn[4]} - {conn[1]} - ID: {conn[0]} ({conn[2]})")
             
             # Dropdown for single connection selection
             selected_connection = st.selectbox(
@@ -693,7 +768,10 @@ with tab1:
                 
                 selected_conn_info = next(conn for conn in connections if conn[0] == connection_id)
                 
-                # Display selected connection details
+                # Check connection type
+                connection_type = selected_conn_info[2]  # connection_type field
+                
+                # Display connection details
                 with st.expander("📋 Selected Connection Details", expanded=True):
                     col1, col2 = st.columns(2)
                     with col1:
@@ -701,34 +779,95 @@ with tab1:
                         st.write(f"**Name:** {selected_conn_info[1]}")
                         st.write(f"**Type:** {selected_conn_info[2]}")
                     with col2:
-                        st.write(f"**Host:** {selected_conn_info[3]}")
-                        st.write(f"**Port:** {selected_conn_info[4]}")
-                        st.write(f"**Database:** {selected_conn_info[5] or 'Not specified'}")
+                        if connection_type == "Power BI Semantic Model":
+                            st.write(f"**Folder Path:** {selected_conn_info[8] or 'Not specified'}")
+                        else:
+                            st.write(f"**Host:** {selected_conn_info[3]}")
+                            st.write(f"**Port:** {selected_conn_info[4]}")
+                            st.write(f"**Database:** {selected_conn_info[7] or 'Not specified'}")
                 
-                # === DATABASE SELECTION SECTION ===
-                st.divider()
-                st.subheader("Database selection (optional)")
+                # === CONNECTION TYPE SPECIFIC SECTIONS ===
+                if connection_type == "Power BI Semantic Model":
+                    # PowerBI-specific interface
+                    st.divider()
+                    st.subheader("📊 PowerBI Project Configuration")
+                    
+                    folder_path = selected_conn_info[8]  # folder_path field
+                    
+                    if folder_path:
+                        if os.path.exists(folder_path):
+                            st.success(f"✅ Project folder found: {folder_path}")
+                            
+                            # List PowerBI project files in folder (including subfolders)
+                            try:
+                                pbip_files = list(Path(folder_path).rglob("*.pbip"))
+                                tmdl_files = list(Path(folder_path).rglob("*.tmdl"))
+                                json_files = list(Path(folder_path).rglob("*.json"))
+                                dax_files = list(Path(folder_path).rglob("*.dax"))
+                                pbism_files = list(Path(folder_path).rglob("*.pbism"))
+                                pbir_files = list(Path(folder_path).rglob("*.pbir"))
+                                
+                                total_files = len(pbip_files) + len(tmdl_files) + len(json_files) + len(dax_files) + len(pbism_files) + len(pbir_files)
+                                
+                                if total_files > 0:
+                                    st.info(f"📁 Found PowerBI project files (including subfolders):")
+                                    if pbip_files:
+                                        st.write(f"  • **{len(pbip_files)} .pbip files:** {', '.join([f.name for f in pbip_files])}")
+                                    if tmdl_files:
+                                        st.write(f"  • **{len(tmdl_files)} .tmdl files:** {', '.join([f.name for f in tmdl_files[:5]])}{'...' if len(tmdl_files) > 5 else ''}")
+                                    if json_files:
+                                        st.write(f"  • **{len(json_files)} .json files:** {', '.join([f.name for f in json_files[:5]])}{'...' if len(json_files) > 5 else ''}")
+                                    if dax_files:
+                                        st.write(f"  • **{len(dax_files)} .dax files:** {', '.join([f.name for f in dax_files[:5]])}{'...' if len(dax_files) > 5 else ''}")
+                                    if pbism_files:
+                                        st.write(f"  • **{len(pbism_files)} .pbism files:** {', '.join([f.name for f in pbism_files])}")
+                                    if pbir_files:
+                                        st.write(f"  • **{len(pbir_files)} .pbir files:** {', '.join([f.name for f in pbir_files])}")
+                                else:
+                                    st.warning("⚠️ No PowerBI project files found in the specified folder")
+                                    st.info("Expected files: .pbip, .tmdl, .json, .dax, .pbism, or .pbir files (including subfolders)")
+                                    
+                            except Exception as e:
+                                st.error(f"Error reading folder: {e}")
+                                
+                        else:
+                            st.error(f"❌ Folder not found: {folder_path}")
+                    else:
+                        st.error("❌ No folder path specified in connection")
+                    
+                    # Action buttons for PowerBI
+                    st.divider()
+                    execution_ready = folder_path and os.path.exists(folder_path)
+                    button_text = "🚀 Execute PowerBI Cataloging" if execution_ready else "⚠️ Fix Folder Path First"
+                    
+                    if st.button(button_text, key="execute_powerbi", type="primary", disabled=not execution_ready):
+                        execute_powerbi_cataloging(selected_conn_info, folder_path)
                 
-                # Show current database_name from connection
-                current_db = selected_conn_info[5] or "All databases (not specified)"
-                st.write(f"**Connection setting:** {current_db}")
-                
-                # Option to preview and select databases
-                col1, col2 = st.columns([1, 2])
-                
-                with col1:
-                    if st.button("🔍 Preview Databases", key="preview_dbs"):
-                        with st.spinner("Discovering databases on server..."):
-                            st.session_state["available_databases"] = get_databases_preview(selected_conn_info)
-                            st.session_state["preview_connection_id"] = connection_id
-                
-                with col2:
-                    catalog_mode = st.radio(
-                        "Cataloging Mode:",
-                        ["Use connection setting", "Select specific databases"],
-                        index=0,
-                        key="catalog_mode"
-                    )
+                else:            
+                    # === DATABASE SELECTION SECTION ===
+                    st.divider()
+                    st.subheader("Database selection (optional)")
+                    
+                    # Show current database_name from connection
+                    current_db = selected_conn_info[7] or "All databases (not specified)"
+                    st.write(f"**Connection setting:** {current_db}")
+                    
+                    # Option to preview and select databases
+                    col1, col2 = st.columns([1, 2])
+                    
+                    with col1:
+                        if st.button("🔍 Preview Databases", key="preview_dbs"):
+                            with st.spinner("Discovering databases on server..."):
+                                st.session_state["available_databases"] = get_databases_preview(selected_conn_info)
+                                st.session_state["preview_connection_id"] = connection_id
+                    
+                    with col2:
+                        catalog_mode = st.radio(
+                            "Cataloging Mode:",
+                            ["Use connection setting", "Select specific databases"],
+                            index=0,
+                            key="catalog_mode"
+                        )
                 
                 # Show available databases if previewed
                 if (st.session_state.get("preview_connection_id") == connection_id and 
@@ -779,6 +918,7 @@ with tab1:
                         st.warning("⚠️ No databases found on server or connection failed.")
                 
                 # Action buttons
+            if connection_type != "Power BI Semantic Model":    
                 st.divider()
                 col1, col2 = st.columns(2)
                 
@@ -798,9 +938,13 @@ with tab1:
                 with col2:
                     # Not running - show execute button
                     execution_ready = True
-                    if catalog_mode == "Select specific databases":
-                        if not st.session_state.get("selected_databases"):
-                            execution_ready = False
+                    
+                    # Only check catalog_mode if we're in database mode (not PowerBI)
+                    if connection_type != "Power BI Semantic Model":
+                        catalog_mode = st.session_state.get("catalog_mode", "Use connection setting")
+                        if catalog_mode == "Select specific databases":
+                            if not st.session_state.get("selected_databases"):
+                                execution_ready = False
                     
                     button_text = "🚀 Execute Cataloging" if execution_ready else "⚠️ Select Databases First"
                     
@@ -828,8 +972,8 @@ with tab1:
                             databases_to_catalog = None
                             if catalog_mode == "Select specific databases":
                                 databases_to_catalog = st.session_state.get("selected_databases", [])
-                            elif selected_conn_info[5]:
-                                databases_to_catalog = [selected_conn_info[5]]
+                            elif selected_conn_info[7]:
+                                databases_to_catalog = [selected_conn_info[7]]
                             
                             # Build command
                             if databases_to_catalog:
@@ -858,17 +1002,50 @@ with tab1:
                             
                         except Exception as e:
                             st.error(f"❌ Failed to start cataloger: {e}")
-        
+        else:
+            st.warning("No connections found matching the selected criteria.")
+            
     except Exception as e:
         st.error(f"❌ Failed to load connections: {e}")
 
     # === LIVE CATALOGING PROGRESS ===
     if st.session_state.get("cataloging_active"):
-        st.divider()
-        st.warning("🔄 **CATALOGING PROCESS IS ACTIVE!**")
+        cataloging_type = st.session_state.get("cataloging_type", "database")
+        connection_id = st.session_state.get("monitoring_connection_id")
+        
+        # Check if the process is actually still running
+        if connection_id:
+            try:
+                with engine.connect() as conn:
+                    result = conn.execute(sa.text("""
+                        SELECT run_status, log_filename FROM catalog.catalog_runs 
+                        WHERE connection_id = :conn_id 
+                        ORDER BY run_started_at DESC 
+                        LIMIT 1
+                    """), {"conn_id": connection_id})
+                    
+                    latest_run = result.fetchone()
+                    if latest_run:
+                        current_status, log_filename = latest_run
+                        
+                        # If the run is completed or failed, clear the active state
+                        if current_status in ['completed', 'failed']:
+                            st.session_state["cataloging_active"] = False
+                            st.success(f"✅ Cataloging process completed with status: {current_status}")
+                            st.info("🔄 Page will refresh to show final results")
+                            time.sleep(2)
+                            st.rerun()
+                            
+            except Exception as e:
+                st.error(f"Error checking run status: {e}")
+        
+        if cataloging_type == "powerbi":
+            st.warning("🔄 **POWERBI CATALOGING PROCESS IS ACTIVE!**")
+        else:
+            st.warning("🔄 **DATABASE CATALOGING PROCESS IS ACTIVE!**")
         
         # Simple controls - just stop monitoring and line selector
-        col1, col2, col3 = st.columns(3)
+        col1, col2, col3 = st.columns([3, 2, 3])
 
         with col1:
             if st.button("🛑 Stop Monitoring"):
@@ -877,10 +1054,9 @@ with tab1:
                 st.rerun()
 
         with col2:
-            lines_to_show = st.selectbox("Show lines:", [25, 50, 100, 200], index=1, key="live_log_lines")
-        
+            lines_to_show = st.selectbox("Lines:", [25, 50, 100, 200], index=1, key="live_log_lines")
+
         with col3:
-            # Auto-refresh control - default to True (enabled)
             auto_refresh = st.checkbox("🔄 Auto-refresh (10s)", value=True, key="auto_refresh_enabled")
         
         # Information about alternative monitoring
@@ -897,15 +1073,19 @@ with tab1:
             if connection_id:
                 with engine.connect() as conn:
                     result = conn.execute(sa.text("""
-                        SELECT log_filename FROM catalog.catalog_runs 
-                        WHERE connection_id = :conn_id AND run_status = 'running'
+                        SELECT log_filename, run_status FROM catalog.catalog_runs 
+                        WHERE connection_id = :conn_id 
                         ORDER BY run_started_at DESC 
                         LIMIT 1
                     """), {"conn_id": connection_id})
                     
                     run_data = result.fetchone()
                     if run_data:
-                        relative_log_filename = run_data[0]
+                        relative_log_filename, run_status = run_data
+                        
+                        # If process is completed but log file is None, show message
+                        if not relative_log_filename and run_status in ['completed', 'failed']:
+                            st.info("📋 Process completed. View the complete log in Run Management tab.")
             
             # Convert to absolute path
             log_file_path = get_absolute_log_path(relative_log_filename)
@@ -952,10 +1132,12 @@ with tab1:
                 
 
             else:
-                st.error(f"Log file not found: {log_file_path}")
-                st.info(f"Relative path from database: {relative_log_filename}")
-                st.info("The cataloging process may not have started yet or the log file path is incorrect.")
-                
+                if relative_log_filename:
+                    st.warning(f"Log file not found: {log_file_path}")
+                    st.info(f"Relative path from database: {relative_log_filename}")
+                else:
+                    st.info("Log file not available yet. The cataloging process may not have started.")
+            
         except Exception as e:
             st.error(f"Error reading log file: {e}")
         
@@ -1079,10 +1261,10 @@ with tab1:
                         with st.expander(f"📄 View Log Content (Run {run_id})", expanded=False):
                             col1, col2 = st.columns([3, 1])
                             with col1:
-                                if st.button("🔄 Refresh Log", key=f"refresh_log_{run_id}"):
+                                if st.button("🔄 Refresh Log", key=f"live_refresh_log_{run_id}"):
                                     st.rerun()
                             with col2:
-                                log_lines = st.selectbox("Show lines:", [10, 25, 50, 100], index=1, key=f"log_lines_{run_id}")
+                                log_lines = st.selectbox("Show lines:", [10, 25, 50, 100], index=1, key=f"live_log_lines_{run_id}")
                             
                             # Get log content
                             try:
@@ -1090,7 +1272,7 @@ with tab1:
                                     with open(log_filename, 'r') as f:
                                         lines = f.readlines()
                                         recent_lines = ''.join(lines[-log_lines:])
-                                        st.text_area(f"Last {log_lines} lines:", recent_lines, height=400, key=f"log_content_{run_id}")
+                                        st.text_area(f"Last {log_lines} lines:", recent_lines, height=400, key=f"live_log_content_{run_id}")
                                 else:
                                     st.error(f"Log file not found: {log_filename}")
                             except Exception as e:
@@ -1217,8 +1399,13 @@ with tab2:
                     cr.columns_processed,
                     cr.error_message,
                     cr.log_filename,
-                    cr.databases_to_catalog,    
-                    cr.databases_count  
+                    cr.databases_to_catalog,
+                    cr.databases_count,
+                    cr.models_processed,
+                    cr.measures_processed,
+                    cr.relationships_processed,
+                    cr.m_code_processed,
+                    c.connection_type
                 FROM catalog.catalog_runs cr
                 JOIN config.connections c ON cr.connection_id = c.id
                 WHERE 1=1 {where_clause}
@@ -1232,8 +1419,11 @@ with tab2:
                 # Display runs in a table format (removed bulk selection)
                 runs_data = []
                 for run in runs:
-                    run_id, conn_id, conn_name, status, started, completed, dbs_proc, schemas_proc, tables_proc, views_proc, columns_proc, error, log_file, databases_to_catalog, databases_count = run
-                    
+                    (run_id, conn_id, conn_name, status, started, completed, dbs_proc, schemas_proc, 
+                    tables_proc, views_proc, columns_proc, error, log_file, databases_to_catalog, 
+                    databases_count, models_proc, measures_proc, relationships_proc, m_code_proc, 
+                    connection_type) = run
+
                     # Calculate duration
                     if completed and started:
                         duration = completed - started
@@ -1254,24 +1444,58 @@ with tab2:
                     # Truncate error message for display
                     error_display = error[:50] + "..." if error and len(error) > 50 else (error or "")
                     
-                    runs_data.append({
-                        "ID": run_id,
-                        "Connection": conn_name,
-                        "Status": status,
-                        "Started": started.strftime('%m-%d %H:%M'),
-                        "Duration": duration_str,
-                        "Target DBs": db_display,
-                        "DB Count": databases_count or 0,
-                        "DBs Done": dbs_proc or 0,
-                        "DB Check": "✅" if (databases_count and dbs_proc and databases_count == dbs_proc) else ("❌" if (databases_count and dbs_proc and databases_count != dbs_proc) else "⏳"),
-                        "Schemas": schemas_proc or 0,
-                        "Tables": tables_proc or 0,
-                        "Views": views_proc or 0,
-                        "Columns": columns_proc or 0,
-                        "Error": error_display
-                    })
+                    # Check if this is a PowerBI run
+                    is_powerbi = connection_type == "Power BI Semantic Model"
+                    
+                    if is_powerbi:
+                        # PowerBI-specific data structure
+                        runs_data.append({
+                            "ID": run_id,
+                            "Connection": conn_name,
+                            "Type": connection_type,
+                            "Status": status,
+                            "Started": started.strftime('%m-%d %H:%M'),
+                            "Duration": duration_str,
+                            "Models": models_proc or 0,
+                            "Tables": tables_proc or 0,
+                            "Columns": columns_proc or 0,
+                            "Measures": measures_proc or 0,
+                            "Relationships": relationships_proc or 0,
+                            "M-Code": m_code_proc or 0,
+                            "Error": error_display
+                        })
+                    else:
+                        # Database-specific data structure
+                        # Process databases_to_catalog for display
+                        if databases_to_catalog and databases_to_catalog != "all":
+                            try:
+                                db_list = json.loads(databases_to_catalog)
+                                db_display = f"{len(db_list)} DBs: {', '.join(db_list[:2])}{'...' if len(db_list) > 2 else ''}"
+                            except:
+                                db_display = databases_to_catalog[:30] + "..." if len(str(databases_to_catalog)) > 30 else databases_to_catalog
+                        else:
+                            db_display = "All DBs"
+                        
+                        runs_data.append({
+                            "ID": run_id,
+                            "Connection": conn_name,
+                            "Type": connection_type,
+                            "Status": status,
+                            "Started": started.strftime('%m-%d %H:%M'),
+                            "Duration": duration_str,
+                            "Target DBs": db_display,
+                            "DB Count": databases_count or 0,
+                            "DBs Done": dbs_proc or 0,
+                            "DB Check": "✅" if (databases_count and dbs_proc and databases_count == dbs_proc) else ("❌" if (databases_count and dbs_proc and databases_count != dbs_proc) else "⏳"),
+                            "Schemas": schemas_proc or 0,
+                            "Tables": tables_proc or 0,
+                            "Views": views_proc or 0,
+                            "Columns": columns_proc or 0,
+                            "Error": error_display
+                        })
 
 
+                # Display with dynamic column configuration based on run types
                 st.dataframe(
                     runs_data,
                     use_container_width=True,
@@ -1279,16 +1503,24 @@ with tab2:
                     column_config={
                         "ID": st.column_config.NumberColumn("Run ID", width="small"),
                         "Connection": st.column_config.TextColumn("Connection", width="medium"),
+                        "Type": st.column_config.TextColumn("Type", width="medium"),
                         "Status": st.column_config.TextColumn("Status", width="small"),
                         "Started": st.column_config.TextColumn("Started", width="small"),
                         "Duration": st.column_config.TextColumn("Duration", width="small"),
+                        # Database columns
                         "Target DBs": st.column_config.TextColumn("Target DBs", width="medium"),
                         "DB Count": st.column_config.NumberColumn("DB Count", width="small"),
                         "DBs Done": st.column_config.NumberColumn("DBs Done", width="small"),
-                        "DB Check": st.column_config.TextColumn("DB ✓", width="small", help="✅ All planned databases processed, ❌ Mismatch, ⏳ In progress/Unknown"),
+                        "DB Check": st.column_config.TextColumn("DB ✓", width="small"),
                         "Schemas": st.column_config.NumberColumn("Schemas", width="small"),
-                        "Tables": st.column_config.NumberColumn("Tables", width="small"),
                         "Views": st.column_config.NumberColumn("Views", width="small"),
+                        # PowerBI columns
+                        "Models": st.column_config.NumberColumn("Models", width="small"),
+                        "Measures": st.column_config.NumberColumn("Measures", width="small"),
+                        "Relationships": st.column_config.NumberColumn("Relationships", width="small"),
+                        "M-Code": st.column_config.NumberColumn("M-Code", width="small"),
+                        # Shared columns
+                        "Tables": st.column_config.NumberColumn("Tables", width="small"),
                         "Columns": st.column_config.NumberColumn("Columns", width="small"),
                         "Error": st.column_config.TextColumn("Error", width="medium")
                     }
@@ -1342,24 +1574,50 @@ with tab2:
                             st.write(f"**Error:** {selected_run_data[11][:100]}...")
                     
                     with col_details3:
-                        # Database counts with comparison
-                        databases_count = selected_run_data[14] or 0  # databases_count field
-                        databases_processed = selected_run_data[6] or 0  # databases_processed field
+                        # Check if this is a PowerBI run by connection type or other indicator
+                        connection_type = selected_run_data[2] if len(selected_run_data) > 2 else None
+                        is_powerbi_run = (connection_type == "Power BI Semantic Model" or 
+                                        "powerbi_catalog_" in (selected_run_data[12] or ""))  # Check log filename
                         
-                        st.write(f"**Databases Planned:** {databases_count}")
-                        st.write(f"**Databases Processed:** {databases_processed}")
-                        
-                        # Show database check status
-                        if databases_count and databases_processed:
-                            if databases_count == databases_processed:
-                                st.success(f"✅ All {databases_processed} databases completed")
+                        if is_powerbi_run:
+                            # PowerBI-specific metrics
+                            models_processed = getattr(selected_run_data, 'models_processed', 1) if hasattr(selected_run_data, 'models_processed') else 1
+                            measures_processed = getattr(selected_run_data, 'measures_processed', 0) if hasattr(selected_run_data, 'measures_processed') else 0
+                            relationships_processed = getattr(selected_run_data, 'relationships_processed', 0) if hasattr(selected_run_data, 'relationships_processed') else 0
+                            m_code_processed = getattr(selected_run_data, 'm_code_processed', 0) if hasattr(selected_run_data, 'm_code_processed') else 0
+                            
+                            st.write(f"**Models Processed:** {models_processed}")
+                            st.write(f"**Tables:** {selected_run_data[6] or 0}")
+                            st.write(f"**Columns:** {selected_run_data[10] or 0}")
+                            st.write(f"**Measures:** {measures_processed}")
+                            st.write(f"**Relationships:** {relationships_processed}")
+                            st.write(f"**M-Code Partitions:** {m_code_processed}")
+                            
+                            # Show model completion status
+                            if models_processed and models_processed >= 1:
+                                st.success(f"✅ Semantic model cataloged successfully")
                             else:
-                                st.warning(f"⚠️ {databases_processed}/{databases_count} databases completed")
-                        
-                        st.write(f"**Schemas:** {selected_run_data[7] or 0}")
-                        st.write(f"**Tables:** {selected_run_data[8] or 0}")
-                        st.write(f"**Views:** {selected_run_data[9] or 0}")
-                        st.write(f"**Columns:** {selected_run_data[10] or 0}")
+                                st.warning(f"⚠️ Model cataloging incomplete")
+                                
+                        else:
+                            # Database-specific metrics (existing code)
+                            databases_count = selected_run_data[14] or 0  # databases_count field
+                            databases_processed = selected_run_data[6] or 0  # databases_processed field
+                            
+                            st.write(f"**Databases Planned:** {databases_count}")
+                            st.write(f"**Databases Processed:** {databases_processed}")
+                            
+                            # Show database check status
+                            if databases_count and databases_processed:
+                                if databases_count == databases_processed:
+                                    st.success(f"✅ All {databases_processed} databases completed")
+                                else:
+                                    st.warning(f"⚠️ {databases_processed}/{databases_count} databases completed")
+                            
+                            st.write(f"**Schemas:** {selected_run_data[7] or 0}")
+                            st.write(f"**Tables:** {selected_run_data[8] or 0}")
+                            st.write(f"**Views:** {selected_run_data[9] or 0}")
+                            st.write(f"**Columns:** {selected_run_data[10] or 0}")
                     
                     # Individual run actions
                     col_action1, col_action2, col_action3 = st.columns(3)
@@ -1413,8 +1671,15 @@ with tab2:
                         
                         if absolute_log_path and Path(absolute_log_path).exists():
                             try:
-                                with open(absolute_log_path, 'r', encoding='utf-8') as f:
-                                    log_content = f.read()
+                                # Try UTF-8 first, then fall back to other encodings
+                                try:
+                                    with open(absolute_log_path, 'r', encoding='utf-8') as f:
+                                        log_content = f.read()
+                                except UnicodeDecodeError:
+                                    # Try with utf-8 and error handling
+                                    with open(absolute_log_path, 'r', encoding='utf-8', errors='replace') as f:
+                                        log_content = f.read()
+                                        st.warning("⚠️ Some characters in the log file were replaced due to encoding issues")
                                 
                                 st.divider()
                                 st.subheader(f"📋 Log File: {Path(absolute_log_path).name}")

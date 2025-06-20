@@ -85,6 +85,39 @@ h3 {
     font-size: 0.9rem !important;
 }
 
+/* Dropdown text size adjustments */
+.stSelectbox > div > div > div {
+    font-size: 12px !important;
+}
+
+/* Make the dropdown list items smaller */
+.stSelectbox [role="listbox"] [role="option"] {
+    font-size: 12px !important;
+    padding: 4px 8px !important;
+    line-height: 1.2 !important;
+}
+
+/* Make the selected value display smaller */
+.stSelectbox [data-baseweb="select"] > div {
+    font-size: 12px !important;
+}
+
+/* Adjust dropdown container height */
+.stSelectbox [role="listbox"] {
+    max-height: 200px !important;
+}
+
+/* More specific targeting for connection dropdowns */
+div[data-testid="stSelectbox"] div[data-baseweb="select"] {
+    font-size: 11px !important;
+}
+
+div[data-testid="stSelectbox"] [role="listbox"] [role="option"] {
+    font-size: 11px !important;
+    padding: 2px 6px !important;
+    line-height: 1.1 !important;
+}
+
 .stTextInput > div > div > input {
     height: 2rem !important;
     font-size: 0.9rem !important;
