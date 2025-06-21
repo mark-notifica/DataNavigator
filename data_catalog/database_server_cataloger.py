@@ -122,6 +122,14 @@ def connect_to_source_database(connection_info):
         logger.error(f"Failed to connect to source database {connection_info['name']}: {e}")
         return None
 
+def get_connection_by_server_name(server_name: str):
+    """Haalt connectie-info uit config.connections o.b.v. server_name"""
+    all_conns = get_source_connections()
+    for conn in all_conns:
+        if conn["name"] == server_name:
+            return conn
+    raise ValueError(f"Geen connectie gevonden voor server_name '{server_name}'")
+
 # Remove or update the old env resolution functions since we're using .env now
 ENV_PATTERN = re.compile(r'^\${(.+)}$')
 
