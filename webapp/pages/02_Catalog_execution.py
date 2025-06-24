@@ -10,7 +10,6 @@ st.set_page_config(
 import json
 import pandas as pd
 import sqlalchemy as sa
-from pathlib import Path
 import os
 import sys
 import subprocess
@@ -18,6 +17,17 @@ import threading
 import time
 from datetime import datetime
 import psycopg2
+from pathlib import Path
+
+# # Add the parent directory and data_catalog folder to sys.path
+# data_catalog_path = Path(__file__).resolve().parent.parent.parent / "data_catalog"
+# sys.path.append(str(data_catalog_path))
+# from database_server_cataloger import catalog_multiple_databases
+
+# Add the parent directory (webapp) to sys.path
+webapp_path = Path(__file__).resolve().parent.parent
+sys.path.append(str(webapp_path))
+from shared_utils import test_connection
 
 # Apply styling
 sys.path.append(str(Path(__file__).parent.parent))
@@ -926,15 +936,43 @@ with tab1:
                     if st.button("🧪 Test Connection", key="test_single", type="secondary"):
                         try:
                             with st.spinner(f"Testing connection to {selected_conn_info[1]}..."):
-                                # Test connection logic
-                                test_databases = get_databases_preview(selected_conn_info)
-                                if test_databases:
-                                    st.success(f"✅ Connection successful! Found {len(test_databases)} databases.")
+                                # Prepare connection info
+                                connection_info = {
+                                    "connection_type": selected_conn_info[2],  # Connection type
+                                    "host": selected_conn_info[3],             # Host
+                                    "port": selected_conn_info[4],             # Port
+                                    "username": selected_conn_info[5],         # Username
+                                    "password": selected_conn_info[6]          # Password
+                                }
+                                
+                                # Determine cataloging mode
+                                catalog_mode = st.session_state.get("catalog_mode", "Use connection setting")
+                                
+                                if catalog_mode == "Use connection setting":
+                                    # Use preconfigured databases from the connection
+                                    databases_to_test = [db.strip() for db in selected_conn_info[7].split(',')] if selected_conn_info[7] else None
+                                
+                                elif catalog_mode == "Select specific databases":
+                                    # Use databases already selected for cataloging
+                                    databases_to_test = st.session_state.get("selected_databases", None)
+                                
+                                # Call reusable test_connection function
+                                test_results = test_connection(connection_info, databases_to_test)
+                                
+                                # Display results
+                                if test_results:
+                                    st.write("**Connection Test Results:**")
+                                    for result in test_results:
+                                        if "✅" in result:
+                                            st.success(result)
+                                        else:
+                                            st.error(result)
                                 else:
-                                    st.warning("⚠️ Connection succeeded but no databases found.")
+                                    # No databases selected, only server connection tested
+                                    st.success("✅ Server connection: Success. No databases were selected, so only the server connection was tested.")
                         except Exception as e:
                             st.error(f"❌ Connection test failed: {e}")
-                
+
                 with col2:
                     # Not running - show execute button
                     execution_ready = True
@@ -949,57 +987,50 @@ with tab1:
                     button_text = "🚀 Execute Cataloging" if execution_ready else "⚠️ Select Databases First"
                     
                     if st.button(button_text, key="execute_single", type="primary", disabled=not execution_ready):
-                        # Instead of engine.dispose(), just ensure we're not holding any active connections
-                        # Only close connections that might interfere with cataloging
                         try:
-                            # Create a temporary connection to test, then close it
-                            with engine.connect() as test_conn:
-                                test_conn.execute(sa.text("SELECT 1"))
-                            # Connection automatically closed when exiting 'with' block
-                        except:
-                            pass
-                        
-                        # Set monitoring info
-                        st.session_state["monitoring_connection_id"] = connection_id
-                        st.session_state["monitoring_connection_name"] = selected_conn_info[1]
-                        
-                        # Get project paths
-                        paths = get_project_paths()
-                        working_dir = str(paths['project_root'])
-                        
-                        try:
-                            # Get databases to catalog
-                            databases_to_catalog = None
-                            if catalog_mode == "Select specific databases":
-                                databases_to_catalog = st.session_state.get("selected_databases", [])
-                            elif selected_conn_info[7]:
-                                databases_to_catalog = [selected_conn_info[7]]
-                            
-                            # Build command
-                            if databases_to_catalog:
-                                db_arg = ','.join(databases_to_catalog)
-                                cmd = f'venv\\Scripts\\python.exe data_catalog\\database_server_cataloger.py --connection-id {connection_id} --databases "{db_arg}"'
-                            else:
-                                cmd = f'venv\\Scripts\\python.exe data_catalog\\database_server_cataloger.py --connection-id {connection_id}'
-                            
-                            # Start subprocess with better isolation
-                            process = subprocess.Popen(
-                                cmd,
-                                cwd=working_dir,
-                                shell=True,
-                                creationflags=subprocess.CREATE_NEW_PROCESS_GROUP,
-                                stdout=subprocess.DEVNULL,
-                                stderr=subprocess.DEVNULL
-                            )
-                            
-                            # Set session state and show success
-                            st.session_state["cataloging_active"] = True
-                            st.success(f"🚀 Cataloger started successfully for {selected_conn_info[1]}!")
-                            st.info("👆 Switch to Live Cataloging view to monitor progress")
-                            
-                            time.sleep(1)
-                            st.rerun()
-                            
+                            with st.spinner(f"Starting cataloging for {selected_conn_info[1]}..."):
+                                # Prepare connection info
+                                connection_info = {
+                                    "connection_type": selected_conn_info[2],  # Connection type
+                                    "host": selected_conn_info[3],             # Host
+                                    "port": selected_conn_info[4],             # Port
+                                    "username": selected_conn_info[5],         # Username
+                                    "password": selected_conn_info[6]          # Password
+                                }
+                                # Define working_dir as the root directory of the project
+                                working_dir = str(Path(__file__).resolve().parent.parent.parent / "data_catalog")
+
+                                # Get databases to catalog
+                                databases_to_catalog = None
+                                if catalog_mode == "Select specific databases":
+                                    databases_to_catalog = st.session_state.get("selected_databases", [])
+                                elif selected_conn_info[7]:
+                                    databases_to_catalog = [db.strip() for db in selected_conn_info[7].split(',')]
+                                
+                                # Build command for subprocess
+                                if databases_to_catalog:
+                                    db_arg = ','.join(databases_to_catalog)
+                                    cmd = f'venv\\Scripts\\python.exe database_server_cataloger.py --connection-id {connection_id} --databases "{db_arg}"'
+                                else:
+                                    cmd = f'venv\\Scripts\\python.exe database_server_cataloger.py --connection-id {connection_id}'
+                                
+                                # Start subprocess
+                                process = subprocess.Popen(
+                                    cmd,
+                                    cwd=working_dir,
+                                    shell=True,
+                                    creationflags=subprocess.CREATE_NEW_PROCESS_GROUP,
+                                    stdout=subprocess.PIPE,
+                                    stderr=subprocess.PIPE
+                                )
+                                
+                                # Set session state and show success
+                                st.session_state["cataloging_active"] = True
+                                st.success(f"🚀 Cataloger started successfully for {selected_conn_info[1]}!")
+                                st.info("👆 Switch to Live Cataloging view to monitor progress")
+                                
+                                time.sleep(1)
+                                st.rerun()
                         except Exception as e:
                             st.error(f"❌ Failed to start cataloger: {e}")
         else:
