@@ -2,12 +2,11 @@ import streamlit as st
 
 # Add page config as the FIRST Streamlit command
 st.set_page_config(
-    page_title="DataNavigator - Catalog Execution",
-    page_icon="📊",
+    page_title="Catalog Connection Manager",
+    page_icon="🔗",
     layout="wide",
     initial_sidebar_state="expanded"
 )
-
 
 import pandas as pd
 import sqlalchemy as sa
@@ -16,6 +15,7 @@ from pathlib import Path
 import os
 import sys
 import pyodbc
+from shared_utils import test_connection
 
 
 # Apply styling
@@ -41,230 +41,80 @@ db_url = sa.engine.URL.create(
 )
 engine = sa.create_engine(db_url)
 
+# === FUNCTIONS ===
+def get_source_connections():
+    """Fetch all source database connections from the config.connections table."""
+    try:
+        with engine.connect() as conn:
+            result = conn.execute(sa.text("""
+                SELECT id, name, connection_type, host, port, username, password, database_name
+                FROM config.connections
+                ORDER BY id
+            """))
+            connections = [dict(row._mapping) for row in result]  # Use row._mapping to convert rows to dictionaries
+            return connections
+    except Exception as e:
+        st.error(f"Failed to fetch connections: {e}")
+        return []
+
 st.title("Connection Manager")
 
-# === EXISTING CONNECTIONS SECTION (MOVED TO TOP) ===
+# === EXISTING CONNECTIONS SECTION ===
 st.subheader("Existing Connections")
 
-# Sorting controls
-col1, col2 = st.columns([1, 3])
-with col1:
-    sort_by = st.selectbox(
-        "Sort by:",
-        ["ID", "Name", "Type", "Created"],
-        index=0  # Default to ID
-    )
-with col2:
-    sort_order = st.radio(
-        "Order:",
-        ["Descending", "Ascending"],
-        index=0,  # Default to Descending
-        horizontal=True
-    )
-
 # Fetch existing connections
-try:
-    # Determine sort column and order
-    sort_column_map = {
-        "ID": "id",
-        "Name": "name",
-        "Type": "connection_type",
-        "Created": "created_at"
-    }
+connections = get_source_connections()
+
+if connections:
+    st.subheader("Existing Connections")
     
-    sort_column = sort_column_map[sort_by]
-    sort_direction = "DESC" if sort_order == "Descending" else "ASC"
-    
-    with engine.connect() as db_conn:
-        query = f"""
-            SELECT id, name, connection_type, host, port, username, database_name, folder_path, created_at 
-            FROM config.connections 
-            ORDER BY {sort_column} {sort_direction}
-        """
-        result = db_conn.execute(sa.text(query))
-        connections = result.fetchall()
-        
-    if connections:
-        # Show connection count and sorting info
-        st.write(f"**{len(connections)} connection(s) found** - Sorted by {sort_by} ({sort_order})")
-        
-        # Display connections in an expandable format
-        for idx, connection in enumerate(connections):
-            connection_id, name, conn_type, host, port, username, database_name, folder_path, created_at = connection
+    # Iterate through each connection and create an expandable box
+    for conn in connections:
+        with st.expander(f"{conn['name']} (ID: {conn['id']})"):
+            # Display connection details
+            st.write(f"**ID:** {conn['id']}")
+            st.write(f"**Type:** {conn['connection_type']}")
+            st.write(f"**Host:** {conn['host']}")
+            st.write(f"**Port:** {conn['port']}")
+            st.write(f"**Username:** {conn['username']}")
+            st.write(f"**Database(s):** {conn['database_name']}")
             
-            # Create a more descriptive title for the expander
-            if sort_by == "ID":
-                expander_title = f"📊 {name} ({conn_type}) - ID: {connection_id}"
-            elif sort_by == "Name":
-                expander_title = f"📊 {name} - {conn_type} (ID: {connection_id})"
-            elif sort_by == "Type":
-                expander_title = f"📊 {conn_type}: {name} (ID: {connection_id})"
-            else:  # Created
-                expander_title = f"📊 {name} ({conn_type}) - {created_at.strftime('%Y-%m-%d %H:%M')}"
+            # Add Test Connection button
+            if st.button(f"🔍 Test Connection for {conn['name']}", key=f"test_{conn['id']}"):
+                try:
+                    # Prepare connection info
+                    connection_info = {
+                        "connection_type": conn['connection_type'],
+                        "host": conn['host'],
+                        "port": conn['port'],
+                        "username": conn['username'],
+                        "password": conn['password']
+                    }
+                    databases_to_test = [db.strip() for db in conn['database_name'].split(',')] if conn['database_name'] else None
+                    
+                    # Call reusable test_connection function
+                    test_results = test_connection(connection_info, databases_to_test)
+                    
+                    # Display results
+                    st.write("**Connection Test Results:**")
+                    for result in test_results:
+                        if "✅" in result:
+                            st.success(result)
+                        else:
+                            st.error(result)
+                except Exception as e:
+                    st.error(f"❌ Connection test failed: {e}")
             
-            with st.expander(expander_title):
-                col1, col2 = st.columns([3, 1])
-                
-                with col1:
-                    st.write(f"**ID:** {connection_id}")
-                    st.write(f"**Name:** {name}")
-                    st.write(f"**Type:** {conn_type}")
-                    if conn_type in ["PostgreSQL", "Azure SQL Server"]:
-                        st.write(f"**Host:** {host}")
-                        st.write(f"**Port:** {port}")
-                        st.write(f"**Username:** {username}")
-                        st.write(f"**Database:** {database_name or 'Not specified'}")
-                    else:  # Power BI
-                        st.write(f"**Folder Path:** {folder_path}")
-                    st.write(f"**Created:** {created_at}")
-                
-                with col2:
-                    # Edit button
-                    if st.button(f"✏️ Edit", key=f"edit_{connection_id}"):
-                        st.session_state[f"editing_{connection_id}"] = True
-                        st.rerun()
-                    
-                    # Delete button
-                    if st.button(f"🗑️ Delete", key=f"delete_{connection_id}"):
-                        try:
-                            with engine.begin() as db_conn:
-                                db_conn.execute(
-                                    sa.text("DELETE FROM config.connections WHERE id = :id"),
-                                    {"id": connection_id}
-                                )
-                            st.success(f"Connection '{name}' deleted successfully!")
-                            st.rerun()
-                        except Exception as e:
-                            st.error(f"Failed to delete connection: {e}")
-                
-                # Keep the existing edit form code here (unchanged)
-                if st.session_state.get(f"editing_{connection_id}", False):
-                    st.write("---")
-                    st.write("**Edit Connection:**")
-                    
-                    with st.form(f"edit_form_{connection_id}"):
-                        new_name = st.text_input("Connection Name", value=name)
-                        
-                        if conn_type in ["PostgreSQL", "Azure SQL Server"]:
-                            new_host = st.text_input("Host", value=host or "")
-                            new_port = st.text_input("Port", value=str(port) if port else "")
-                            new_username = st.text_input("Username", value=username or "")
-                            new_password = st.text_input("Password", type="password", help="Leave empty to keep current password")
-                            new_database = st.text_input("Database Name", value=database_name or "")
-                            new_folder_path = None
-                        else:  # Power BI
-                            new_folder_path = st.text_input("Folder Path", value=folder_path or "")
-                            new_host = new_port = new_username = new_password = new_database = None
-                        
-                        col1, col2, col3 = st.columns(3)
-                        with col1:
-                            update_pressed = st.form_submit_button("💾 Update")
-                        with col2:
-                            test_edit_pressed = st.form_submit_button("🧪 Test") if conn_type in ["PostgreSQL", "Azure SQL Server"] else None
-                        with col3:
-                            cancel_pressed = st.form_submit_button("❌ Cancel")
-                    
-                    # Handle form actions
-                    if update_pressed:
-                        try:
-                            if conn_type in ["PostgreSQL", "Azure SQL Server"]:
-                                # Update SQL connection
-                                if new_password:  # Only update password if provided
-                                    update_query = """
-                                        UPDATE config.connections 
-                                        SET name = :name, host = :host, port = :port, username = :username, 
-                                            password = :password, database_name = :database_name
-                                        WHERE id = :id
-                                    """
-                                    params = {
-                                        "id": connection_id,
-                                        "name": new_name,
-                                        "host": new_host,
-                                        "port": new_port,
-                                        "username": new_username,
-                                        "password": new_password,
-                                        "database_name": new_database if new_database else None
-                                    }
-                                else:  # Keep existing password
-                                    update_query = """
-                                        UPDATE config.connections 
-                                        SET name = :name, host = :host, port = :port, username = :username, 
-                                            database_name = :database_name
-                                        WHERE id = :id
-                                    """
-                                    params = {
-                                        "id": connection_id,
-                                        "name": new_name,
-                                        "host": new_host,
-                                        "port": new_port,
-                                        "username": new_username,
-                                        "database_name": new_database if new_database else None
-                                    }
-                            else:  # Power BI
-                                update_query = """
-                                    UPDATE config.connections 
-                                    SET name = :name, folder_path = :folder_path
-                                    WHERE id = :id
-                                """
-                                params = {
-                                    "id": connection_id,
-                                    "name": new_name,
-                                    "folder_path": new_folder_path
-                                }
-                            
-                            with engine.begin() as db_conn:
-                                db_conn.execute(sa.text(update_query), params)
-                            
-                            st.success(f"Connection '{new_name}' updated successfully!")
-                            st.session_state[f"editing_{connection_id}"] = False
-                            st.rerun()
-                            
-                        except Exception as e:
-                            st.error(f"Failed to update connection: {e}")
-                    
-                    elif test_edit_pressed and conn_type in ["PostgreSQL", "Azure SQL Server"]:
-                        # Test the edited connection
-                        try:
-                            if conn_type == "PostgreSQL":
-                                driver = "postgresql+psycopg2"
-                                url = sa.engine.URL.create(
-                                    drivername=driver,
-                                    username=new_username,
-                                    password=new_password if new_password else "test",  # Use dummy password for test
-                                    host=new_host,
-                                    port=new_port,
-                                    database=new_database
-                                )
-                            else:
-                                driver = "mssql+pyodbc"
-                                connection_string = (
-                                    f"DRIVER={{ODBC Driver 18 for SQL Server}};"
-                                    f"SERVER={new_host};"
-                                    f"PORT={new_port};"
-                                    f"UID={new_username};"
-                                    f"PWD={new_password if new_password else 'test'};"
-                                    f"DATABASE={new_database}"
-                                )
-                                url = sa.engine.URL.create(drivername=driver, query={"odbc_connect": connection_string})
-                            
-                            if new_password:  # Only test if password is provided
-                                test_engine = sa.create_engine(url)
-                                with test_engine.connect():
-                                    st.success("Test connection successful!")
-                            else:
-                                st.warning("Please provide a password to test the connection.")
-                                
-                        except Exception as e:
-                            st.error(f"Test connection failed: {e}")
-                    
-                    elif cancel_pressed:
-                        st.session_state[f"editing_{connection_id}"] = False
-                        st.rerun()
-    else:
-        st.info("No connections found. Create your first connection below!")
-        
-except Exception as e:
-    st.error(f"Failed to load existing connections: {e}")
+            # Add Edit and Delete buttons
+            col1, col2 = st.columns(2)
+            with col1:
+                if st.button(f"✏️ Edit {conn['name']}", key=f"edit_{conn['id']}"):
+                    st.info("Edit functionality not implemented yet.")
+            with col2:
+                if st.button(f"🗑️ Delete {conn['name']}", key=f"delete_{conn['id']}"):
+                    st.warning("Delete functionality not implemented yet.")
+else:
+    st.warning("No connections available. Please create a connection first.")
 
 # === CREATE NEW CONNECTION SECTION ===
 st.divider()
@@ -289,35 +139,10 @@ connection_name = st.text_input(
     key="connection_name"
 )
 
-if is_sql_type:
-    host = st.text_input(
-        "Host", 
-        value="" if st.session_state.get("clear_form", False) else None,
-        key="host"
-    )
-    port = st.text_input(
-        "Port", 
-        value="" if st.session_state.get("clear_form", False) else ("5432" if connection_type == "PostgreSQL" else "1433"),
-        key="port"
-    )
-    username = st.text_input(
-        "Username", 
-        value="" if st.session_state.get("clear_form", False) else None,
-        key="username"
-    )
-    password = st.text_input(
-        "Password", 
-        value="" if st.session_state.get("clear_form", False) else None,
-        type="password", 
-        key="password"
-    )
-    database = st.text_input(
-        "Database Name", 
-        value="" if st.session_state.get("clear_form", False) else None,
-        key="database"
-    )
-    folder_path = ""
-else:
+# Initialize folder_path for all connection types
+folder_path = ""
+
+if connection_type == "Power BI Semantic Model":
     folder_path = st.text_input(
         "Folder Path", 
         value="" if st.session_state.get("clear_form", False) else None,
@@ -325,6 +150,44 @@ else:
         key="folder_path"
     )
     host = port = username = password = database = ""
+else:
+    # Host field
+    host = st.text_input(
+        "Host", 
+        value="" if st.session_state.get("clear_form", False) else None,
+        key="host"
+    )
+
+
+    # Port field
+    port = st.text_input(
+        "Port", 
+        value="" if st.session_state.get("clear_form", False) else ("5432" if connection_type == "PostgreSQL" else "1433"),
+        key="port"
+    )
+
+    # Username field
+    username = st.text_input(
+        "Username", 
+        value="" if st.session_state.get("clear_form", False) else None,
+        key="username"
+    )
+
+    # Password field
+    password = st.text_input(
+        "Password", 
+        value="" if st.session_state.get("clear_form", False) else None,
+        type="password", 
+        key="password"
+    )
+
+    # Database names field (moved to the last position)
+    database = st.text_input(
+        "Database Name(s)*", 
+        value="" if st.session_state.get("clear_form", False) else None,
+        placeholder="Enter database name(s), e.g., 'db1,db2,db3'",
+        help="💡 For PostgreSQL or Azure SQL Server, you can specify multiple databases separated by commas (e.g., `db1,db2,db3`)."
+    )
 
 # Reset clear flag after widgets are created
 if st.session_state.get("clear_form", False):
@@ -365,37 +228,135 @@ with col1:
         st.rerun()
 
 with col2:
-    if st.button("🧪 Test Connection", disabled=not required_fields_filled or not is_sql_type):
+    if st.button("🔍 Test Connection", disabled=not required_fields_filled or not is_sql_type):
         try:
             if connection_type == "PostgreSQL":
                 driver = "postgresql+psycopg2"
-                url = sa.engine.URL.create(
-                    drivername=driver,
-                    username=username,
-                    password=password,
-                    host=host,
-                    port=port,
-                    database=database
-                )
-            else:
+                if database:
+                    if ',' in database:
+                        # Multiple databases provided
+                        databases_to_test = [db.strip() for db in database.split(',')]
+                        test_results = []
+                        for db_name in databases_to_test:
+                            try:
+                                url = sa.engine.URL.create(
+                                    drivername=driver,
+                                    username=username,
+                                    password=password,
+                                    host=host,
+                                    port=port,
+                                    database=db_name
+                                )
+                                test_engine = sa.create_engine(url)
+                                with test_engine.connect() as test_conn:
+                                    test_conn.execute(sa.text("SELECT 1"))
+                                test_results.append(f"✅ {db_name}: Success")
+                                test_engine.dispose()
+                            except Exception as db_error:
+                                test_results.append(f"❌ {db_name}: {str(db_error)}")
+                        
+                        # Display results
+                        st.write("**Connection Test Results:**")
+                        for result in test_results:
+                            if "✅" in result:
+                                st.success(result)
+                            else:
+                                st.error(result)
+                    else:
+                        # Single database provided
+                        url = sa.engine.URL.create(
+                            drivername=driver,
+                            username=username,
+                            password=password,
+                            host=host,
+                            port=port,
+                            database=database
+                        )
+                        test_engine = sa.create_engine(url)
+                        with test_engine.connect() as test_conn:
+                            test_conn.execute(sa.text("SELECT 1"))
+                        st.success(f"✅ Connection to database '{database}' successful!")
+                        test_engine.dispose()
+                else:
+                    # No database provided, test connection to server
+                    url = sa.engine.URL.create(
+                        drivername=driver,
+                        username=username,
+                        password=password,
+                        host=host,
+                        port=port,
+                        database="postgres"  # Default system database
+                    )
+                    test_engine = sa.create_engine(url)
+                    with test_engine.connect() as test_conn:
+                        test_conn.execute(sa.text("SELECT 1"))
+                    st.success("✅ Connection to PostgreSQL server successful!")
+                    test_engine.dispose()
+            
+            elif connection_type == "Azure SQL Server":
                 driver = "mssql+pyodbc"
-                connection_string = (
-                    f"DRIVER={{ODBC Driver 18 for SQL Server}};"
-                    f"SERVER={host};"
-                    f"PORT={port};"
-                    f"UID={username};"
-                    f"PWD={password};"
-                    f"DATABASE={database}"
-                )
-                url = sa.engine.URL.create(drivername=driver, query={"odbc_connect": connection_string})
-
-            test_engine = sa.create_engine(url)
-            with test_engine.connect():
-                st.success("Connection successful!")
-        except pyodbc.Error:
-            st.error("ODBC Driver is missing or misconfigured.")
+                if database:
+                    if ',' in database:
+                        # Multiple databases provided
+                        databases_to_test = [db.strip() for db in database.split(',')]
+                        test_results = []
+                        for db_name in databases_to_test:
+                            try:
+                                connection_string = (
+                                    f"DRIVER={{ODBC Driver 18 for SQL Server}};"
+                                    f"SERVER={host},{port};"
+                                    f"DATABASE={db_name};"
+                                    f"UID={username};"
+                                    f"PWD={password};"
+                                    f"Encrypt=yes;"
+                                    f"TrustServerCertificate=no;"
+                                    f"Connection Timeout=30;"
+                                )
+                                test_conn = pyodbc.connect(connection_string)
+                                test_conn.close()
+                                test_results.append(f"✅ {db_name}: Success")
+                            except Exception as db_error:
+                                test_results.append(f"❌ {db_name}: {str(db_error)}")
+                        
+                        # Display results
+                        st.write("**Connection Test Results:**")
+                        for result in test_results:
+                            if "✅" in result:
+                                st.success(result)
+                            else:
+                                st.error(result)
+                    else:
+                        # Single database provided
+                        connection_string = (
+                            f"DRIVER={{ODBC Driver 18 for SQL Server}};"
+                            f"SERVER={host},{port};"
+                            f"DATABASE={database};"
+                            f"UID={username};"
+                            f"PWD={password};"
+                            f"Encrypt=yes;"
+                            f"TrustServerCertificate=no;"
+                            f"Connection Timeout=30;"
+                        )
+                        test_conn = pyodbc.connect(connection_string)
+                        test_conn.close()
+                        st.success(f"✅ Connection to database '{database}' successful!")
+                else:
+                    # No database provided, test connection to server
+                    connection_string = (
+                        f"DRIVER={{ODBC Driver 18 for SQL Server}};"
+                        f"SERVER={host},{port};"
+                        f"UID={username};"
+                        f"PWD={password};"
+                        f"Encrypt=yes;"
+                        f"TrustServerCertificate=no;"
+                        f"Connection Timeout=30;"
+                    )
+                    test_conn = pyodbc.connect(connection_string)
+                    test_conn.close()
+                    st.success("✅ Connection to Azure SQL Server successful!")
         except Exception as e:
-            st.error(f"Connection failed: {e}")
+            st.error(f"❌ Connection test failed: {e}")
+
 
 with col3:
     button_label = "💾 Save Connection" if is_sql_type else "📁 Save Folder Path"
@@ -442,11 +403,3 @@ with col3:
             
         except Exception as e:
             st.error(f"Failed to save connection details: {e}")
-
-# # Debug info
-# st.divider()
-# st.write("Debug Info:")
-# st.write("Required fields filled:", required_fields_filled)
-# st.write("Connection Name:", f"'{connection_name}'")
-# if not is_sql_type:
-#     st.write("Folder Path:", f"'{folder_path}'")

@@ -1,5 +1,7 @@
 import streamlit as st
 from pathlib import Path
+import sqlalchemy as sa
+import pyodbc
 
 def apply_compact_styling():
     """Apply compact styling to make UI elements smaller and more refined"""
@@ -83,3 +85,93 @@ def apply_compact_styling():
             .css-1d391kg { padding-top: 1rem !important; }
         </style>
         """, unsafe_allow_html=True)
+
+def test_connection(connection_info, databases=None):
+    """
+    Test the connection to the server or specific databases.
+    
+    Args:
+        connection_info (dict): Connection details (host, port, username, password, etc.).
+        databases (list): List of databases to test. If None, test the server connection.
+    
+    Returns:
+        list: Results of the test for each database or server.
+    """
+    results = []
+    try:
+        if connection_info['connection_type'] == "PostgreSQL":
+            driver = "postgresql+psycopg2"
+            if databases:
+                # Test each database
+                for db_name in databases:
+                    try:
+                        url = sa.engine.URL.create(
+                            drivername=driver,
+                            username=connection_info['username'],
+                            password=connection_info['password'],
+                            host=connection_info['host'],
+                            port=connection_info['port'],
+                            database=db_name
+                        )
+                        test_engine = sa.create_engine(url)
+                        with test_engine.connect() as test_conn:
+                            test_conn.execute(sa.text("SELECT 1"))
+                        results.append(f"✅ {db_name}: Success")
+                        test_engine.dispose()
+                    except Exception as db_error:
+                        results.append(f"❌ {db_name}: {str(db_error)}")
+            else:
+                # Test server connection
+                url = sa.engine.URL.create(
+                    drivername=driver,
+                    username=connection_info['username'],
+                    password=connection_info['password'],
+                    host=connection_info['host'],
+                    port=connection_info['port'],
+                    database="postgres"  # Default system database
+                )
+                test_engine = sa.create_engine(url)
+                with test_engine.connect() as test_conn:
+                    test_conn.execute(sa.text("SELECT 1"))
+                results.append("✅ Server connection: Success")
+                test_engine.dispose()
+        
+        elif connection_info['connection_type'] == "Azure SQL Server":
+            driver = "mssql+pyodbc"
+            if databases:
+                # Test each database
+                for db_name in databases:
+                    try:
+                        connection_string = (
+                            f"DRIVER={{ODBC Driver 18 for SQL Server}};"
+                            f"SERVER={connection_info['host']},{connection_info['port']};"
+                            f"DATABASE={db_name};"
+                            f"UID={connection_info['username']};"
+                            f"PWD={connection_info['password']};"
+                            f"Encrypt=yes;"
+                            f"TrustServerCertificate=no;"
+                            f"Connection Timeout=30;"
+                        )
+                        test_conn = pyodbc.connect(connection_string)
+                        test_conn.close()
+                        results.append(f"✅ {db_name}: Success")
+                    except Exception as db_error:
+                        results.append(f"❌ {db_name}: {str(db_error)}")
+            else:
+                # Test server connection
+                connection_string = (
+                    f"DRIVER={{ODBC Driver 18 for SQL Server}};"
+                    f"SERVER={connection_info['host']},{connection_info['port']};"
+                    f"UID={connection_info['username']};"
+                    f"PWD={connection_info['password']};"
+                    f"Encrypt=yes;"
+                    f"TrustServerCertificate=no;"
+                    f"Connection Timeout=30;"
+                )
+                test_conn = pyodbc.connect(connection_string)
+                test_conn.close()
+                results.append("✅ Server connection: Success")
+    except Exception as e:
+        results.append(f"❌ Connection test failed: {e}")
+    
+    return results
