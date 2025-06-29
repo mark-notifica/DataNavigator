@@ -1,18 +1,28 @@
 import psycopg2
 import psycopg2.extras
-import pyodbc
-# import yaml
-import datetime
-import argparse
 import json
 import logging
 from logging.handlers import RotatingFileHandler
-import os
-import sys
-import re
 from pathlib import Path
+import datetime
+import argparse
 from dotenv import load_dotenv
-import time
+
+from data_catalog.connection_handler import (
+    get_catalog_connection,
+    get_source_connections,
+    connect_to_source_database,
+    get_connection_by_server_name,
+)
+
+# Load environment variables
+load_dotenv()
+
+# Setup logger
+logger = logging.getLogger(__name__)
+
+# Catalog schema name
+CATALOG_SCHEMA = 'catalog'
 
 def get_summary_template():
     return {
@@ -24,123 +34,11 @@ def get_summary_template():
         'columns_added': 0, 'columns_updated': 0, 'columns_deleted': 0, 'columns_processed': 0, 'columns_unchanged': 0
     }
 
-# Load environment variables
-load_dotenv()
-
-# Setup logging conditionally
+# Setup logging directory if run as main script
 if __name__ == "__main__":
-    # Only setup initial logging if this is the main script
     script_dir = Path(__file__).parent
     log_dir = script_dir / 'logfiles' / 'database_server'
     log_dir.mkdir(parents=True, exist_ok=True)
-
-    # Don't setup logging here - let the main() function handle it
-    logger = logging.getLogger(__name__)
-
-summary = get_summary_template()
-
-# DataNavigator database connection configuration
-CATALOG_DB_CONFIG = {
-    'host': os.getenv('NAV_DB_HOST'),
-    'port': os.getenv('NAV_DB_PORT'),
-    'database': os.getenv('NAV_DB_NAME'),  
-    'user': os.getenv('NAV_DB_USER'),
-    'password': os.getenv('NAV_DB_PASSWORD')
-}
-
-# Catalog schema name
-CATALOG_SCHEMA = 'catalog'
-
-def get_catalog_connection():
-    """Get connection to the DataNavigator catalog database"""
-    try:
-        conn = psycopg2.connect(**CATALOG_DB_CONFIG)
-        logger.info(f"Connected to DataNavigator catalog database: {CATALOG_DB_CONFIG['host']}:{CATALOG_DB_CONFIG['port']}/{CATALOG_DB_CONFIG['database']}")
-        return conn
-    except Exception as e:
-        logger.error(f"Failed to connect to catalog database: {e}")
-        raise
-
-def get_source_connections():
-    """Get all source database connections from config.connections table"""
-    catalog_conn = get_catalog_connection()
-    try:
-        with catalog_conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cursor:
-            cursor.execute("""
-                SELECT id, name, connection_type, host, port, username, password, database_name 
-                FROM config.connections 
-                WHERE connection_type IN ('PostgreSQL', 'Azure SQL Server')
-                ORDER BY id
-            """)
-            connections = cursor.fetchall()
-            logger.info(f"Found {len(connections)} source database connections")
-            return connections
-    finally:
-        catalog_conn.close()
-
-def connect_to_source_database(connection_info, override_databases=None):
-    """Connect to source database(s) - supports multiple databases for both PostgreSQL and Azure SQL Server."""
-    
-    connections = {}
-    
-    if connection_info['connection_type'] == 'PostgreSQL':
-        # Determine databases to connect to
-        if override_databases:
-            target_databases = override_databases
-        elif connection_info.get('database_name'):
-            target_databases = [db.strip() for db in connection_info['database_name'].split(',')]
-        else:
-            target_databases = ['postgres']  # Default to system database
-        
-        # Connect to each database
-        for database_name in target_databases:
-            try:
-                conn = psycopg2.connect(
-                    host=connection_info['host'],
-                    port=connection_info['port'],
-                    database=database_name,
-                    user=connection_info['username'],
-                    password=connection_info['password']
-                )
-                connections[database_name] = conn
-                logger.info(f"Connected to PostgreSQL database: {database_name} on {connection_info['host']}")
-            except Exception as e:
-                logger.error(f"Failed to connect to PostgreSQL database {database_name}: {e}")
-    
-    elif connection_info['connection_type'] == 'Azure SQL Server':
-        # Determine databases to connect to
-        if override_databases:
-            target_databases = override_databases
-        elif connection_info.get('database_name'):
-            target_databases = [db.strip() for db in connection_info['database_name'].split(',')]
-        else:
-            target_databases = ['master']  # Default to system database
-        
-        # Connect to each database
-        for database_name in target_databases:
-            try:
-                connection_string = (
-                    f"DRIVER={{ODBC Driver 18 for SQL Server}};"
-                    f"SERVER={connection_info['host']},{connection_info['port']};"
-                    f"DATABASE={database_name};"
-                    f"UID={connection_info['username']};"
-                    f"PWD={connection_info['password']};"
-                    f"Encrypt=yes;"
-                    f"TrustServerCertificate=no;"
-                    f"Connection Timeout=30;"
-                )
-                conn = pyodbc.connect(connection_string)
-                connections[database_name] = conn
-                logger.info(f"Connected to Azure SQL Server database: {database_name} on {connection_info['host']}")
-            except Exception as e:
-                logger.error(f"Failed to connect to Azure SQL Server database {database_name}: {e}")
-    
-    else:
-        raise ValueError(f"Unsupported connection type: {connection_info['connection_type']}")
-    
-    return connections
-
-
 
 def catalog_multiple_databases(connection_info, databases_to_catalog, schema_filter=None, table_filter=None):
     """Catalog multiple databases for a given connection."""
@@ -178,8 +76,8 @@ def catalog_multiple_databases(connection_info, databases_to_catalog, schema_fil
                     progress=progress
                 )
 
-                logger.debug(f"Updated summary after database {database_name}: {summary}")
-                logger.debug(f"Updated progress after database {database_name}: {progress}")
+                # logger.debug(f"Updated summary after database {database_name}: {summary}")
+                # logger.debug(f"Updated progress after database {database_name}: {progress}")
 
                 # Update progress after processing the database
                 update_run_progress(catalog_conn, catalog_run_id, progress)
@@ -189,8 +87,8 @@ def catalog_multiple_databases(connection_info, databases_to_catalog, schema_fil
                 summary['databases_deleted'] += 1
 
         logger.info(f"Completed cataloging for all databases in connection {connection_info['name']}")
-        logger.debug(f"Final summary: {summary}")
-        logger.debug(f"Final progress: {progress}")
+        # logger.debug(f"Final summary: {summary}")
+        # logger.debug(f"Final progress: {progress}")
 
         # Finalize the catalog run
         complete_catalog_run(catalog_conn, catalog_run_id, summary)
@@ -204,55 +102,6 @@ def catalog_multiple_databases(connection_info, databases_to_catalog, schema_fil
         catalog_conn.close()
 
     return summary
-
-# def get_connection_info(connection_id):
-#     """Retrieve connection information for a given connection ID."""
-#     try:
-#         # Replace with actual logic to retrieve connection info from a database or configuration
-#         catalog_conn = get_catalog_connection()
-#         with catalog_conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cursor:
-#             cursor.execute("""
-#                 SELECT id, name, host, databases
-#                 FROM config.connections
-#                 WHERE id = %s
-#             """, (connection_id,))
-#             result = cursor.fetchone()
-#             if result:
-#                 return {
-#                     'name': result['name'],
-#                     'host': result['host'],
-#                     'databases': result['databases'].split(",")  # Assuming databases are stored as a comma-separated string
-#                 }
-#             else:
-#                 logger.error(f"No connection found for connection ID: {connection_id}")
-#                 return None
-#     except Exception as e:
-#         logger.error(f"Failed to retrieve connection information: {e}")
-#         return None
-
-def get_connection_by_server_name(server_name: str):
-    """Haalt connectie-info uit config.connections o.b.v. server_name"""
-    all_conns = get_source_connections()
-    for conn in all_conns:
-        if conn["name"] == server_name:
-            return conn
-    raise ValueError(f"Geen connectie gevonden voor server_name '{server_name}'")
-
-# Remove or update the old env resolution functions since we're using .env now
-ENV_PATTERN = re.compile(r'^\${(.+)}$')
-
-# def _resolve_env(obj):
-#     if isinstance(obj, dict):
-#         return {k: _resolve_env(v) for k, v in obj.items()}
-#     if isinstance(obj, list):
-#         return [_resolve_env(v) for v in obj]
-#     if isinstance(obj, str):
-#         m = ENV_PATTERN.match(obj)
-#         if m:
-#             return os.getenv(m.group(1), obj)
-#     return obj
-
-# Update any existing functions that reference the old schema to use 'catalog'
 
 def setup_logging_with_run_id(catalog_run_id=None):
     """Setup logging with optional run ID in filename"""
@@ -307,10 +156,14 @@ def main():
     
     logger.info("Starting catalog extraction process")
     
+
     # Parse databases, schema, and tables from command-line arguments
-    databases_to_catalog = [db.strip() for db in args.databases.split(',')] if args.databases else None
-    schema_filter = [args.schema.strip()] if args.schema else None
-    table_filter = [table.strip() for table in args.tables.split(',')] if args.tables else None
+    databases_to_catalog = parse_comma_separated_values(args.databases)
+    schema_filter = parse_comma_separated_values(args.schema)
+    table_filter = parse_comma_separated_values(args.tables)
+    logger.debug(f"Parsed databases_to_catalog: {databases_to_catalog}")
+    logger.debug(f"Parsed schema_filter: {schema_filter}")
+    logger.debug(f"Parsed table_filter: {table_filter}")
     
     # Get connection info
     source_connections = get_specific_connection(args.connection_id) if args.connection_id else get_source_connections()
@@ -322,14 +175,33 @@ def main():
     summary = get_summary_template()
     
     for connection_info in source_connections:
-        # Default to all databases if databases_to_catalog is None
-        if databases_to_catalog is None:
-            if connection_info.get('database_name'):
-                databases_to_catalog = [db.strip() for db in connection_info['database_name'].split(',')]
-                logger.info(f"Using databases from connection config: {databases_to_catalog}")
-            else:
-                databases_to_catalog = get_databases_on_server(connection_info)
-                logger.info(f"No databases specified, defaulting to all databases: {databases_to_catalog}")
+        # Determine database filter
+        if databases_to_catalog:
+            logger.info(f"Using manually provided database filter: {databases_to_catalog}")
+        elif connection_info.get('database_name'):
+            databases_to_catalog = parse_comma_separated_values(connection_info['database_name'])
+            logger.info(f"Using preconfigured database filter from connection: {databases_to_catalog}")
+        else:
+            databases_to_catalog = get_databases_on_server(connection_info)
+            logger.info(f"No database filter applied. Defaulting to all databases: {databases_to_catalog}")
+        
+        # Determine schema filter
+        if schema_filter:
+            logger.info(f"Using manually provided schema filter: {schema_filter}")
+        elif connection_info.get('schemas'):
+            schema_filter = parse_comma_separated_values(connection_info['schemas'])
+            logger.info(f"Using preconfigured schema filter from connection: {schema_filter}")
+        else:
+            logger.info("No schema filter applied. Processing all schemas.")
+        
+        # Determine table filter
+        if table_filter:
+            logger.info(f"Using manually provided table filter: {table_filter}")
+        elif connection_info.get('tables'):
+            table_filter = parse_comma_separated_values(connection_info['tables'])
+            logger.info(f"Using preconfigured table filter from connection: {table_filter}")
+        else:
+            logger.info("No table filter applied. Processing all tables.")
         
         if not databases_to_catalog:
             logger.error(f"No valid databases to catalog for connection {connection_info['name']} on server {connection_info['host']}")
@@ -337,95 +209,86 @@ def main():
         
         # Pass schema and table filters to the cataloging function
         connection_summary = catalog_multiple_databases(connection_info, databases_to_catalog, schema_filter=schema_filter, table_filter=table_filter)
-        for key in summary:
-            summary[key] += connection_summary.get(key, 0)
+        update_summary(summary, connection_summary)
     
+    # Pass schema_filter and table_filter to log_final_summary
+    log_final_summary(summary, schema_filter, table_filter)
+
+def parse_comma_separated_values(value):
+    """Parse comma-separated values into a list."""
+    return [item.strip() for item in value.split(",") if item.strip()] if value else None
+
+def resolve_databases_to_catalog(connection_info, databases_to_catalog):
+    """Resolve databases to catalog based on user input or connection config."""
+    if databases_to_catalog is None:
+        if connection_info.get('database_name'):
+            databases_to_catalog = parse_comma_separated_values(connection_info['database_name'])
+            logger.info(f"Using databases from connection config: {databases_to_catalog}")
+        else:
+            databases_to_catalog = get_databases_on_server(connection_info)
+            logger.info(f"No databases specified, defaulting to all databases: {databases_to_catalog}")
+    return databases_to_catalog
+
+def update_summary(summary, connection_summary):
+    """Update the main summary with connection-specific summary."""
+    for key in summary:
+        summary[key] += connection_summary.get(key, 0)
+
+def log_final_summary(summary, schema_filter, table_filter):
+    """Log the final summary and applied filters."""
     logger.info("Catalog extraction completed")
-    logger.debug(f"Schema filter applied: {schema_filter}")
-    logger.debug(f"Table filter applied: {table_filter}")
-    logger.debug(f"Summary after processing connection {connection_info['name']}: {summary}")
-    # logger.info(f"Summary: {summary}")
-
-# def catalog_connection_databases(connection_info, catalog_run_id, databases_to_catalog=None):
-#     """Catalog databases for a connection based on database_name field or provided list"""
-
-#     all_databases = get_databases_on_server(connection_info)
-
-#     if not all_databases:
-#         logger.warning(f"No databases found on server {connection_info['host']}")
-#         return {}
-
-#     # Determine which databases to catalog
-#     if databases_to_catalog:
-#         requested_dbs = databases_to_catalog
-#         logger.info(f"Databases manually selected: {requested_dbs}")
-#     elif connection_info['database_name']:
-#         requested_dbs = [db.strip() for db in connection_info['database_name'].split(',')]
-#         logger.info(f"Databases preconfigured in connection: {requested_dbs}")
-#     else:
-#         requested_dbs = all_databases
-#         logger.info(f"No databases specified, defaulting to all: {requested_dbs}")
-
-#     databases_to_process = [db for db in requested_dbs if db in all_databases]
-#     missing_dbs = set(requested_dbs) - set(databases_to_process)
-
-#     if missing_dbs:
-#         logger.warning(f"Databases not found on server {connection_info['host']}: {missing_dbs}")
-
-#     if not databases_to_process:
-#         logger.error(f"No valid databases to catalog on server {connection_info['host']}")
-#         return {}
-
-#     logger.info(f"Cataloging {len(databases_to_process)} database(s): {databases_to_process}")
-
-#     connection_summary = {k: 0 for k in summary.keys()}
-
-#     try:
-#         for database_name in databases_to_process:
-#             logger.info(f"\n=== Start: {database_name} ===")
-
-#             db_connection_info = connection_info.copy()
-#             db_connection_info['database_name'] = database_name
-
-#             source_conns = connect_to_source_database(db_connection_info)
-#             source_conn = source_conns.get(database_name)
-
-#             if source_conn:
-#                 try:
-#                     catalog_single_database(source_conn, db_connection_info, catalog_run_id)
-#                     logger.info(f"✅ Completed: {database_name}")
-#                     connection_summary['databases_added'] += 1
-#                     connection_summary['databases_processed'] += 1
-#                 finally:
-#                     source_conn.close()
-#             else:
-#                 logger.error(f"❌ Failed to connect: {database_name}")
-
-#         logger.info(f"\n=== Summary for {connection_info['host']} ===")
-#         for key, count in connection_summary.items():
-#             logger.info(f"{key}: {count}")
-
-#         logger.info("\n=== Processed object counts ===")
-#         for object_type in ['databases', 'schemas', 'tables', 'views', 'view_definitions', 'columns']:
-#             added = connection_summary.get(f'{object_type}_added', 0)
-#             updated = connection_summary.get(f'{object_type}_updated', 0)
-#             deleted = connection_summary.get(f'{object_type}_deleted', 0)
-#             processed = connection_summary.get(f'{object_type}_processed', 0)
-#             unchanged = connection_summary.get(f'{object_type}_unchanged', 0)
-#             logger.info(f"{object_type.capitalize()} processed: {processed} (added: {added}, updated: {updated}, deleted: {deleted}, unchanged: {unchanged})")
-
-#         return connection_summary
-
-#     except Exception as e:
-#         logger.error(f"Failed during cataloging: {e}")
-#         try:
-#             catalog_conn = get_catalog_connection()
-#             fail_catalog_run(catalog_conn, catalog_run_id, str(e))
-#             catalog_conn.close()
-#         except Exception as fail_error:
-#             logger.error(f"Failed to mark run as failed: {fail_error}")
-#         raise
-
+    # Log applied filters
+    if schema_filter:
+        logger.info(f"Schema filter applied: {schema_filter}")
+    else:
+        logger.info("No schema filter applied. Processing all schemas.")
+    
+    if table_filter:
+        logger.info(f"Table filter applied: {table_filter}")
+    else:
+        logger.info("No table filter applied. Processing all tables.")
+    
+    logger.info("Final Summary:")
+    
+    # Log schemas summary
+    logger.info("------ Schemas ------")
+    logger.info(f"schemas_processed: {summary['schemas_processed']}")
+    logger.info(f"schemas_added: {summary['schemas_added']}")
+    logger.info(f"schemas_updated: {summary['schemas_updated']}")
+    logger.info(f"schemas_deleted: {summary['schemas_deleted']}")
+    logger.info(f"schemas_unchanged: {summary['schemas_unchanged']}")
+    
+    # Log tables summary
+    logger.info("------ Tables ------")
+    logger.info(f"tables_processed: {summary['tables_processed']}")
+    logger.info(f"tables_added: {summary['tables_added']}")
+    logger.info(f"tables_updated: {summary['tables_updated']}")
+    logger.info(f"tables_deleted: {summary['tables_deleted']}")
+    logger.info(f"tables_unchanged: {summary['tables_unchanged']}")
+    
+    # Log views summary
+    logger.info("------ Views ------")
+    logger.info(f"views_processed: {summary['views_processed']}")
+    logger.info(f"views_added: {summary['views_added']}")
+    logger.info(f"views_updated: {summary['views_updated']}")
+    logger.info(f"views_deleted: {summary['views_deleted']}")
+    logger.info(f"views_unchanged: {summary['views_unchanged']}")
+    
+    # Log view definitions summary
+    logger.info("------ View Definitions ------")
+    logger.info(f"view_definitions_processed: {summary['view_definitions_processed']}")
+    logger.info(f"view_definitions_added: {summary['view_definitions_added']}")
+    logger.info(f"view_definitions_updated: {summary['view_definitions_updated']}")
+    logger.info(f"view_definitions_deleted: {summary['view_definitions_deleted']}")
+    logger.info(f"view_definitions_unchanged: {summary['view_definitions_unchanged']}")
+    
+    # Log columns summary
+    logger.info("------ Columns ------")
+    logger.info(f"columns_processed: {summary['columns_processed']}")
+    logger.info(f"columns_added: {summary['columns_added']}")
+    logger.info(f"columns_updated: {summary['columns_updated']}")
+    logger.info(f"columns_deleted: {summary['columns_deleted']}")
+    logger.info(f"columns_unchanged: {summary['columns_unchanged']}")
 
 
 def get_databases_on_server(connection_info):
@@ -711,8 +574,8 @@ def catalog_single_database(source_conns, connection_info, catalog_run_id, schem
         # Update progress after processing the database
         update_run_progress(catalog_conn, catalog_run_id, progress)
 
-        logger.debug(f"Final summary for database {connection_info['database_name']}: {summary}")
-        logger.debug(f"Final progress for database {connection_info['database_name']}: {progress}")
+        # logger.debug(f"Final summary for database {connection_info['database_name']}: {summary}")
+        # logger.debug(f"Final progress for database {connection_info['database_name']}: {progress}")
 
         catalog_conn.commit()
 
@@ -747,8 +610,11 @@ def process_schema(catalog_conn, source_conn, schema_name, database_id, catalog_
     # Increment schema counters
     summary['schemas_processed'] += 1
     progress['schemas_processed'] += 1
-    logger.debug(f"Updated summary: {summary}")
-    logger.debug(f"Updated progress: {progress}")
+    # Check if schema was unchanged
+    if summary['schemas_added'] == 0 and summary['schemas_updated'] == 0 and summary['schemas_deleted'] == 0:
+        summary['schemas_unchanged'] += 1
+    # logger.debug(f"Updated summary: {summary}")
+    # logger.debug(f"Updated progress: {progress}")
 
     # Process tables and views
     tables = get_source_tables(source_conn, schema_name, table_filter)
@@ -765,16 +631,14 @@ def process_schema(catalog_conn, source_conn, schema_name, database_id, catalog_
 def process_tables_and_views(catalog_conn, source_conn, schema_id, tables, schema_name, catalog_run_id, progress, summary):
     """Process tables and views for a schema."""
     view_definitions_batch = []
+    current_view_names = []
+
     for table_info in tables:
         table_type = table_info['table_type'].upper().strip()
         table_id = upsert_table_temporal(catalog_conn, schema_id, table_info, catalog_run_id, summary)
 
-        # Increment table counters
-        summary['tables_processed'] += 1
-        progress['tables_processed'] += 1
-
         if table_type in ('VIEW', 'V'):
-            # Collect view definitions for batch processing
+            current_view_names.append(table_info['table_name'])
             if table_info.get('view_definition'):
                 view_definitions_batch.append((table_id, table_info['view_definition']))
             else:
@@ -788,6 +652,16 @@ def process_tables_and_views(catalog_conn, source_conn, schema_id, tables, schem
     if view_definitions_batch:
         process_view_definitions_batch(catalog_conn, view_definitions_batch, catalog_run_id, progress, summary)
 
+    # Mark deleted view definitions
+    mark_deleted_view_definitions_batch(catalog_conn, schema_id, current_view_names, catalog_run_id,summary)
+    
+    # Calculate views_unchanged
+    summary['views_unchanged'] = (
+        summary['views_processed']
+        - summary['views_added']
+        - summary['views_updated']
+        - summary['views_deleted']
+    )
     # Update progress after processing tables and views
     update_run_progress(catalog_conn, catalog_run_id, progress)
 
@@ -816,6 +690,10 @@ def process_columns(catalog_conn, source_conn, schema_name, table_info, table_id
         upsert_column_temporal(catalog_conn, table_id, column_info, catalog_run_id,summary)
         progress['columns_processed'] += 1
         summary['columns_processed'] += 1 
+
+                # Check if column was unchanged
+        if summary['columns_added'] == 0 and summary['columns_updated'] == 0 and summary['columns_deleted'] == 0:
+            summary['columns_unchanged'] += 1
 
 def get_specific_connection(connection_id):
     """Get a specific connection by ID"""
@@ -1001,7 +879,7 @@ def upsert_view_definitions_batch(catalog_conn, table_id_definitions, catalog_ru
                 VALUES (%s, %s, %s, %s, true)
             """, inserts)
 
-def mark_deleted_view_definitions_batch(catalog_conn, schema_id, current_view_names, catalog_run_id):
+def mark_deleted_view_definitions_batch(catalog_conn, schema_id, current_view_names, catalog_run_id,summary):
     """Mark view definitions as deleted in batch if their views no longer exist."""
     with catalog_conn.cursor() as cursor:
         if current_view_names:
