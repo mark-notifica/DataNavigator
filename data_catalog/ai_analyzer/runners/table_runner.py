@@ -1,10 +1,10 @@
 import logging
 from collections import Counter
-from data_catalog.ai_analyzer.catalog_reader import get_metadata, get_tables_for_pattern, get_view_definition
-from data_catalog.ai_analyzer.source_data_reader import get_sample_data
-from data_catalog.ai_analyzer.prompt_builder import build_prompt_for_table
-from data_catalog.ai_analyzer.openai_client import analyze_with_openai
-from data_catalog.ai_analyzer.output_writer import (
+from ai_analyzer.utils.catalog_reader import get_metadata, get_tables_for_pattern, get_view_definition
+from ai_analyzer.utils.source_data_reader import get_sample_data
+from ai_analyzer.prompts.prompt_builder import build_prompt_for_table
+from ai_analyzer.utils.openai_client import analyze_with_openai
+from ai_analyzer.postprocessor.output_writer import (
     store_ai_table_analysis,
     store_analysis_result_to_file,
     store_ai_column_descriptions,

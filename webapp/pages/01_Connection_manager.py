@@ -2,7 +2,7 @@ import streamlit as st
 
 # Add page config as the FIRST Streamlit command
 st.set_page_config(
-    page_title="Catalog Connection Manager",
+    page_title="Connection Manager",
     page_icon="🔗",
     layout="wide",
     initial_sidebar_state="expanded"

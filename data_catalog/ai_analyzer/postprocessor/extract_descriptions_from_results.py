@@ -1,7 +1,7 @@
 import logging
 from datetime import datetime
 from data_catalog.database_server_cataloger import get_catalog_connection
-from data_catalog.ai_analyzer.output_writer import (
+from ai_analyzer.postprocessor.output_writer import (
     store_ai_column_descriptions,
     store_ai_table_description,
     store_ai_schema_description

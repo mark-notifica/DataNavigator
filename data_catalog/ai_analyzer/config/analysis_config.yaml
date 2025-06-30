@@ -1,0 +1,83 @@
+# yaml-language-server: $schema=./analysis_config.schema.json
+
+table_analysis:
+  - name: column_classification
+    description: Classificeer kolommen op rol (PRIMARY_KEY, MEASURE, enz.)
+    method: openai
+    prompt: column_classification
+    output_table: catalog_ai_column_description
+    status: active
+
+  - name: table_description
+    description: Beschrijf wat de tabel representeert
+    method: openai
+    prompt: table_description
+    output_table: catalog_ai_table_description
+    status: active
+
+  - name: view_definition_analysis
+    description: Analyse van SQL-viewdefinitie
+    method: openai
+    prompt: view_analysis
+    output_table: catalog_ai_table_description
+    status: active
+
+  - name: data_quality_check
+    description: Controleer datakwaliteit (nulls, types, duplicaten)
+    method: openai
+    prompt: data_quality_check
+    output_table: catalog_ai_analysis_results
+    status: active
+
+  - name: all_in_one
+    description: Combineert classificatie, beschrijving en datakwaliteit
+    method: openai
+    prompt: mixed
+    output_table: multi
+    status: active
+
+schema_analysis:
+  - name: schema_clustering
+    method: algorithmic
+    input: [foreign_key_graph]
+    output: [cluster_id]
+    notes: Uses undirected graph to detect schema clusters
+
+  - name: centrality_analysis
+    method: algorithmic
+    input: [foreign_key_graph]
+    output: [in_degree, out_degree, pagerank, betweenness]
+    notes: Uses directed graph built from catalog FK metadata
+
+  - name: cluster_labeling
+    method: openai
+    prompt: cluster_label_prompt
+    input: [table_descriptions]
+    output: [cluster_label]
+
+  - name: central_table
+    method: openai
+    input: [cluster_tables, centrality_scores]
+    output: [central_table_name]
+
+  - name: schema_role_refinement
+    method: openai
+    input: [cluster_context, existing_roles]
+    output: [refined_roles]
+
+  - name: relationship_mapping
+    method: openai
+    input: [tables, foreign_keys]
+    output: [relationship_description]
+
+  - name: schema_pattern_detection
+    method: openai
+    input: [schema_graph]
+    output: [detected_patterns]
+
+graph_building:
+  - name: foreign_key_graph_builder
+    method: algorithmic
+    input: [foreign_keys]
+    output: [graph_object]
+    provides_for: [centrality_analysis, schema_clustering, ai_context_generation]

@@ -1,12 +1,12 @@
 import logging
 import json
-from data_catalog.ai_analyzer.catalog_reader import get_metadata, get_tables_for_pattern, get_view_definition
-from data_catalog.ai_analyzer.source_data_reader import get_sample_data
-from data_catalog.ai_analyzer.output_writer import store_ai_schema_analysis, store_analysis_result_to_file
-from data_catalog.ai_analyzer.openai_client import analyze_with_openai
-from data_catalog.ai_analyzer.prompt_builder import build_prompt_for_schema
+from ai_analyzer.utils.catalog_reader import get_metadata, get_tables_for_pattern, get_view_definition
+from ai_analyzer.utils.source_data_reader import get_sample_data
+from ai_analyzer.postprocessor.output_writer import store_ai_schema_analysis, store_analysis_result_to_file
+from ai_analyzer.utils.openai_client import analyze_with_openai
+from ai_analyzer.prompts.prompt_builder import build_prompt_for_schema
 from data_catalog.connection_handler import get_catalog_connection
-from data_catalog.ai_analyzer.output_writer import finalize_run_with_token_totals
+from ai_analyzer.postprocessor.output_writer import finalize_run_with_token_totals
 from data_catalog.ai_analyzer.utils.schema_validation import ensure_single_schema_across_tables
 
 def run_schema_analysis(server, database, schema, author, dry_run: bool, run_id: int, analysis_type: str = "schema_context"):

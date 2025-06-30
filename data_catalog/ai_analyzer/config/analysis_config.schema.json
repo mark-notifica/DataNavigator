@@ -1,0 +1,73 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "DataNavigator Analysis Config Schema",
+  "type": "object",
+  "required": ["table_analysis", "schema_analysis", "graph_building"],
+  "properties": {
+    "table_analysis": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["name", "description", "method", "prompt", "output_table", "status"],
+        "properties": {
+          "name": { "type": "string" },
+          "description": { "type": "string" },
+          "method": { "type": "string", "enum": ["openai", "algorithmic"] },
+          "prompt": { "type": "string" },
+          "output_table": { "type": "string" },
+          "status": { "type": "string", "enum": ["active", "inactive"] }
+        },
+        "additionalProperties": false
+      }
+    },
+    "schema_analysis": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["name", "method"],
+        "properties": {
+          "name": { "type": "string" },
+          "method": { "type": "string", "enum": ["openai", "algorithmic"] },
+          "prompt": { "type": "string" },
+          "input": {
+            "type": "array",
+            "items": { "type": "string" }
+          },
+          "output": {
+            "type": "array",
+            "items": { "type": "string" }
+          },
+          "notes": { "type": "string" }
+        },
+        "additionalProperties": false
+      }
+    },
+    "graph_building": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["name", "method", "input", "output"],
+        "properties": {
+          "name": { "type": "string" },
+          "method": { "type": "string", "enum": ["algorithmic"] },
+          "input": {
+            "type": "array",
+            "items": { "type": "string" }
+          },
+          "output": {
+            "type": "array",
+            "items": { "type": "string" }
+          },
+          "provides_for": {
+            "type": "array",
+            "items": { "type": "string" }
+          }
+        },
+        "additionalProperties": false
+      }
+    }
+  },
+  "additionalProperties": false
+}
+
+  
