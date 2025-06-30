@@ -2,6 +2,19 @@ import streamlit as st
 from pathlib import Path
 import sqlalchemy as sa
 import pyodbc
+import fnmatch
+
+def get_connection_info_by_id(engine, connection_id):
+    with engine.connect() as conn:
+        result = conn.execute(sa.text("""
+            SELECT connection_type, host, port, username, password
+            FROM config.connections
+            WHERE id = :id
+        """), {"id": connection_id}).fetchone()
+
+    if result:
+        return dict(result._mapping)
+    return None
 
 def apply_compact_styling():
     """Apply compact styling to make UI elements smaller and more refined"""
@@ -86,92 +99,106 @@ def apply_compact_styling():
         </style>
         """, unsafe_allow_html=True)
 
-def test_connection(connection_info, databases=None):
+def test_connection(connection_info: dict, databases=None) -> list[str]:
     """
-    Test the connection to the server or specific databases.
-    
+    Test connection to server and optionally filtered databases.
+
     Args:
-        connection_info (dict): Connection details (host, port, username, password, etc.).
-        databases (list): List of databases to test. If None, test the server connection.
-    
+        connection_info (dict): expects connection_type, host, port, username, password
+        databases (str | list[str] | None): comma-separated string, list, or None
+
     Returns:
-        list: Results of the test for each database or server.
+        list[str]: result strings with ✅ or ❌
     """
+
+    # Normalize input
+    if isinstance(databases, str):
+        databases = [d.strip() for d in databases.split(",") if d.strip()]
+    elif databases is None:
+        databases = []
+
     results = []
+    connection_type = connection_info["connection_type"]
+    host = connection_info["host"]
+    port = connection_info["port"]
+    username = connection_info["username"]
+    password = connection_info["password"]
+
     try:
-        if connection_info['connection_type'] == "PostgreSQL":
-            driver = "postgresql+psycopg2"
+        if connection_type == "PostgreSQL":
+            # Server test
+            base_url = sa.engine.URL.create(
+                drivername="postgresql+psycopg2",
+                username=username,
+                password=password,
+                host=host,
+                port=port,
+                database="postgres"
+            )
+            sa.create_engine(base_url).connect().close()
+            results.append("✅ Server-level connection successful (PostgreSQL)")
+
             if databases:
-                # Test each database
-                for db_name in databases:
+                # Haal alle databases op indien filter
+                if len(databases) == 1 and not any(char in databases[0] for char in ["*", "%", "_"]):
+                    # Één concrete databasenaam
+                    test_dbs = databases
+                else:
+                    # Fetch list of dbs and filter
+                    with sa.create_engine(base_url).connect() as conn:
+                        rows = conn.execute(sa.text("SELECT datname FROM pg_database WHERE NOT datistemplate AND datallowconn")).fetchall()
+                    db_names = [r[0] for r in rows]
+                    patterns = [d.lower().replace("*", "%") for d in databases]
+                    test_dbs = [db for db in db_names if any(fnmatch.fnmatchcase(db.lower(), p.replace("%", "*")) for p in patterns)]
+
+                for db in test_dbs:
                     try:
-                        url = sa.engine.URL.create(
-                            drivername=driver,
-                            username=connection_info['username'],
-                            password=connection_info['password'],
-                            host=connection_info['host'],
-                            port=connection_info['port'],
-                            database=db_name
+                        db_url = sa.engine.URL.create(
+                            drivername="postgresql+psycopg2",
+                            username=username,
+                            password=password,
+                            host=host,
+                            port=port,
+                            database=db
                         )
-                        test_engine = sa.create_engine(url)
-                        with test_engine.connect() as test_conn:
-                            test_conn.execute(sa.text("SELECT 1"))
-                        results.append(f"✅ {db_name}: Success")
-                        test_engine.dispose()
-                    except Exception as db_error:
-                        results.append(f"❌ {db_name}: {str(db_error)}")
-            else:
-                # Test server connection
-                url = sa.engine.URL.create(
-                    drivername=driver,
-                    username=connection_info['username'],
-                    password=connection_info['password'],
-                    host=connection_info['host'],
-                    port=connection_info['port'],
-                    database="postgres"  # Default system database
-                )
-                test_engine = sa.create_engine(url)
-                with test_engine.connect() as test_conn:
-                    test_conn.execute(sa.text("SELECT 1"))
-                results.append("✅ Server connection: Success")
-                test_engine.dispose()
-        
-        elif connection_info['connection_type'] == "Azure SQL Server":
-            driver = "mssql+pyodbc"
+                        sa.create_engine(db_url).connect().close()
+                        results.append(f"✅ Database '{db}': OK")
+                    except Exception as e:
+                        results.append(f"❌ Database '{db}': {e}")
+
+        elif connection_type == "Azure SQL Server":
+            driver = "ODBC Driver 18 for SQL Server"
+            base_conn_str = (
+                f"DRIVER={{{driver}}};SERVER={host},{port};UID={username};PWD={password};"
+                f"Encrypt=yes;TrustServerCertificate=yes;Connection Timeout=5;"
+            )
+            pyodbc.connect(base_conn_str).close()
+            results.append("✅ Server-level connection successful (Azure SQL Server)")
+
             if databases:
-                # Test each database
-                for db_name in databases:
+                if len(databases) == 1 and not any(char in databases[0] for char in ["*", "%", "_"]):
+                    test_dbs = databases
+                else:
+                    with pyodbc.connect(base_conn_str, timeout=5) as conn:
+                        cursor = conn.cursor()
+                        cursor.execute("SELECT name FROM sys.databases WHERE database_id > 4")  # exclude system DBs
+                        db_names = [row[0] for row in cursor.fetchall()]
+                    patterns = [d.lower().replace("*", "%") for d in databases]
+                    test_dbs = [db for db in db_names if any(fnmatch.fnmatchcase(db.lower(), p.replace("%", "*")) for p in patterns)]
+
+                for db in test_dbs:
                     try:
-                        connection_string = (
-                            f"DRIVER={{ODBC Driver 18 for SQL Server}};"
-                            f"SERVER={connection_info['host']},{connection_info['port']};"
-                            f"DATABASE={db_name};"
-                            f"UID={connection_info['username']};"
-                            f"PWD={connection_info['password']};"
-                            f"Encrypt=yes;"
-                            f"TrustServerCertificate=no;"
-                            f"Connection Timeout=30;"
+                        db_conn_str = (
+                            f"DRIVER={{{driver}}};SERVER={host},{port};DATABASE={db};"
+                            f"UID={username};PWD={password};Encrypt=yes;TrustServerCertificate=yes;Connection Timeout=5;"
                         )
-                        test_conn = pyodbc.connect(connection_string)
-                        test_conn.close()
-                        results.append(f"✅ {db_name}: Success")
-                    except Exception as db_error:
-                        results.append(f"❌ {db_name}: {str(db_error)}")
-            else:
-                # Test server connection
-                connection_string = (
-                    f"DRIVER={{ODBC Driver 18 for SQL Server}};"
-                    f"SERVER={connection_info['host']},{connection_info['port']};"
-                    f"UID={connection_info['username']};"
-                    f"PWD={connection_info['password']};"
-                    f"Encrypt=yes;"
-                    f"TrustServerCertificate=no;"
-                    f"Connection Timeout=30;"
-                )
-                test_conn = pyodbc.connect(connection_string)
-                test_conn.close()
-                results.append("✅ Server connection: Success")
+                        pyodbc.connect(db_conn_str).close()
+                        results.append(f"✅ Database '{db}': OK")
+                    except Exception as e:
+                        results.append(f"❌ Database '{db}': {e}")
+        else:
+            results.append(f"❌ Unsupported connection type: {connection_type}")
     except Exception as e:
-        results.append(f"❌ Connection test failed: {e}")
-    
+        results.append(f"❌ Server-level connection failed: {e}")
+
     return results
