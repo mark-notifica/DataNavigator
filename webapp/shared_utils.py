@@ -3,11 +3,185 @@ from pathlib import Path
 import sqlalchemy as sa
 import pyodbc
 import fnmatch
+from typing import Optional
+from datetime import datetime
+from pytz import UTC
+
+
+
+def get_main_connection_test_status(engine, connection_id: int) -> dict:
+    with engine.connect() as conn:
+        result = conn.execute(sa.text("""
+            SELECT 
+                last_test_status,
+                last_tested_at,
+                last_test_notes
+            FROM config.connections
+            WHERE id = :id
+        """), {"id": connection_id}).fetchone()
+
+    if result:
+        return {
+            "status": result.last_test_status,
+            "tested_at": result.last_tested_at,
+            "notes": result.last_test_notes
+        }
+    else:
+        return {
+            "status": None,
+            "tested_at": None,
+            "notes": None
+        }
+
+def get_catalog_config_test_status(engine, config_id: int) -> dict:
+    with engine.connect() as conn:
+        result = conn.execute(sa.text("""
+            SELECT 
+                last_test_status,
+                last_tested_at,
+                last_test_notes
+            FROM config.catalog_connection_config
+            WHERE id = :id
+        """), {"id": config_id}).fetchone()
+
+    if result:
+        return {
+            "status": result.last_test_status,
+            "tested_at": result.last_tested_at,
+            "notes": result.last_test_notes
+        }
+    else:
+        return {
+            "status": None,
+            "tested_at": None,
+            "notes": None
+        }
+
+def get_ai_config_test_status(engine, config_id: int) -> dict:
+    with engine.connect() as conn:
+        result = conn.execute(sa.text("""
+            SELECT 
+                last_test_status,
+                last_tested_at,
+                last_test_notes
+            FROM config.ai_analyzer_connection_config
+            WHERE id = :id
+        """), {"id": config_id}).fetchone()
+
+    if result:
+        return {
+            "status": result.last_test_status,
+            "tested_at": result.last_tested_at,
+            "notes": result.last_test_notes
+        }
+    else:
+        return {
+            "status": None,
+            "tested_at": None,
+            "notes": None
+        }
+
+
+def test_main_connection(connection_info: dict, engine) -> list[str]:
+    """
+    Test a main database connection.
+    Updates the test result into config.connections.
+    """
+
+    connection_id = connection_info.get("id")
+    results = test_connection(connection_info)
+    status = "success" if any(r.startswith("✅") for r in results) else "failed"
+    notes = "\n".join(results)
+
+    with engine.begin() as conn:
+        conn.execute(sa.text("""
+            UPDATE config.connections
+            SET last_test_status = :status,
+                last_tested_at = :tested_at,
+                last_test_notes = :notes
+            WHERE id = :id
+        """), {
+            "status": status,
+            "tested_at": datetime.now(UTC),
+            "notes": notes,
+            "id": connection_id
+        })
+
+    return results
+
+
+def test_catalog_config(connection_info: dict, config_info: dict, engine) -> list[str]:
+    """
+    Test a catalog configuration in the context of its connection.
+    Updates the test result into config.catalog_connection_config.
+    """
+
+    # Database filter uit config_info lezen (comma separated string)
+    db_filter = config_info.get("catalog_database_filter", "")
+    databases = None
+    if db_filter.strip():
+        databases = [db.strip() for db in db_filter.split(",") if db.strip()]
+
+    results = test_connection(connection_info, databases=databases)
+
+    status = "success" if any(r.startswith("✅") for r in results) else "failed"
+    notes = "\n".join(results)
+
+    with engine.begin() as conn:
+        conn.execute(sa.text("""
+            UPDATE config.catalog_connection_config
+            SET last_test_status = :status,
+                last_tested_at = :tested_at,
+                last_test_notes = :notes
+            WHERE id = :id
+        """), {
+            "status": status,
+            "tested_at": datetime.now(UTC),
+            "notes": notes,
+            "id": config_info["id"]
+        })
+
+    return results
+
+
+def test_ai_config(connection_info: dict, ai_config_info: dict, engine) -> list[str]:
+    """
+    Test an AI configuration in the context of its connection.
+    Updates the test result into config.ai_analyzer_connection_config.
+    """
+
+    # Haal databasefilter op uit ai_config_info (verwacht 1 database naam)
+    databases = None
+    db_filter = ai_config_info.get("ai_database_filter")
+    if db_filter and db_filter.strip():
+        databases = [db_filter.strip()]
+
+    results = test_connection(connection_info, databases=databases)
+
+    status = "success" if any(r.startswith("✅") for r in results) else "failed"
+    notes = "\n".join(results)
+
+    with engine.begin() as conn:
+        conn.execute(sa.text("""
+            UPDATE config.ai_analyzer_connection_config
+            SET last_test_status = :status,
+                last_tested_at = :tested_at,
+                last_test_notes = :notes
+            WHERE id = :id
+        """), {
+            "status": status,
+            "tested_at": datetime.now(UTC),
+            "notes": notes,
+            "id": ai_config_info["id"]
+        })
+
+    return results
+
 
 def get_connection_info_by_id(engine, connection_id):
     with engine.connect() as conn:
         result = conn.execute(sa.text("""
-            SELECT connection_type, host, port, username, password
+            SELECT connection_type, host, port, username, password,folder_path, is_active
             FROM config.connections
             WHERE id = :id
         """), {"id": connection_id}).fetchone()
@@ -115,7 +289,12 @@ def test_connection(connection_info: dict, databases=None) -> list[str]:
     if isinstance(databases, str):
         databases = [d.strip() for d in databases.split(",") if d.strip()]
     elif databases is None:
-        databases = []
+        # Probeer catalog filter uit config te halen
+        filter_str = connection_info.get("catalog_database_filter")
+        if filter_str:
+            databases = [d.strip() for d in filter_str.split(",") if d.strip()]
+        else:
+            databases = []        
 
     results = []
     connection_type = connection_info["connection_type"]
@@ -123,6 +302,8 @@ def test_connection(connection_info: dict, databases=None) -> list[str]:
     port = connection_info["port"]
     username = connection_info["username"]
     password = connection_info["password"]
+    include_views = connection_info.get("include_views", False)
+    include_system_objects = connection_info.get("include_system_objects", False)
 
     try:
         if connection_type == "PostgreSQL":
@@ -161,8 +342,23 @@ def test_connection(connection_info: dict, databases=None) -> list[str]:
                             port=port,
                             database=db
                         )
-                        sa.create_engine(db_url).connect().close()
-                        results.append(f"✅ Database '{db}': OK")
+                        engine = sa.create_engine(db_url)
+                        with engine.connect() as conn:
+                            table_count = conn.execute(sa.text("""
+                                SELECT COUNT(*) FROM information_schema.tables 
+                                WHERE table_schema NOT IN ('pg_catalog', 'information_schema') 
+                                AND table_type = 'BASE TABLE'
+                            """)).scalar() or 0
+
+                            view_count = 0
+                            if include_views:
+                                view_count = conn.execute(sa.text("""
+                                    SELECT COUNT(*) FROM information_schema.tables 
+                                    WHERE table_schema NOT IN ('pg_catalog', 'information_schema') 
+                                    AND table_type = 'VIEW'
+                                """)).scalar() or 0
+
+                        results.append(f"✅ Database '{db}': OK (Tables: {table_count}, Views: {view_count})")
                     except Exception as e:
                         results.append(f"❌ Database '{db}': {e}")
 
@@ -192,8 +388,21 @@ def test_connection(connection_info: dict, databases=None) -> list[str]:
                             f"DRIVER={{{driver}}};SERVER={host},{port};DATABASE={db};"
                             f"UID={username};PWD={password};Encrypt=yes;TrustServerCertificate=yes;Connection Timeout=5;"
                         )
-                        pyodbc.connect(db_conn_str).close()
-                        results.append(f"✅ Database '{db}': OK")
+                        with pyodbc.connect(db_conn_str, timeout=5) as conn:
+                            cursor = conn.cursor()
+                            cursor.execute("""
+                                SELECT COUNT(*) FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_TYPE = 'BASE TABLE'
+                            """)
+                            table_count = cursor.fetchone()[0]
+
+                            view_count = 0
+                            if include_views:
+                                cursor.execute("""
+                                    SELECT COUNT(*) FROM INFORMATION_SCHEMA.VIEWS
+                                """)
+                                view_count = cursor.fetchone()[0]
+
+                        results.append(f"✅ Database '{db}': OK (Tables: {table_count}, Views: {view_count})")
                     except Exception as e:
                         results.append(f"❌ Database '{db}': {e}")
         else:

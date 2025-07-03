@@ -9,10 +9,12 @@ import argparse
 from dotenv import load_dotenv
 
 from data_catalog.connection_handler import (
-    get_catalog_connection,
-    get_source_connections,
+    get_main_connector_by_name,
+    get_catalog_config_by_main_connector_id,
     connect_to_source_database,
-    get_connection_by_server_name,
+    get_databases_on_server,
+    get_catalog_connection,
+    get_catalog_config_by_id
 )
 
 # Load environment variables
@@ -24,6 +26,48 @@ logger = logging.getLogger(__name__)
 # Catalog schema name
 CATALOG_SCHEMA = 'catalog'
 
+# Setup logging directory if run as main script
+if __name__ == "__main__":
+    script_dir = Path(__file__).parent
+    log_dir = script_dir / 'logfiles' / 'database_server'
+    log_dir.mkdir(parents=True, exist_ok=True)
+
+def load_connection_and_config(name_or_host):
+    """
+    Haalt de hoofdconnectie op en de bijbehorende catalog config (indien aanwezig).
+    Returned tuple: (main_conn_info, catalog_config) of (dict, dict|None)
+    """
+    main_conn_info = get_main_connector_by_name(name_or_host)
+    catalog_config = get_catalog_config_by_main_connector_id(main_conn_info['id'])
+    return main_conn_info, catalog_config
+
+def resolve_filters(main_conn_info, catalog_config):
+    """
+    Zet catalog filters om in lijsten. Leeg of None betekent 'alles'.
+    """
+    # databases
+    if catalog_config and catalog_config.get('catalog_database_filter'):
+        db_filter = [db.strip() for db in catalog_config['catalog_database_filter'].split(',') if db.strip()]
+    else:
+        db_filter = None  # alles
+    
+    # schema's
+    if catalog_config and catalog_config.get('catalog_schema_filter'):
+        schema_filter = [s.strip() for s in catalog_config['catalog_schema_filter'].split(',') if s.strip()]
+    else:
+        schema_filter = None
+    
+    # tabellen
+    if catalog_config and catalog_config.get('catalog_table_filter'):
+        table_filter = [t.strip() for t in catalog_config['catalog_table_filter'].split(',') if t.strip()]
+    else:
+        table_filter = None
+
+    include_views = catalog_config.get('include_views', False) if catalog_config else False
+    include_system_objects = catalog_config.get('include_system_objects', False) if catalog_config else False
+
+    return db_filter, schema_filter, table_filter, include_views, include_system_objects
+
 def get_summary_template():
     return {
         'databases_added': 0, 'databases_updated': 0, 'databases_deleted': 0, 'databases_processed': 0, 'databases_unchanged': 0,
@@ -34,20 +78,28 @@ def get_summary_template():
         'columns_added': 0, 'columns_updated': 0, 'columns_deleted': 0, 'columns_processed': 0, 'columns_unchanged': 0
     }
 
-# Setup logging directory if run as main script
-if __name__ == "__main__":
-    script_dir = Path(__file__).parent
-    log_dir = script_dir / 'logfiles' / 'database_server'
-    log_dir.mkdir(parents=True, exist_ok=True)
 
-def catalog_multiple_databases(connection_info, databases_to_catalog, schema_filter=None, table_filter=None):
+def catalog_multiple_databases(
+    connection_info,
+    databases_to_catalog,
+    schema_filter=None,
+    table_filter=None,
+    catalog_config_id=None,
+    include_views=False,
+    include_system_objects=False
+):
     """Catalog multiple databases for a given connection."""
     summary = get_summary_template()  # Initialize summary for the entire run
     progress = initialize_progress()  # Initialize progress for the entire run
 
     try:
         catalog_conn = get_catalog_connection()
-        catalog_run_id = start_catalog_run(catalog_conn, connection_info, databases_to_catalog)
+        catalog_run_id = start_catalog_run(
+            catalog_conn,
+            connection_info,
+            databases_to_catalog=databases_to_catalog,
+            catalog_config_id=catalog_config_id
+        )
         catalog_conn.commit()
 
         setup_logging_with_run_id(catalog_run_id)
@@ -59,27 +111,24 @@ def catalog_multiple_databases(connection_info, databases_to_catalog, schema_fil
                 db_connection_info = connection_info.copy()
                 db_connection_info['database_name'] = database_name
 
-                source_conns = connect_to_source_database(db_connection_info, [database_name])
-                if not source_conns:
+                source_conn = connect_to_source_database(db_connection_info, database_name)
+                if not source_conn:
                     logger.error(f"Failed to connect to source database: {database_name}")
                     summary['databases_deleted'] += 1
                     continue
 
-                # Pass summary and progress to catalog_single_database
                 catalog_single_database(
-                    source_conns,
+                    source_conn,
                     db_connection_info,
                     catalog_run_id,
                     schema_filter=schema_filter,
                     table_filter=table_filter,
                     summary=summary,
-                    progress=progress
+                    progress=progress,
+                    include_views=include_views,
+                    include_system_objects=include_system_objects
                 )
 
-                # logger.debug(f"Updated summary after database {database_name}: {summary}")
-                # logger.debug(f"Updated progress after database {database_name}: {progress}")
-
-                # Update progress after processing the database
                 update_run_progress(catalog_conn, catalog_run_id, progress)
 
             except Exception as e:
@@ -87,10 +136,7 @@ def catalog_multiple_databases(connection_info, databases_to_catalog, schema_fil
                 summary['databases_deleted'] += 1
 
         logger.info(f"Completed cataloging for all databases in connection {connection_info['name']}")
-        # logger.debug(f"Final summary: {summary}")
-        # logger.debug(f"Final progress: {progress}")
 
-        # Finalize the catalog run
         complete_catalog_run(catalog_conn, catalog_run_id, summary)
         catalog_conn.commit()
 
@@ -145,77 +191,54 @@ def setup_logging_with_run_id(catalog_run_id=None):
     return str(relative_path)  # Returns: data_catalog/logfiles/database_server/catalog_extraction_xxx.log
 
 def main():
-    """Main cataloging process"""
-    # Argument parsing
-    parser = argparse.ArgumentParser(description='Catalog database metadata')
-    parser.add_argument('--connection-id', type=int, help='Specific connection ID to catalog')
-    parser.add_argument('--databases', type=str, help='Comma-separated list of databases to catalog')
-    parser.add_argument("--schema", type=str, help="Schema to filter during cataloging.")
-    parser.add_argument("--tables", type=str, help="Comma-separated list of tables to filter during cataloging.")
-    args = parser.parse_args()
-    
-    logger.info("Starting catalog extraction process")
-    
+    """Main cataloging process, based on connection ID and catalog config ID."""
 
-    # Parse databases, schema, and tables from command-line arguments
-    databases_to_catalog = parse_comma_separated_values(args.databases)
-    schema_filter = parse_comma_separated_values(args.schema)
-    table_filter = parse_comma_separated_values(args.tables)
-    logger.debug(f"Parsed databases_to_catalog: {databases_to_catalog}")
-    logger.debug(f"Parsed schema_filter: {schema_filter}")
-    logger.debug(f"Parsed table_filter: {table_filter}")
-    
-    # Get connection info
-    source_connections = get_specific_connection(args.connection_id) if args.connection_id else get_source_connections()
-    
+    parser = argparse.ArgumentParser(description='Catalog database metadata')
+    parser.add_argument('--connection-id', type=int, required=True, help='ID van de hoofdconnectie om te gebruiken')
+    parser.add_argument('--catalog-config-id', type=int, required=True, help='ID van de catalogusconfiguratie met filters')
+    args = parser.parse_args()
+
+    logger.info("Starting catalog extraction process")
+
+    # Haal de hoofdconnectie op
+    source_connections = get_specific_connection(args.connection_id)
     if not source_connections:
-        logger.warning("No source database connections found")
+        logger.error(f"Geen connectie gevonden voor id {args.connection_id}")
         return
+    connection_info = source_connections[0]
+
+    # Haal de catalogusconfiguratie op
+    with get_catalog_connection() as catalog_conn:
+        catalog_config = get_catalog_config_by_id(catalog_conn, args.catalog_config_id)
+    if not catalog_config:
+        logger.error(f"Geen catalog configuratie gevonden voor id {args.catalog_config_id}")
+        return
+
+    # Parse database filter naar lijst of None (alles)
+    databases_to_catalog = parse_comma_separated_values(catalog_config['catalog_database_filter'])
+    if databases_to_catalog is None:
+        # Geen filter? Dan alle databases ophalen
+        databases_to_catalog = get_databases_on_server(connection_info)
+
+    # Schema- en table-filter hetzelfde
+    schema_filter = parse_comma_separated_values(catalog_config['catalog_schema_filter']) if catalog_config['catalog_schema_filter'] else None
+    table_filter = parse_comma_separated_values(catalog_config['catalog_table_filter']) if catalog_config['catalog_table_filter'] else None
+
+    # Call cataloging
+    summary = catalog_multiple_databases(
+        connection_info,
+        databases_to_catalog,
+        schema_filter=schema_filter,
+        table_filter=table_filter,
+        catalog_config_id=args.catalog_config_id,
+        include_views=catalog_config.get('include_views', False),
+        include_system_objects=catalog_config.get('include_system_objects', False)
+    )
     
-    summary = get_summary_template()
-    
-    for connection_info in source_connections:
-        # Determine database filter
-        if databases_to_catalog:
-            logger.info(f"Using manually provided database filter: {databases_to_catalog}")
-        elif connection_info.get('database_name'):
-            databases_to_catalog = parse_comma_separated_values(connection_info['database_name'])
-            logger.info(f"Using preconfigured database filter from connection: {databases_to_catalog}")
-        else:
-            databases_to_catalog = get_databases_on_server(connection_info)
-            logger.info(f"No database filter applied. Defaulting to all databases: {databases_to_catalog}")
-        
-        # Determine schema filter
-        if schema_filter:
-            logger.info(f"Using manually provided schema filter: {schema_filter}")
-        elif connection_info.get('schemas'):
-            schema_filter = parse_comma_separated_values(connection_info['schemas'])
-            logger.info(f"Using preconfigured schema filter from connection: {schema_filter}")
-        else:
-            logger.info("No schema filter applied. Processing all schemas.")
-        
-        # Determine table filter
-        if table_filter:
-            logger.info(f"Using manually provided table filter: {table_filter}")
-        elif connection_info.get('tables'):
-            table_filter = parse_comma_separated_values(connection_info['tables'])
-            logger.info(f"Using preconfigured table filter from connection: {table_filter}")
-        else:
-            logger.info("No table filter applied. Processing all tables.")
-        
-        if not databases_to_catalog:
-            logger.error(f"No valid databases to catalog for connection {connection_info['name']} on server {connection_info['host']}")
-            continue
-        
-        # Pass schema and table filters to the cataloging function
-        connection_summary = catalog_multiple_databases(connection_info, databases_to_catalog, schema_filter=schema_filter, table_filter=table_filter)
-        update_summary(summary, connection_summary)
-    
-    # Pass schema_filter and table_filter to log_final_summary
     log_final_summary(summary, schema_filter, table_filter)
 
 def parse_comma_separated_values(value):
-    """Parse comma-separated values into a list."""
+    """Parse comma-separated string to list, or None als leeg."""
     return [item.strip() for item in value.split(",") if item.strip()] if value else None
 
 def resolve_databases_to_catalog(connection_info, databases_to_catalog):
@@ -291,62 +314,7 @@ def log_final_summary(summary, schema_filter, table_filter):
     logger.info(f"columns_unchanged: {summary['columns_unchanged']}")
 
 
-def get_databases_on_server(connection_info):
-    """Get list of all databases on the server"""
-    logger.info(f"Discovering databases on server: {connection_info['host']}")
-    
-    # Connect to master/system database to enumerate databases
-    master_connection_info = connection_info.copy()
-    
-    if connection_info['connection_type'] == 'PostgreSQL':
-        master_connection_info['database_name'] = 'postgres'
-    elif connection_info['connection_type'] == 'Azure SQL Server':
-        master_connection_info['database_name'] = 'master'
-    else:
-        logger.error(f"Unsupported connection type: {connection_info['connection_type']}")
-        return []
-    
-    master_conn = connect_to_source_database(master_connection_info)
-    if not master_conn:
-        logger.error(f"Could not connect to master database on {connection_info['host']}")
-        return []
-    
-    try:
-        if connection_info['connection_type'] == 'PostgreSQL':
-            # PostgreSQL query to get databases
-            with master_conn.cursor() as cursor:
-                cursor.execute("""
-                    SELECT datname 
-                    FROM pg_database 
-                    WHERE datistemplate = false 
-                    AND datname NOT IN ('postgres', 'template0', 'template1')
-                    ORDER BY datname
-                """)
-                databases = [row[0] for row in cursor.fetchall()]
-                
-        elif connection_info['connection_type'] == 'Azure SQL Server':
-            # Azure SQL Server query to get databases
-            with master_conn.cursor() as cursor:
-                cursor.execute("""
-                    SELECT name 
-                    FROM sys.databases 
-                    WHERE database_id > 4  -- Skip system databases (master, tempdb, model, msdb)
-                    AND state = 0  -- Only online databases
-                    AND is_read_only = 0  -- Skip read-only databases
-                    ORDER BY name
-                """)
-                databases = [row[0] for row in cursor.fetchall()]
-        
-        logger.info(f"Found {len(databases)} databases: {', '.join(databases)}")
-        return databases
-        
-    except Exception as e:
-        logger.error(f"Error getting database list from {connection_info['host']}: {e}")
-        return []
-    finally:
-        master_conn.close()
-
-def start_catalog_run(catalog_conn, connection_info, databases_to_catalog=None):
+def start_catalog_run(catalog_conn, connection_info, databases_to_catalog=None, catalog_config_id=None):
     """Start a new catalog run and return the run ID"""
     with catalog_conn.cursor() as cursor:
         # Determine databases info
@@ -359,12 +327,13 @@ def start_catalog_run(catalog_conn, connection_info, databases_to_catalog=None):
         
         cursor.execute("""
             INSERT INTO catalog.catalog_runs 
-            (connection_id, connection_name, connection_type, connection_host, connection_port, 
-             databases_to_catalog, databases_count, run_started_at, run_status)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, CURRENT_TIMESTAMP, 'running')
+            (connection_id, catalog_config_id, connection_name, connection_type, connection_host, connection_port, 
+            databases_to_catalog, databases_count, run_started_at, run_status)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, CURRENT_TIMESTAMP, 'running')
             RETURNING id
         """, (
             connection_info['id'],
+            catalog_config_id,  # 👈 toegevoegd
             connection_info['name'],
             connection_info['connection_type'],
             connection_info['host'],
@@ -534,9 +503,18 @@ def upsert_database_temporal(catalog_conn, connection_info, catalog_run_id,summa
         return database_id
 
 
-def catalog_single_database(source_conns, connection_info, catalog_run_id, schema_filter=None, table_filter=None, summary=None, progress=None):
+def catalog_single_database(
+    source_conn,
+    connection_info,
+    catalog_run_id,
+    schema_filter=None,
+    table_filter=None,
+    summary=None,
+    progress=None,
+    include_views=False,
+    include_system_objects=False
+):
     """Catalog a single specific database with catalog run tracking."""
-    # Initialize summary and progress if not provided
     if summary is None:
         summary = get_summary_template()
     if progress is None:
@@ -544,14 +522,12 @@ def catalog_single_database(source_conns, connection_info, catalog_run_id, schem
 
     logger.info(f"Starting catalog of database: {connection_info['database_name']} on {connection_info['host']}")
 
-    # Retrieve the catalog connection
     catalog_conn = get_catalog_connection()
 
     try:
         database_id = upsert_database_temporal(catalog_conn, connection_info, catalog_run_id, summary)
         update_run_progress(catalog_conn, catalog_run_id, progress)
 
-        source_conn = source_conns.get(connection_info['database_name'])
         if not source_conn:
             logger.error(f"Failed to find connection for database: {connection_info['database_name']}")
             return summary
@@ -565,17 +541,23 @@ def catalog_single_database(source_conns, connection_info, catalog_run_id, schem
         logger.info(f"Found {len(schemas)} schemas in {connection_info['database_name']} matching the filter.")
 
         for schema_name in schemas:
-            process_schema(catalog_conn, source_conn, schema_name, database_id, catalog_run_id, progress, summary, table_filter)
+            process_schema(
+                catalog_conn,
+                source_conn,
+                schema_name,
+                database_id,
+                catalog_run_id,
+                progress,
+                summary,
+                table_filter=table_filter,
+                include_views=include_views,
+                include_system_objects=include_system_objects
+            )
 
-        # Increment counters for the database
         summary['databases_processed'] += 1
         progress['databases_processed'] += 1
 
-        # Update progress after processing the database
         update_run_progress(catalog_conn, catalog_run_id, progress)
-
-        # logger.debug(f"Final summary for database {connection_info['database_name']}: {summary}")
-        # logger.debug(f"Final progress for database {connection_info['database_name']}: {progress}")
 
         catalog_conn.commit()
 
@@ -601,7 +583,18 @@ def initialize_progress():
         'columns_processed': 0
     }
 
-def process_schema(catalog_conn, source_conn, schema_name, database_id, catalog_run_id, progress, summary, table_filter=None):
+def process_schema(
+    catalog_conn,
+    source_conn,
+    schema_name,
+    database_id,
+    catalog_run_id,
+    progress,
+    summary,
+    table_filter=None,
+    include_views=False,
+    include_system_objects=False
+):
     """Process a single schema."""
     logger.info(f"Processing schema: {schema_name}")
     schema_id = upsert_schema_temporal(catalog_conn, database_id, schema_name, catalog_run_id, summary)
@@ -613,11 +606,15 @@ def process_schema(catalog_conn, source_conn, schema_name, database_id, catalog_
     # Check if schema was unchanged
     if summary['schemas_added'] == 0 and summary['schemas_updated'] == 0 and summary['schemas_deleted'] == 0:
         summary['schemas_unchanged'] += 1
-    # logger.debug(f"Updated summary: {summary}")
-    # logger.debug(f"Updated progress: {progress}")
 
-    # Process tables and views
-    tables = get_source_tables(source_conn, schema_name, table_filter)
+    # Process tables and views met filter en flags
+    tables = get_source_tables(
+        source_conn,
+        schema_name,
+        table_filter=table_filter,
+        include_views=include_views,
+        include_system_objects=include_system_objects
+    )
     if not tables:
         logger.warning(f"No tables found in schema: {schema_name} matching the filter.")
         return
@@ -696,20 +693,26 @@ def process_columns(catalog_conn, source_conn, schema_name, table_info, table_id
             summary['columns_unchanged'] += 1
 
 def get_specific_connection(connection_id):
-    """Get a specific connection by ID"""
+    """Get a specific connection by ID. Raises ValueError if not exactly one found."""
     catalog_conn = get_catalog_connection()
     try:
         with catalog_conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cursor:
             cursor.execute("""
-                SELECT id, name, connection_type, host, port, username, password, database_name 
+                SELECT id, name, connection_type, host, port, username, password
                 FROM config.connections 
                 WHERE id = %s AND connection_type IN ('PostgreSQL', 'Azure SQL Server')
-            """, (connection_id,))  # This should be a tuple with the connection_id
+            """, (connection_id,))
             connections = cursor.fetchall()
-            if connections:
-                logger.info(f"Found connection: {connections[0]['name']} (ID: {connection_id})")
-            else:
+
+            if not connections:
                 logger.warning(f"No connection found with ID: {connection_id}")
+                raise ValueError(f"No connection found with ID {connection_id}")
+
+            if len(connections) > 1:
+                logger.error(f"Multiple connections found with ID: {connection_id}")
+                raise ValueError(f"Multiple connections found with ID {connection_id}, but expected exactly one.")
+
+            logger.info(f"Found connection: {connections[0]['name']} (ID: {connection_id})")
             return connections
     finally:
         catalog_conn.close()
@@ -1038,62 +1041,114 @@ def get_source_schemas(source_conn):
             """)
             return [row[0] for row in cursor.fetchall()]
 
-def get_source_tables(source_conn, schema_name, table_filter=None):
-    """Get list of tables AND views from source schema, including view definitions and connection type."""
+def get_source_tables(
+    source_conn,
+    schema_name,
+    table_filter=None,
+    include_views=False,
+    include_system_objects=False
+):
+    """
+    Get list of tables and optionally views from source schema, applying filters.
+
+    :param source_conn: database connection
+    :param schema_name: schema to query
+    :param table_filter: list of table names to include (None = all)
+    :param include_views: boolean, whether to include views
+    :param include_system_objects: boolean, whether to include system tables
+    :return: list of dicts with keys: table_name, table_type, view_definition, connection_type
+    """
+
     if hasattr(source_conn, 'cursor') and 'pyodbc' in str(type(source_conn)):
-        # Azure SQL Server
         connection_type = 'Azure SQL Server'
         with source_conn.cursor() as cursor:
+            # Basis query
             query = """
-                SELECT 
-                    t.table_name, 
+                SELECT
+                    t.table_name,
                     t.table_type,
                     v.view_definition
                 FROM information_schema.tables t
-                LEFT JOIN information_schema.views v 
-                    ON t.table_name = v.table_name 
+                LEFT JOIN information_schema.views v
+                    ON t.table_name = v.table_name
                     AND t.table_schema = v.table_schema
                 WHERE t.table_schema = ?
-                AND t.table_type IN ('BASE TABLE', 'VIEW')
             """
+
             params = [schema_name]
+
+            # Filter op table_type
+            allowed_types = ["BASE TABLE"]
+            if include_views:
+                allowed_types.append("VIEW")
+
+            if not include_system_objects:
+                # Exclude system tables (bijvoorbeeld 'sys' en 'INFORMATION_SCHEMA' objecten)
+                # Voor Azure SQL Server meestal via schema_name uitgesloten, maar extra check kan
+                query += " AND t.table_type IN ({})".format(
+                    ','.join('?' for _ in allowed_types)
+                )
+                params.extend(allowed_types)
+                # Optioneel: exclude system tables by name patterns if nodig
+
+            else:
+                # Include all, dus ook system objects
+                query += " AND t.table_type IN ({})".format(
+                    ','.join('?' for _ in allowed_types)
+                )
+                params.extend(allowed_types)
+
+            # Filter op specifieke tabelnamen
             if table_filter:
-                query += " AND t.table_name IN ({})".format(','.join(['?'] * len(table_filter)))
+                placeholders = ','.join('?' for _ in table_filter)
+                query += f" AND t.table_name IN ({placeholders})"
                 params.extend(table_filter)
+
             query += " ORDER BY t.table_name"
             cursor.execute(query, params)
-            
+
             return [{
-                'table_name': row[0], 
+                'table_name': row[0],
                 'table_type': row[1],
                 'view_definition': row[2] if row[2] else None,
                 'connection_type': connection_type
             } for row in cursor.fetchall()]
+
     else:
-        # PostgreSQL
         connection_type = 'PostgreSQL'
         with source_conn.cursor() as cursor:
+            # Basis query
             query = """
-                SELECT 
-                    t.table_name, 
+                SELECT
+                    t.table_name,
                     t.table_type,
                     v.definition as view_definition
                 FROM information_schema.tables t
-                LEFT JOIN pg_views v 
-                    ON t.table_name = v.viewname 
+                LEFT JOIN pg_views v
+                    ON t.table_name = v.viewname
                     AND t.table_schema = v.schemaname
                 WHERE t.table_schema = %s
-                AND t.table_type IN ('BASE TABLE', 'VIEW')
             """
+
             params = [schema_name]
+
+            allowed_types = ["BASE TABLE"]
+            if include_views:
+                allowed_types.append("VIEW")
+
+            query += " AND t.table_type = ANY (%s)"
+            params.append(allowed_types)
+
+            # Filter op specifieke tabelnamen
             if table_filter:
-                query += " AND t.table_name IN %s"
-                params.append(tuple(table_filter))
+                query += " AND t.table_name = ANY (%s)"
+                params.append(table_filter)
+
             query += " ORDER BY t.table_name"
             cursor.execute(query, params)
-            
+
             return [{
-                'table_name': row[0], 
+                'table_name': row[0],
                 'table_type': row[1],
                 'view_definition': row[2] if row[2] else None,
                 'connection_type': connection_type

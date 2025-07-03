@@ -1,6 +1,7 @@
 import streamlit as st
 from pathlib import Path
 from datetime import datetime
+from navigation import render_page_navigation
 
 # Global page config - set once for entire app
 st.set_page_config(
@@ -58,7 +59,18 @@ st.markdown("""
 From this insight, the actual data model can be created and managed, supporting ETL automation.
 """)
 
-st.divider()
+# Test navigatie
+# if st.button("Ga naar Connection Manager"):
+#     st.markdown(
+#         '<meta http-equiv="refresh" content="0; url=./Connection_manager" />',
+#         unsafe_allow_html=True
+#     )
+# st.write("📂 Geregistreerde pagina’s (pages/):")
+# pages_dir = Path(__file__).parent / "pages"
+# for p in sorted(pages_dir.glob("*.py")):
+#     st.write("🧭", p.name.replace(".py", ""))
+
+# st.divider()
 
 # Quick stats
 st.subheader("📈 System Overview")
@@ -129,7 +141,7 @@ try:
             FROM catalog.catalog_runs cr
             JOIN config.connections c ON cr.connection_id = c.id
             ORDER BY cr.run_started_at DESC
-            LIMIT 10
+            LIMIT 3
         """))
 
         recent_runs = recent_result.fetchall()
