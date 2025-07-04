@@ -1,13 +1,15 @@
 import pandas as pd 
 
 def build_prompt_for_table(table: dict, table_metadata, sample_data: pd.DataFrame, analysis_type: str) -> str:
+    """
+    Genereert een prompt voor een bepaalde analyse op een tabel of view.
+    """
     table_name = table.get("table_name", "[UNKNOWN TABLE]")
     table_type = table.get("table_type", "BASE TABLE").upper()
     prompt_parts = []
 
-    # Speciale prompt voor views
+    # -- Speciale prompt: Viewdefinitie-analyse --
     if table_type == "VIEW" and analysis_type == "view_definition_analysis":
-        # Verwacht dat table_metadata een dict is met "definition"
         definition = table_metadata.get("definition", "").strip()
         return f"""
 🧠 Doel: Analyseer de onderstaande SQL-viewdefinitie.
@@ -22,8 +24,8 @@ Viewdefinitie van `{table_name}`:
 --- SQL END ---
         """.strip()
 
-    # Standaard prompts voor tabellen en all-in-one
-    if analysis_type in ("table_description", "all_in_one"):
+    # -- Tabelbeschrijving --
+    if analysis_type == "table_description":
         prompt_parts.append(f"""
 🔍 Doel: Beschrijf de functie van de tabel `{table_name}`.
 - Wat representeert deze tabel?
@@ -31,7 +33,8 @@ Viewdefinitie van `{table_name}`:
 - Zijn er primaire of foreign keys?
         """.strip())
 
-    if analysis_type in ("column_classification", "all_in_one"):
+    # -- Kolomclassificatie --
+    if analysis_type == "column_classification":
         prompt_parts.append("""
 🧬 Doel: Classificeer de kolommen van de tabel.
 Gebruik één van de volgende labels per kolom:
@@ -42,7 +45,8 @@ Kies het meest passende label per kolom. Als meerdere labels gelden, kies degene
 Antwoord als JSON: { "kolomnaam": "LABEL" }
         """.strip())
 
-    if analysis_type in ("data_quality_check", "all_in_one"):
+    # -- Datakwaliteit --
+    if analysis_type == "data_quality_check":
         prompt_parts.append("""
 ⚠️ Doel: Onderzoek de datakwaliteit.
 - Zijn er kolommen met veel nulls of vreemde waarden?
@@ -50,6 +54,16 @@ Antwoord als JSON: { "kolomnaam": "LABEL" }
 - Komen datatypes overeen met hun inhoud?
         """.strip())
 
+    # -- Aanwezigheid van data (presence) --
+    if analysis_type == "data_presence_analysis":
+        prompt_parts.append(f"""
+📊 Doel: Beoordeel of de tabel `{table_name}` nog in gebruik is.
+- Is er voldoende actuele data aanwezig?
+- Zijn er tijdstempels of kolommen met wijzigingsdata?
+- Is er spreiding in de datums, of lijkt alles oud of statisch?
+        """.strip())
+
+    # -- Sampledata toevoegen indien aanwezig --
     if isinstance(sample_data, pd.DataFrame) and not sample_data.empty:
         prompt_parts.append("Voorbeelddata:")
         formatted_rows = [str(row) for row in sample_data[:20].to_dict(orient="records")]

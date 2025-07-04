@@ -2,7 +2,7 @@ from datetime import datetime
 from data_catalog.connection_handler import get_catalog_connection
 from ai_analyzer.utils.catalog_metadata import get_schema_metadata
 
-def store_schema_description(run_id, server, database, schema, result_json, author="ai_analyzer", description_type="schema_context"):
+def write_schema_description(run_id, server, database, schema, result_json, author="ai_analyzer", description_type="schema_context"):
     schema_meta = get_schema_metadata(server, database, schema)
     if not schema_meta:
         raise ValueError(f"Schema metadata niet gevonden: {server}.{database}.{schema}")

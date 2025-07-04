@@ -1,7 +1,7 @@
 import logging
 import json
 from ai_analyzer.utils.catalog_reader import get_metadata, get_tables_for_pattern, get_view_definition
-from ai_analyzer.utils.source_data_reader import get_sample_data
+from ai_analyzer.samples.sample_data_builder import get_sample_data
 from ai_analyzer.postprocessor.output_writer import store_ai_schema_analysis, store_analysis_result_to_file
 from ai_analyzer.utils.openai_client import analyze_with_openai
 from ai_analyzer.prompts.prompt_builder import build_prompt_for_schema

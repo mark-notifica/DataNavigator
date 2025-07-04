@@ -281,3 +281,21 @@ def get_schemas_for_database_with_ids(
             return filtered
     finally:
         conn.close()
+
+
+def get_column_id(table_id: int, column_name: str) -> int | None:
+    """
+    Haalt de column_id op uit catalogus obv table_id + column_name.
+    """
+    conn = get_catalog_connection()
+    try:
+        with conn.cursor() as cur:
+            cur.execute("""
+                SELECT id FROM catalog.catalog_columns
+                WHERE table_id = %s AND column_name = %s
+                LIMIT 1
+            """, (table_id, column_name))
+            row = cur.fetchone()
+            return row[0] if row else None
+    finally:
+        conn.close()
