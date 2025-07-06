@@ -1,0 +1,16 @@
+[
+  {
+    "schema": "stg",
+    "table": "ods_alias_landen",
+    "status": "error",
+    "message": "module 'openai' has no attribute 'error'"
+  },
+  {
+    "schema": "stg",
+    "table": "ods_alias_landen_v",
+    "type": "table",
+    "status": "skipped",
+    "reason": "no_columns",
+    "prompt": null
+  }
+]

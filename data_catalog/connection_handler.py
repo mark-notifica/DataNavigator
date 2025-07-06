@@ -326,8 +326,15 @@ def connect_to_source_database(conn_info: dict, database_name: str = None):
     Vereist database_name als parameter vanwege 1:n-relaties.
     """
     try:
-        db = database_name or ("postgres" if conn_info["connection_type"] == "PostgreSQL" else "master")
+        db = (
+            database_name or
+            conn_info.get("database_name") or
+            ("postgres" if conn_info["connection_type"] == "PostgreSQL" else "master")
+        )
 
+        if not database_name and not conn_info.get("database_name"):
+            logger.warning(f"⚠️ Geen database_name expliciet opgegeven; fallback gebruikt: {db}")
+            
         if conn_info["connection_type"] == "PostgreSQL":
             conn = psycopg2.connect(
                 dbname=db,

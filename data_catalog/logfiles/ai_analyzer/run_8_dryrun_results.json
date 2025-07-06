@@ -1,0 +1,2410 @@
+[
+  {
+    "table": "ods_alias_emailaccounts",
+    "schema": "stg",
+    "result": {
+      "status": "error",
+      "message": "'main_connector_id'"
+    }
+  },
+  {
+    "table": "ods_alias_exportmeldingen",
+    "schema": "stg",
+    "result": {
+      "status": "error",
+      "message": "'main_connector_id'"
+    }
+  },
+  {
+    "table": "ods_alias_facturen",
+    "schema": "stg",
+    "result": {
+      "status": "error",
+      "message": "'main_connector_id'"
+    }
+  },
+  {
+    "table": "ods_alias_koperskeuzebonnen",
+    "schema": "stg",
+    "result": {
+      "status": "error",
+      "message": "'main_connector_id'"
+    }
+  },
+  {
+    "table": "ods_alias_aanvragen",
+    "schema": "stg",
+    "result": {
+      "status": "error",
+      "message": "'main_connector_id'"
+    }
+  },
+  {
+    "table": "ods_alias_afrondcodes",
+    "schema": "stg",
+    "result": {
+      "status": "error",
+      "message": "'main_connector_id'"
+    }
+  },
+  {
+    "table": "ods_alias_werkbonregels",
+    "schema": "stg",
+    "result": {
+      "status": "error",
+      "message": "'main_connector_id'"
+    }
+  },
+  {
+    "table": "ods_alias_installatietypes",
+    "schema": "stg",
+    "result": {
+      "status": "error",
+      "message": "'main_connector_id'"
+    }
+  },
+  {
+    "table": "ods_alias_grootboekrekeningen",
+    "schema": "stg",
+    "result": {
+      "status": "error",
+      "message": "'main_connector_id'"
+    }
+  },
+  {
+    "table": "ods_alias_kleingereedschap",
+    "schema": "stg",
+    "result": {
+      "status": "error",
+      "message": "'main_connector_id'"
+    }
+  },
+  {
+    "table": "ods_alias_hoofdstukken",
+    "schema": "stg",
+    "result": {
+      "status": "error",
+      "message": "'main_connector_id'"
+    }
+  },
+  {
+    "table": "ods_alias_kleingereedschapsoort",
+    "schema": "stg",
+    "result": {
+      "status": "error",
+      "message": "'main_connector_id'"
+    }
+  },
+  {
+    "table": "ods_alias_konditiegroepen",
+    "schema": "stg",
+    "result": {
+      "status": "error",
+      "message": "'main_connector_id'"
+    }
+  },
+  {
+    "table": "ods_alias_koperskeuzeafrekeningen",
+    "schema": "stg",
+    "result": {
+      "status": "error",
+      "message": "'main_connector_id'"
+    }
+  },
+  {
+    "table": "ods_alias_koperskeuzebonoffertes",
+    "schema": "stg",
+    "result": {
+      "status": "error",
+      "message": "'main_connector_id'"
+    }
+  },
+  {
+    "table": "ods_alias_inkfactregels",
+    "schema": "stg",
+    "result": {
+      "status": "error",
+      "message": "'main_connector_id'"
+    }
+  },
+  {
+    "table": "ods_alias_inkfacturen",
+    "schema": "stg",
+    "result": {
+      "status": "error",
+      "message": "'main_connector_id'"
+    }
+  },
+  {
+    "table": "ods_alias_inkfakturenbijlage",
+    "schema": "stg",
+    "result": {
+      "status": "error",
+      "message": "'main_connector_id'"
+    }
+  },
+  {
+    "table": "ods_alias_inkfakturenobjects",
+    "schema": "stg",
+    "result": {
+      "status": "error",
+      "message": "'main_connector_id'"
+    }
+  },
+  {
+    "table": "ods_alias_inkfakturenrecordmeldingen",
+    "schema": "stg",
+    "result": {
+      "status": "error",
+      "message": "'main_connector_id'"
+    }
+  },
+  {
+    "table": "ods_alias_installatieonderhoudsregels",
+    "schema": "stg",
+    "result": {
+      "status": "error",
+      "message": "'main_connector_id'"
+    }
+  },
+  {
+    "table": "ods_alias_installaties",
+    "schema": "stg",
+    "result": {
+      "status": "error",
+      "message": "'main_connector_id'"
+    }
+  },
+  {
+    "table": "ods_alias_koperskeuzebonregels",
+    "schema": "stg",
+    "result": {
+      "status": "error",
+      "message": "'main_connector_id'"
+    }
+  },
+  {
+    "table": "ods_alias_kortingsgroepen",
+    "schema": "stg",
+    "result": {
+      "status": "error",
+      "message": "'main_connector_id'"
+    }
+  },
+  {
+    "table": "ods_alias_koudemiddelen",
+    "schema": "stg",
+    "result": {
+      "status": "error",
+      "message": "'main_connector_id'"
+    }
+  },
+  {
+    "table": "ods_alias_landen",
+    "schema": "stg",
+    "result": {
+      "status": "error",
+      "message": "'main_connector_id'"
+    }
+  },
+  {
+    "table": "ods_alias_leverancierbedrijf",
+    "schema": "stg",
+    "result": {
+      "status": "error",
+      "message": "'main_connector_id'"
+    }
+  },
+  {
+    "table": "ods_alias_leverancierberichtprofielregelsemail",
+    "schema": "stg",
+    "result": {
+      "status": "error",
+      "message": "'main_connector_id'"
+    }
+  },
+  {
+    "table": "ods_alias_leverancierberichtprofielregelsmap",
+    "schema": "stg",
+    "result": {
+      "status": "error",
+      "message": "'main_connector_id'"
+    }
+  },
+  {
+    "table": "ods_alias_leveranciercrediteurnrs",
+    "schema": "stg",
+    "result": {
+      "status": "error",
+      "message": "'main_connector_id'"
+    }
+  },
+  {
+    "table": "ods_alias_leverancierdebiteurnrs",
+    "schema": "stg",
+    "result": {
+      "status": "error",
+      "message": "'main_connector_id'"
+    }
+  },
+  {
+    "table": "ods_alias_leveranciersbijlage",
+    "schema": "stg",
+    "result": {
+      "status": "error",
+      "message": "'main_connector_id'"
+    }
+  },
+  {
+    "table": "ods_alias_materieelbijlage",
+    "schema": "stg",
+    "result": {
+      "status": "error",
+      "message": "'main_connector_id'"
+    }
+  },
+  {
+    "table": "ods_alias_meerwerkcodes",
+    "schema": "stg",
+    "result": {
+      "status": "error",
+      "message": "'main_connector_id'"
+    }
+  },
+  {
+    "table": "ods_alias_nacalculaties",
+    "schema": "stg",
+    "result": {
+      "status": "error",
+      "message": "'main_connector_id'"
+    }
+  },
+  {
+    "table": "ods_alias_opdrachtbonregels",
+    "schema": "stg",
+    "result": {
+      "status": "error",
+      "message": "'main_connector_id'"
+    }
+  },
+  {
+    "table": "ods_alias_offerteafspraken",
+    "schema": "stg",
+    "result": {
+      "status": "error",
+      "message": "'main_connector_id'"
+    }
+  },
+  {
+    "table": "ods_alias_opdrachten",
+    "schema": "stg",
+    "result": {
+      "status": "error",
+      "message": "'main_connector_id'"
+    }
+  },
+  {
+    "table": "ods_alias_offertebtw",
+    "schema": "stg",
+    "result": {
+      "status": "error",
+      "message": "'main_connector_id'"
+    }
+  },
+  {
+    "table": "ods_alias_opdrachtformulieren",
+    "schema": "stg",
+    "result": {
+      "status": "error",
+      "message": "'main_connector_id'"
+    }
+  },
+  {
+    "table": "ods_alias_offertesoorten",
+    "schema": "stg",
+    "result": {
+      "status": "error",
+      "message": "'main_connector_id'"
+    }
+  },
+  {
+    "table": "ods_alias_opdrachtinstructies",
+    "schema": "stg",
+    "result": {
+      "status": "error",
+      "message": "'main_connector_id'"
+    }
+  },
+  {
+    "table": "ods_alias_opdrachtbonbezoeken",
+    "schema": "stg",
+    "result": {
+      "status": "error",
+      "message": "'main_connector_id'"
+    }
+  },
+  {
+    "table": "ods_alias_opdrachtbonnen",
+    "schema": "stg",
+    "result": {
+      "status": "error",
+      "message": "'main_connector_id'"
+    }
+  },
+  {
+    "table": "ods_alias_opdrachtbonnenbijlage",
+    "schema": "stg",
+    "result": {
+      "status": "error",
+      "message": "'main_connector_id'"
+    }
+  },
+  {
+    "table": "ods_alias_opdrachtsoorten",
+    "schema": "stg",
+    "result": {
+      "status": "error",
+      "message": "'main_connector_id'"
+    }
+  },
+  {
+    "table": "ods_alias_paragrafen",
+    "schema": "stg",
+    "result": {
+      "status": "error",
+      "message": "'main_connector_id'"
+    }
+  },
+  {
+    "table": "ods_alias_pdaappsettings",
+    "schema": "stg",
+    "result": {
+      "status": "error",
+      "message": "'main_connector_id'"
+    }
+  },
+  {
+    "table": "ods_alias_pdatimetypes",
+    "schema": "stg",
+    "result": {
+      "status": "error",
+      "message": "'main_connector_id'"
+    }
+  },
+  {
+    "table": "ods_alias_pdaworktypes",
+    "schema": "stg",
+    "result": {
+      "status": "error",
+      "message": "'main_connector_id'"
+    }
+  },
+  {
+    "table": "ods_alias_personeel",
+    "schema": "stg",
+    "result": {
+      "status": "error",
+      "message": "'main_connector_id'"
+    }
+  },
+  {
+    "table": "ods_alias_personeeloud",
+    "schema": "stg",
+    "result": {
+      "status": "error",
+      "message": "'main_connector_id'"
+    }
+  },
+  {
+    "table": "ods_alias_personeelskleding",
+    "schema": "stg",
+    "result": {
+      "status": "error",
+      "message": "'main_connector_id'"
+    }
+  },
+  {
+    "table": "ods_alias_personeelskledingsoorten",
+    "schema": "stg",
+    "result": {
+      "status": "error",
+      "message": "'main_connector_id'"
+    }
+  },
+  {
+    "table": "ods_alias_planlabels",
+    "schema": "stg",
+    "result": {
+      "status": "error",
+      "message": "'main_connector_id'"
+    }
+  },
+  {
+    "table": "ods_alias_plantaken",
+    "schema": "stg",
+    "result": {
+      "status": "error",
+      "message": "'main_connector_id'"
+    }
+  },
+  {
+    "table": "ods_alias_plantakengoogle",
+    "schema": "stg",
+    "result": {
+      "status": "error",
+      "message": "'main_connector_id'"
+    }
+  },
+  {
+    "table": "ods_alias_plantakenoutlook",
+    "schema": "stg",
+    "result": {
+      "status": "error",
+      "message": "'main_connector_id'"
+    }
+  },
+  {
+    "table": "ods_alias_recordmapkoppelingen",
+    "schema": "stg",
+    "result": {
+      "status": "error",
+      "message": "'main_connector_id'"
+    }
+  },
+  {
+    "table": "ods_alias_relatiesbijlage",
+    "schema": "stg",
+    "result": {
+      "status": "error",
+      "message": "'main_connector_id'"
+    }
+  },
+  {
+    "table": "ods_alias_relatiesoorten",
+    "schema": "stg",
+    "result": {
+      "status": "error",
+      "message": "'main_connector_id'"
+    }
+  },
+  {
+    "table": "ods_alias_resourcegroepen",
+    "schema": "stg",
+    "result": {
+      "status": "error",
+      "message": "'main_connector_id'"
+    }
+  },
+  {
+    "table": "ods_alias_servicecontracten",
+    "schema": "stg",
+    "result": {
+      "status": "error",
+      "message": "'main_connector_id'"
+    }
+  },
+  {
+    "table": "ods_alias_termijnstaatregels",
+    "schema": "stg",
+    "result": {
+      "status": "error",
+      "message": "'main_connector_id'"
+    }
+  },
+  {
+    "table": "ods_alias_termijnstaten",
+    "schema": "stg",
+    "result": {
+      "status": "error",
+      "message": "'main_connector_id'"
+    }
+  },
+  {
+    "table": "ods_alias_urenregels",
+    "schema": "stg",
+    "result": {
+      "status": "error",
+      "message": "'main_connector_id'"
+    }
+  },
+  {
+    "table": "ods_alias_userwebparts",
+    "schema": "stg",
+    "result": {
+      "status": "error",
+      "message": "'main_connector_id'"
+    }
+  },
+  {
+    "table": "ods_alias_uursoorten",
+    "schema": "stg",
+    "result": {
+      "status": "error",
+      "message": "'main_connector_id'"
+    }
+  },
+  {
+    "table": "ods_alias_uurtariefcodes",
+    "schema": "stg",
+    "result": {
+      "status": "error",
+      "message": "'main_connector_id'"
+    }
+  },
+  {
+    "table": "ods_alias_volgnummers",
+    "schema": "stg",
+    "result": {
+      "status": "error",
+      "message": "'main_connector_id'"
+    }
+  },
+  {
+    "table": "ods_alias_voorraadmutaties",
+    "schema": "stg",
+    "result": {
+      "status": "error",
+      "message": "'main_connector_id'"
+    }
+  },
+  {
+    "table": "ods_alias_werkadministraties",
+    "schema": "stg",
+    "result": {
+      "status": "error",
+      "message": "'main_connector_id'"
+    }
+  },
+  {
+    "table": "ods_alias_werkbon",
+    "schema": "stg",
+    "result": {
+      "status": "error",
+      "message": "'main_connector_id'"
+    }
+  },
+  {
+    "table": "ods_alias_werken",
+    "schema": "stg",
+    "result": {
+      "status": "error",
+      "message": "'main_connector_id'"
+    }
+  },
+  {
+    "table": "ods_alias_werkmonteurs",
+    "schema": "stg",
+    "result": {
+      "status": "error",
+      "message": "'main_connector_id'"
+    }
+  },
+  {
+    "table": "ods_alias_werksoorten",
+    "schema": "stg",
+    "result": {
+      "status": "error",
+      "message": "'main_connector_id'"
+    }
+  },
+  {
+    "table": "ods_alias_aanvraagregelbestelregels_v",
+    "schema": "stg",
+    "result": {
+      "status": "skipped",
+      "reason": "no_columns"
+    }
+  },
+  {
+    "table": "ods_alias_aanvraagregels_v",
+    "schema": "stg",
+    "result": {
+      "status": "skipped",
+      "reason": "no_columns"
+    }
+  },
+  {
+    "table": "ods_alias_aanvragen_v",
+    "schema": "stg",
+    "result": {
+      "status": "skipped",
+      "reason": "no_columns"
+    }
+  },
+  {
+    "table": "ods_alias_aanvragenbijlage_v",
+    "schema": "stg",
+    "result": {
+      "status": "skipped",
+      "reason": "no_columns"
+    }
+  },
+  {
+    "table": "ods_alias_afleveradressen_v",
+    "schema": "stg",
+    "result": {
+      "status": "skipped",
+      "reason": "no_columns"
+    }
+  },
+  {
+    "table": "ods_alias_afrondcodes_v",
+    "schema": "stg",
+    "result": {
+      "status": "skipped",
+      "reason": "no_columns"
+    }
+  },
+  {
+    "table": "ods_alias_apparaatcodes_v",
+    "schema": "stg",
+    "result": {
+      "status": "skipped",
+      "reason": "no_columns"
+    }
+  },
+  {
+    "table": "ods_alias_batchrun_v",
+    "schema": "stg",
+    "result": {
+      "status": "skipped",
+      "reason": "no_columns"
+    }
+  },
+  {
+    "table": "ods_alias_bedrijven_v",
+    "schema": "stg",
+    "result": {
+      "status": "skipped",
+      "reason": "no_columns"
+    }
+  },
+  {
+    "table": "ods_alias_berichtenontvangen_v",
+    "schema": "stg",
+    "result": {
+      "status": "skipped",
+      "reason": "no_columns"
+    }
+  },
+  {
+    "table": "ods_alias_aanvraagregelbestelregels",
+    "schema": "stg",
+    "result": {
+      "status": "error",
+      "message": "'main_connector_id'"
+    }
+  },
+  {
+    "table": "ods_alias_berichtenverwerkt_v",
+    "schema": "stg",
+    "result": {
+      "status": "skipped",
+      "reason": "no_columns"
+    }
+  },
+  {
+    "table": "ods_alias_aanvraagregels",
+    "schema": "stg",
+    "result": {
+      "status": "error",
+      "message": "'main_connector_id'"
+    }
+  },
+  {
+    "table": "ods_alias_berichtenverzonden_v",
+    "schema": "stg",
+    "result": {
+      "status": "skipped",
+      "reason": "no_columns"
+    }
+  },
+  {
+    "table": "ods_alias_aanvragenbijlage",
+    "schema": "stg",
+    "result": {
+      "status": "error",
+      "message": "'main_connector_id'"
+    }
+  },
+  {
+    "table": "ods_alias_bestellingen_v",
+    "schema": "stg",
+    "result": {
+      "status": "skipped",
+      "reason": "no_columns"
+    }
+  },
+  {
+    "table": "ods_alias_bestellingenbijlage_v",
+    "schema": "stg",
+    "result": {
+      "status": "skipped",
+      "reason": "no_columns"
+    }
+  },
+  {
+    "table": "ods_alias_bestellingsoorten_v",
+    "schema": "stg",
+    "result": {
+      "status": "skipped",
+      "reason": "no_columns"
+    }
+  },
+  {
+    "table": "ods_alias_bestelobjects_v",
+    "schema": "stg",
+    "result": {
+      "status": "skipped",
+      "reason": "no_columns"
+    }
+  },
+  {
+    "table": "ods_alias_bestelregels_v",
+    "schema": "stg",
+    "result": {
+      "status": "skipped",
+      "reason": "no_columns"
+    }
+  },
+  {
+    "table": "ods_alias_betalingscondities_v",
+    "schema": "stg",
+    "result": {
+      "status": "skipped",
+      "reason": "no_columns"
+    }
+  },
+  {
+    "table": "ods_alias_bewakingscodes_v",
+    "schema": "stg",
+    "result": {
+      "status": "skipped",
+      "reason": "no_columns"
+    }
+  },
+  {
+    "table": "ods_alias_bewerkingscodes_v",
+    "schema": "stg",
+    "result": {
+      "status": "skipped",
+      "reason": "no_columns"
+    }
+  },
+  {
+    "table": "ods_alias_bewerkingsdisciplines_v",
+    "schema": "stg",
+    "result": {
+      "status": "skipped",
+      "reason": "no_columns"
+    }
+  },
+  {
+    "table": "ods_alias_bewerkingsgroepen_v",
+    "schema": "stg",
+    "result": {
+      "status": "skipped",
+      "reason": "no_columns"
+    }
+  },
+  {
+    "table": "ods_alias_bewerkingstoelichtingen_v",
+    "schema": "stg",
+    "result": {
+      "status": "skipped",
+      "reason": "no_columns"
+    }
+  },
+  {
+    "table": "ods_alias_btwcodes_v",
+    "schema": "stg",
+    "result": {
+      "status": "skipped",
+      "reason": "no_columns"
+    }
+  },
+  {
+    "table": "ods_alias_calconderdelen_v",
+    "schema": "stg",
+    "result": {
+      "status": "skipped",
+      "reason": "no_columns"
+    }
+  },
+  {
+    "table": "ods_alias_calcrecepten_v",
+    "schema": "stg",
+    "result": {
+      "status": "skipped",
+      "reason": "no_columns"
+    }
+  },
+  {
+    "table": "ods_alias_calcreceptgroepen_v",
+    "schema": "stg",
+    "result": {
+      "status": "skipped",
+      "reason": "no_columns"
+    }
+  },
+  {
+    "table": "ods_alias_calcreceptregels_v",
+    "schema": "stg",
+    "result": {
+      "status": "skipped",
+      "reason": "no_columns"
+    }
+  },
+  {
+    "table": "ods_alias_calcregels_v",
+    "schema": "stg",
+    "result": {
+      "status": "skipped",
+      "reason": "no_columns"
+    }
+  },
+  {
+    "table": "ods_alias_calcstaartexpressies_v",
+    "schema": "stg",
+    "result": {
+      "status": "skipped",
+      "reason": "no_columns"
+    }
+  },
+  {
+    "table": "ods_alias_calcstaartkosten_v",
+    "schema": "stg",
+    "result": {
+      "status": "skipped",
+      "reason": "no_columns"
+    }
+  },
+  {
+    "table": "ods_alias_calcstaartregels_v",
+    "schema": "stg",
+    "result": {
+      "status": "skipped",
+      "reason": "no_columns"
+    }
+  },
+  {
+    "table": "ods_alias_calcstaartwaarden_v",
+    "schema": "stg",
+    "result": {
+      "status": "skipped",
+      "reason": "no_columns"
+    }
+  },
+  {
+    "table": "ods_alias_calcuitbestedingscodes_v",
+    "schema": "stg",
+    "result": {
+      "status": "skipped",
+      "reason": "no_columns"
+    }
+  },
+  {
+    "table": "ods_alias_calculatiebtw_v",
+    "schema": "stg",
+    "result": {
+      "status": "skipped",
+      "reason": "no_columns"
+    }
+  },
+  {
+    "table": "ods_alias_calculatiehoofdstukken_v",
+    "schema": "stg",
+    "result": {
+      "status": "skipped",
+      "reason": "no_columns"
+    }
+  },
+  {
+    "table": "ods_alias_calcreceptgroepen",
+    "schema": "stg",
+    "result": {
+      "status": "error",
+      "message": "'main_connector_id'"
+    }
+  },
+  {
+    "table": "ods_alias_calculatieregels_v",
+    "schema": "stg",
+    "result": {
+      "status": "skipped",
+      "reason": "no_columns"
+    }
+  },
+  {
+    "table": "ods_alias_calcreceptregels",
+    "schema": "stg",
+    "result": {
+      "status": "error",
+      "message": "'main_connector_id'"
+    }
+  },
+  {
+    "table": "ods_alias_calcstaartexpressies",
+    "schema": "stg",
+    "result": {
+      "status": "error",
+      "message": "'main_connector_id'"
+    }
+  },
+  {
+    "table": "ods_alias_calculaties_v",
+    "schema": "stg",
+    "result": {
+      "status": "skipped",
+      "reason": "no_columns"
+    }
+  },
+  {
+    "table": "ods_alias_calcstaartkosten",
+    "schema": "stg",
+    "result": {
+      "status": "error",
+      "message": "'main_connector_id'"
+    }
+  },
+  {
+    "table": "ods_alias_calculatiebtw",
+    "schema": "stg",
+    "result": {
+      "status": "error",
+      "message": "'main_connector_id'"
+    }
+  },
+  {
+    "table": "ods_alias_calcuurcodes_v",
+    "schema": "stg",
+    "result": {
+      "status": "skipped",
+      "reason": "no_columns"
+    }
+  },
+  {
+    "table": "ods_alias_calcuurtarieven_v",
+    "schema": "stg",
+    "result": {
+      "status": "skipped",
+      "reason": "no_columns"
+    }
+  },
+  {
+    "table": "ods_alias_calcuurtotalen_v",
+    "schema": "stg",
+    "result": {
+      "status": "skipped",
+      "reason": "no_columns"
+    }
+  },
+  {
+    "table": "ods_alias_cbewakingsub_v",
+    "schema": "stg",
+    "result": {
+      "status": "skipped",
+      "reason": "no_columns"
+    }
+  },
+  {
+    "table": "ods_alias_ccompetenties_v",
+    "schema": "stg",
+    "result": {
+      "status": "skipped",
+      "reason": "no_columns"
+    }
+  },
+  {
+    "table": "ods_alias_cinkfacthistory_v",
+    "schema": "stg",
+    "result": {
+      "status": "skipped",
+      "reason": "no_columns"
+    }
+  },
+  {
+    "table": "ods_alias_cinkoopdefaultconditie_v",
+    "schema": "stg",
+    "result": {
+      "status": "skipped",
+      "reason": "no_columns"
+    }
+  },
+  {
+    "table": "ods_alias_clog_v",
+    "schema": "stg",
+    "result": {
+      "status": "skipped",
+      "reason": "no_columns"
+    }
+  },
+  {
+    "table": "ods_alias_cmaterieelsoort_v",
+    "schema": "stg",
+    "result": {
+      "status": "skipped",
+      "reason": "no_columns"
+    }
+  },
+  {
+    "table": "ods_alias_comzetverwachtingbase_v",
+    "schema": "stg",
+    "result": {
+      "status": "skipped",
+      "reason": "no_columns"
+    }
+  },
+  {
+    "table": "ods_alias_comzetverwachtingdetail_v",
+    "schema": "stg",
+    "result": {
+      "status": "skipped",
+      "reason": "no_columns"
+    }
+  },
+  {
+    "table": "ods_alias_contactpersonen_v",
+    "schema": "stg",
+    "result": {
+      "status": "skipped",
+      "reason": "no_columns"
+    }
+  },
+  {
+    "table": "ods_alias_contractsoorten_v",
+    "schema": "stg",
+    "result": {
+      "status": "skipped",
+      "reason": "no_columns"
+    }
+  },
+  {
+    "table": "ods_alias_cperbewakingscode_v",
+    "schema": "stg",
+    "result": {
+      "status": "skipped",
+      "reason": "no_columns"
+    }
+  },
+  {
+    "table": "ods_alias_cprojectbewaking_v",
+    "schema": "stg",
+    "result": {
+      "status": "skipped",
+      "reason": "no_columns"
+    }
+  },
+  {
+    "table": "ods_alias_ctakenlijst_v",
+    "schema": "stg",
+    "result": {
+      "status": "skipped",
+      "reason": "no_columns"
+    }
+  },
+  {
+    "table": "ods_alias_dagboeken_v",
+    "schema": "stg",
+    "result": {
+      "status": "skipped",
+      "reason": "no_columns"
+    }
+  },
+  {
+    "table": "ods_alias_documenten_v",
+    "schema": "stg",
+    "result": {
+      "status": "skipped",
+      "reason": "no_columns"
+    }
+  },
+  {
+    "table": "ods_alias_documentmappen_v",
+    "schema": "stg",
+    "result": {
+      "status": "skipped",
+      "reason": "no_columns"
+    }
+  },
+  {
+    "table": "ods_alias_emailaccounts_v",
+    "schema": "stg",
+    "result": {
+      "status": "skipped",
+      "reason": "no_columns"
+    }
+  },
+  {
+    "table": "ods_alias_exportmeldingen_v",
+    "schema": "stg",
+    "result": {
+      "status": "skipped",
+      "reason": "no_columns"
+    }
+  },
+  {
+    "table": "ods_alias_facturen_v",
+    "schema": "stg",
+    "result": {
+      "status": "skipped",
+      "reason": "no_columns"
+    }
+  },
+  {
+    "table": "ods_alias_faktspecs_v",
+    "schema": "stg",
+    "result": {
+      "status": "skipped",
+      "reason": "no_columns"
+    }
+  },
+  {
+    "table": "ods_alias_fakturenbijlage_v",
+    "schema": "stg",
+    "result": {
+      "status": "skipped",
+      "reason": "no_columns"
+    }
+  },
+  {
+    "table": "ods_alias_faktuurbtw_v",
+    "schema": "stg",
+    "result": {
+      "status": "skipped",
+      "reason": "no_columns"
+    }
+  },
+  {
+    "table": "ods_alias_faktuurregels_v",
+    "schema": "stg",
+    "result": {
+      "status": "skipped",
+      "reason": "no_columns"
+    }
+  },
+  {
+    "table": "ods_alias_faktuursoorten_v",
+    "schema": "stg",
+    "result": {
+      "status": "skipped",
+      "reason": "no_columns"
+    }
+  },
+  {
+    "table": "ods_alias_faktuurtermijnstaatregels_v",
+    "schema": "stg",
+    "result": {
+      "status": "skipped",
+      "reason": "no_columns"
+    }
+  },
+  {
+    "table": "ods_alias_grootboekrekeningen_v",
+    "schema": "stg",
+    "result": {
+      "status": "skipped",
+      "reason": "no_columns"
+    }
+  },
+  {
+    "table": "ods_alias_hoofdstukken_v",
+    "schema": "stg",
+    "result": {
+      "status": "skipped",
+      "reason": "no_columns"
+    }
+  },
+  {
+    "table": "ods_alias_inkfactregels_v",
+    "schema": "stg",
+    "result": {
+      "status": "skipped",
+      "reason": "no_columns"
+    }
+  },
+  {
+    "table": "ods_alias_inkfacturen_v",
+    "schema": "stg",
+    "result": {
+      "status": "skipped",
+      "reason": "no_columns"
+    }
+  },
+  {
+    "table": "ods_alias_inkfakturenbijlage_v",
+    "schema": "stg",
+    "result": {
+      "status": "skipped",
+      "reason": "no_columns"
+    }
+  },
+  {
+    "table": "ods_alias_inkfakturenobjects_v",
+    "schema": "stg",
+    "result": {
+      "status": "skipped",
+      "reason": "no_columns"
+    }
+  },
+  {
+    "table": "ods_alias_faktspecs",
+    "schema": "stg",
+    "result": {
+      "status": "error",
+      "message": "'main_connector_id'"
+    }
+  },
+  {
+    "table": "ods_alias_inkfakturenrecordmeldingen_v",
+    "schema": "stg",
+    "result": {
+      "status": "skipped",
+      "reason": "no_columns"
+    }
+  },
+  {
+    "table": "ods_alias_fakturenbijlage",
+    "schema": "stg",
+    "result": {
+      "status": "error",
+      "message": "'main_connector_id'"
+    }
+  },
+  {
+    "table": "ods_alias_faktuurbtw",
+    "schema": "stg",
+    "result": {
+      "status": "error",
+      "message": "'main_connector_id'"
+    }
+  },
+  {
+    "table": "ods_alias_installatieonderhoudsregels_v",
+    "schema": "stg",
+    "result": {
+      "status": "skipped",
+      "reason": "no_columns"
+    }
+  },
+  {
+    "table": "ods_alias_faktuurregels",
+    "schema": "stg",
+    "result": {
+      "status": "error",
+      "message": "'main_connector_id'"
+    }
+  },
+  {
+    "table": "ods_alias_faktuursoorten",
+    "schema": "stg",
+    "result": {
+      "status": "error",
+      "message": "'main_connector_id'"
+    }
+  },
+  {
+    "table": "ods_alias_installaties_v",
+    "schema": "stg",
+    "result": {
+      "status": "skipped",
+      "reason": "no_columns"
+    }
+  },
+  {
+    "table": "ods_alias_faktuurtermijnstaatregels",
+    "schema": "stg",
+    "result": {
+      "status": "error",
+      "message": "'main_connector_id'"
+    }
+  },
+  {
+    "table": "ods_alias_installatietypes_v",
+    "schema": "stg",
+    "result": {
+      "status": "skipped",
+      "reason": "no_columns"
+    }
+  },
+  {
+    "table": "ods_alias_kleingereedschap_v",
+    "schema": "stg",
+    "result": {
+      "status": "skipped",
+      "reason": "no_columns"
+    }
+  },
+  {
+    "table": "ods_alias_kleingereedschapsoort_v",
+    "schema": "stg",
+    "result": {
+      "status": "skipped",
+      "reason": "no_columns"
+    }
+  },
+  {
+    "table": "ods_alias_konditiegroepen_v",
+    "schema": "stg",
+    "result": {
+      "status": "skipped",
+      "reason": "no_columns"
+    }
+  },
+  {
+    "table": "ods_alias_koperskeuzeafrekeningen_v",
+    "schema": "stg",
+    "result": {
+      "status": "skipped",
+      "reason": "no_columns"
+    }
+  },
+  {
+    "table": "ods_alias_koperskeuzebonnen_v",
+    "schema": "stg",
+    "result": {
+      "status": "skipped",
+      "reason": "no_columns"
+    }
+  },
+  {
+    "table": "ods_alias_koperskeuzebonoffertes_v",
+    "schema": "stg",
+    "result": {
+      "status": "skipped",
+      "reason": "no_columns"
+    }
+  },
+  {
+    "table": "ods_alias_koperskeuzebonregelgroepen_v",
+    "schema": "stg",
+    "result": {
+      "status": "skipped",
+      "reason": "no_columns"
+    }
+  },
+  {
+    "table": "ods_alias_koperskeuzebonregels_v",
+    "schema": "stg",
+    "result": {
+      "status": "skipped",
+      "reason": "no_columns"
+    }
+  },
+  {
+    "table": "ods_alias_kortingsgroepen_v",
+    "schema": "stg",
+    "result": {
+      "status": "skipped",
+      "reason": "no_columns"
+    }
+  },
+  {
+    "table": "ods_alias_koudemiddelen_v",
+    "schema": "stg",
+    "result": {
+      "status": "skipped",
+      "reason": "no_columns"
+    }
+  },
+  {
+    "table": "ods_alias_landen_v",
+    "schema": "stg",
+    "result": {
+      "status": "skipped",
+      "reason": "no_columns"
+    }
+  },
+  {
+    "table": "ods_alias_leverancierbedrijf_v",
+    "schema": "stg",
+    "result": {
+      "status": "skipped",
+      "reason": "no_columns"
+    }
+  },
+  {
+    "table": "ods_alias_leverancierberichtprofielregelsemail_v",
+    "schema": "stg",
+    "result": {
+      "status": "skipped",
+      "reason": "no_columns"
+    }
+  },
+  {
+    "table": "ods_alias_leverancierberichtprofielregelsmap_v",
+    "schema": "stg",
+    "result": {
+      "status": "skipped",
+      "reason": "no_columns"
+    }
+  },
+  {
+    "table": "ods_alias_leveranciercrediteurnrs_v",
+    "schema": "stg",
+    "result": {
+      "status": "skipped",
+      "reason": "no_columns"
+    }
+  },
+  {
+    "table": "ods_alias_leverancierdebiteurnrs_v",
+    "schema": "stg",
+    "result": {
+      "status": "skipped",
+      "reason": "no_columns"
+    }
+  },
+  {
+    "table": "ods_alias_leveranciersbijlage_v",
+    "schema": "stg",
+    "result": {
+      "status": "skipped",
+      "reason": "no_columns"
+    }
+  },
+  {
+    "table": "ods_alias_leverancierusers_v",
+    "schema": "stg",
+    "result": {
+      "status": "skipped",
+      "reason": "no_columns"
+    }
+  },
+  {
+    "table": "ods_alias_magazijnen_v",
+    "schema": "stg",
+    "result": {
+      "status": "skipped",
+      "reason": "no_columns"
+    }
+  },
+  {
+    "table": "ods_alias_magazijnvoorraad_v",
+    "schema": "stg",
+    "result": {
+      "status": "skipped",
+      "reason": "no_columns"
+    }
+  },
+  {
+    "table": "ods_alias_materieel_v",
+    "schema": "stg",
+    "result": {
+      "status": "skipped",
+      "reason": "no_columns"
+    }
+  },
+  {
+    "table": "ods_alias_materieelbijlage_v",
+    "schema": "stg",
+    "result": {
+      "status": "skipped",
+      "reason": "no_columns"
+    }
+  },
+  {
+    "table": "ods_alias_meerwerkcodes_v",
+    "schema": "stg",
+    "result": {
+      "status": "skipped",
+      "reason": "no_columns"
+    }
+  },
+  {
+    "table": "ods_alias_montagegangen_v",
+    "schema": "stg",
+    "result": {
+      "status": "skipped",
+      "reason": "no_columns"
+    }
+  },
+  {
+    "table": "ods_alias_nacalculaties_v",
+    "schema": "stg",
+    "result": {
+      "status": "skipped",
+      "reason": "no_columns"
+    }
+  },
+  {
+    "table": "ods_alias_offerteafspraken_v",
+    "schema": "stg",
+    "result": {
+      "status": "skipped",
+      "reason": "no_columns"
+    }
+  },
+  {
+    "table": "ods_alias_offertebtw_v",
+    "schema": "stg",
+    "result": {
+      "status": "skipped",
+      "reason": "no_columns"
+    }
+  },
+  {
+    "table": "ods_alias_leverancierusers",
+    "schema": "stg",
+    "result": {
+      "status": "error",
+      "message": "'main_connector_id'"
+    }
+  },
+  {
+    "table": "ods_alias_magazijnen",
+    "schema": "stg",
+    "result": {
+      "status": "error",
+      "message": "'main_connector_id'"
+    }
+  },
+  {
+    "table": "ods_alias_offertesoorten_v",
+    "schema": "stg",
+    "result": {
+      "status": "skipped",
+      "reason": "no_columns"
+    }
+  },
+  {
+    "table": "ods_alias_magazijnvoorraad",
+    "schema": "stg",
+    "result": {
+      "status": "error",
+      "message": "'main_connector_id'"
+    }
+  },
+  {
+    "table": "ods_alias_materieel",
+    "schema": "stg",
+    "result": {
+      "status": "error",
+      "message": "'main_connector_id'"
+    }
+  },
+  {
+    "table": "ods_alias_opdrachtbonbezoeken_v",
+    "schema": "stg",
+    "result": {
+      "status": "skipped",
+      "reason": "no_columns"
+    }
+  },
+  {
+    "table": "ods_alias_montagegangen",
+    "schema": "stg",
+    "result": {
+      "status": "error",
+      "message": "'main_connector_id'"
+    }
+  },
+  {
+    "table": "ods_alias_opdrachtbonnen_v",
+    "schema": "stg",
+    "result": {
+      "status": "skipped",
+      "reason": "no_columns"
+    }
+  },
+  {
+    "table": "ods_alias_opdrachtbonnenbijlage_v",
+    "schema": "stg",
+    "result": {
+      "status": "skipped",
+      "reason": "no_columns"
+    }
+  },
+  {
+    "table": "ods_alias_opdrachtbonregels_v",
+    "schema": "stg",
+    "result": {
+      "status": "skipped",
+      "reason": "no_columns"
+    }
+  },
+  {
+    "table": "ods_alias_opdrachten_v",
+    "schema": "stg",
+    "result": {
+      "status": "skipped",
+      "reason": "no_columns"
+    }
+  },
+  {
+    "table": "ods_alias_opdrachtformulieren_v",
+    "schema": "stg",
+    "result": {
+      "status": "skipped",
+      "reason": "no_columns"
+    }
+  },
+  {
+    "table": "ods_alias_opdrachtinstructies_v",
+    "schema": "stg",
+    "result": {
+      "status": "skipped",
+      "reason": "no_columns"
+    }
+  },
+  {
+    "table": "ods_alias_opdrachtsoorten_v",
+    "schema": "stg",
+    "result": {
+      "status": "skipped",
+      "reason": "no_columns"
+    }
+  },
+  {
+    "table": "ods_alias_paragrafen_v",
+    "schema": "stg",
+    "result": {
+      "status": "skipped",
+      "reason": "no_columns"
+    }
+  },
+  {
+    "table": "ods_alias_pdaappsettings_v",
+    "schema": "stg",
+    "result": {
+      "status": "skipped",
+      "reason": "no_columns"
+    }
+  },
+  {
+    "table": "ods_alias_pdatimetypes_v",
+    "schema": "stg",
+    "result": {
+      "status": "skipped",
+      "reason": "no_columns"
+    }
+  },
+  {
+    "table": "ods_alias_pdaworktypes_v",
+    "schema": "stg",
+    "result": {
+      "status": "skipped",
+      "reason": "no_columns"
+    }
+  },
+  {
+    "table": "ods_alias_personeel_v",
+    "schema": "stg",
+    "result": {
+      "status": "skipped",
+      "reason": "no_columns"
+    }
+  },
+  {
+    "table": "ods_alias_personeeloud_v",
+    "schema": "stg",
+    "result": {
+      "status": "skipped",
+      "reason": "no_columns"
+    }
+  },
+  {
+    "table": "ods_alias_personeelskleding_v",
+    "schema": "stg",
+    "result": {
+      "status": "skipped",
+      "reason": "no_columns"
+    }
+  },
+  {
+    "table": "ods_alias_personeelskledingsoorten_v",
+    "schema": "stg",
+    "result": {
+      "status": "skipped",
+      "reason": "no_columns"
+    }
+  },
+  {
+    "table": "ods_alias_planlabels_v",
+    "schema": "stg",
+    "result": {
+      "status": "skipped",
+      "reason": "no_columns"
+    }
+  },
+  {
+    "table": "ods_alias_plantaken_v",
+    "schema": "stg",
+    "result": {
+      "status": "skipped",
+      "reason": "no_columns"
+    }
+  },
+  {
+    "table": "ods_alias_plantakengoogle_v",
+    "schema": "stg",
+    "result": {
+      "status": "skipped",
+      "reason": "no_columns"
+    }
+  },
+  {
+    "table": "ods_alias_plantakenoutlook_v",
+    "schema": "stg",
+    "result": {
+      "status": "skipped",
+      "reason": "no_columns"
+    }
+  },
+  {
+    "table": "ods_alias_recordmapkoppelingen_v",
+    "schema": "stg",
+    "result": {
+      "status": "skipped",
+      "reason": "no_columns"
+    }
+  },
+  {
+    "table": "ods_alias_relatiesbijlage_v",
+    "schema": "stg",
+    "result": {
+      "status": "skipped",
+      "reason": "no_columns"
+    }
+  },
+  {
+    "table": "ods_alias_relatiesoorten_v",
+    "schema": "stg",
+    "result": {
+      "status": "skipped",
+      "reason": "no_columns"
+    }
+  },
+  {
+    "table": "ods_alias_resourcegroepen_v",
+    "schema": "stg",
+    "result": {
+      "status": "skipped",
+      "reason": "no_columns"
+    }
+  },
+  {
+    "table": "ods_alias_selectiecodes_v",
+    "schema": "stg",
+    "result": {
+      "status": "skipped",
+      "reason": "no_columns"
+    }
+  },
+  {
+    "table": "ods_alias_servicecontracten_v",
+    "schema": "stg",
+    "result": {
+      "status": "skipped",
+      "reason": "no_columns"
+    }
+  },
+  {
+    "table": "ods_alias_standaardteksten_v",
+    "schema": "stg",
+    "result": {
+      "status": "skipped",
+      "reason": "no_columns"
+    }
+  },
+  {
+    "table": "ods_alias_tekstdocumenten_v",
+    "schema": "stg",
+    "result": {
+      "status": "skipped",
+      "reason": "no_columns"
+    }
+  },
+  {
+    "table": "ods_alias_tekstdocumentsoorten_v",
+    "schema": "stg",
+    "result": {
+      "status": "skipped",
+      "reason": "no_columns"
+    }
+  },
+  {
+    "table": "ods_alias_termijnstaatregels_v",
+    "schema": "stg",
+    "result": {
+      "status": "skipped",
+      "reason": "no_columns"
+    }
+  },
+  {
+    "table": "ods_alias_termijnstaten_v",
+    "schema": "stg",
+    "result": {
+      "status": "skipped",
+      "reason": "no_columns"
+    }
+  },
+  {
+    "table": "ods_alias_uitbestedingscodes_v",
+    "schema": "stg",
+    "result": {
+      "status": "skipped",
+      "reason": "no_columns"
+    }
+  },
+  {
+    "table": "ods_alias_uitleveringen_v",
+    "schema": "stg",
+    "result": {
+      "status": "skipped",
+      "reason": "no_columns"
+    }
+  },
+  {
+    "table": "ods_alias_uitleveringsregels_v",
+    "schema": "stg",
+    "result": {
+      "status": "skipped",
+      "reason": "no_columns"
+    }
+  },
+  {
+    "table": "ods_alias_urenregels_v",
+    "schema": "stg",
+    "result": {
+      "status": "skipped",
+      "reason": "no_columns"
+    }
+  },
+  {
+    "table": "ods_alias_standaardteksten",
+    "schema": "stg",
+    "result": {
+      "status": "error",
+      "message": "'main_connector_id'"
+    }
+  },
+  {
+    "table": "ods_alias_users_v",
+    "schema": "stg",
+    "result": {
+      "status": "skipped",
+      "reason": "no_columns"
+    }
+  },
+  {
+    "table": "ods_alias_tekstdocumenten",
+    "schema": "stg",
+    "result": {
+      "status": "error",
+      "message": "'main_connector_id'"
+    }
+  },
+  {
+    "table": "ods_alias_tekstdocumentsoorten",
+    "schema": "stg",
+    "result": {
+      "status": "error",
+      "message": "'main_connector_id'"
+    }
+  },
+  {
+    "table": "ods_alias_userwebparts_v",
+    "schema": "stg",
+    "result": {
+      "status": "skipped",
+      "reason": "no_columns"
+    }
+  },
+  {
+    "table": "ods_alias_uitbestedingscodes",
+    "schema": "stg",
+    "result": {
+      "status": "error",
+      "message": "'main_connector_id'"
+    }
+  },
+  {
+    "table": "ods_alias_uitleveringen",
+    "schema": "stg",
+    "result": {
+      "status": "error",
+      "message": "'main_connector_id'"
+    }
+  },
+  {
+    "table": "ods_alias_uursoorten_v",
+    "schema": "stg",
+    "result": {
+      "status": "skipped",
+      "reason": "no_columns"
+    }
+  },
+  {
+    "table": "ods_alias_uitleveringsregels",
+    "schema": "stg",
+    "result": {
+      "status": "error",
+      "message": "'main_connector_id'"
+    }
+  },
+  {
+    "table": "ods_alias_uurtariefcodes_v",
+    "schema": "stg",
+    "result": {
+      "status": "skipped",
+      "reason": "no_columns"
+    }
+  },
+  {
+    "table": "ods_alias_volgnummers_v",
+    "schema": "stg",
+    "result": {
+      "status": "skipped",
+      "reason": "no_columns"
+    }
+  },
+  {
+    "table": "ods_alias_voorraadmutaties_v",
+    "schema": "stg",
+    "result": {
+      "status": "skipped",
+      "reason": "no_columns"
+    }
+  },
+  {
+    "table": "ods_alias_werkadministraties_v",
+    "schema": "stg",
+    "result": {
+      "status": "skipped",
+      "reason": "no_columns"
+    }
+  },
+  {
+    "table": "ods_alias_werkbon_v",
+    "schema": "stg",
+    "result": {
+      "status": "skipped",
+      "reason": "no_columns"
+    }
+  },
+  {
+    "table": "ods_alias_werkbonregels_v",
+    "schema": "stg",
+    "result": {
+      "status": "skipped",
+      "reason": "no_columns"
+    }
+  },
+  {
+    "table": "ods_alias_werken_v",
+    "schema": "stg",
+    "result": {
+      "status": "skipped",
+      "reason": "no_columns"
+    }
+  },
+  {
+    "table": "ods_alias_werkmonteurs_v",
+    "schema": "stg",
+    "result": {
+      "status": "skipped",
+      "reason": "no_columns"
+    }
+  },
+  {
+    "table": "ods_alias_werksoorten_v",
+    "schema": "stg",
+    "result": {
+      "status": "skipped",
+      "reason": "no_columns"
+    }
+  },
+  {
+    "table": "ods_alias_calcregels",
+    "schema": "stg",
+    "result": {
+      "status": "error",
+      "message": "'main_connector_id'"
+    }
+  },
+  {
+    "table": "ods_alias_bewerkingstoelichtingen",
+    "schema": "stg",
+    "result": {
+      "status": "error",
+      "message": "'main_connector_id'"
+    }
+  },
+  {
+    "table": "ods_alias_btwcodes",
+    "schema": "stg",
+    "result": {
+      "status": "error",
+      "message": "'main_connector_id'"
+    }
+  },
+  {
+    "table": "ods_alias_calconderdelen",
+    "schema": "stg",
+    "result": {
+      "status": "error",
+      "message": "'main_connector_id'"
+    }
+  },
+  {
+    "table": "ods_alias_calcrecepten",
+    "schema": "stg",
+    "result": {
+      "status": "error",
+      "message": "'main_connector_id'"
+    }
+  },
+  {
+    "table": "ods_alias_afleveradressen",
+    "schema": "stg",
+    "result": {
+      "status": "error",
+      "message": "'main_connector_id'"
+    }
+  },
+  {
+    "table": "ods_alias_apparaatcodes",
+    "schema": "stg",
+    "result": {
+      "status": "error",
+      "message": "'main_connector_id'"
+    }
+  },
+  {
+    "table": "ods_alias_batchrun",
+    "schema": "stg",
+    "result": {
+      "status": "error",
+      "message": "'main_connector_id'"
+    }
+  },
+  {
+    "table": "ods_alias_bedrijven",
+    "schema": "stg",
+    "result": {
+      "status": "error",
+      "message": "'main_connector_id'"
+    }
+  },
+  {
+    "table": "ods_alias_berichtenontvangen",
+    "schema": "stg",
+    "result": {
+      "status": "error",
+      "message": "'main_connector_id'"
+    }
+  },
+  {
+    "table": "ods_alias_berichtenverwerkt",
+    "schema": "stg",
+    "result": {
+      "status": "error",
+      "message": "'main_connector_id'"
+    }
+  },
+  {
+    "table": "ods_alias_berichtenverzonden",
+    "schema": "stg",
+    "result": {
+      "status": "error",
+      "message": "'main_connector_id'"
+    }
+  },
+  {
+    "table": "ods_alias_bestellingen",
+    "schema": "stg",
+    "result": {
+      "status": "error",
+      "message": "'main_connector_id'"
+    }
+  },
+  {
+    "table": "ods_alias_bestellingenbijlage",
+    "schema": "stg",
+    "result": {
+      "status": "error",
+      "message": "'main_connector_id'"
+    }
+  },
+  {
+    "table": "ods_alias_bestellingsoorten",
+    "schema": "stg",
+    "result": {
+      "status": "error",
+      "message": "'main_connector_id'"
+    }
+  },
+  {
+    "table": "ods_alias_bestelobjects",
+    "schema": "stg",
+    "result": {
+      "status": "error",
+      "message": "'main_connector_id'"
+    }
+  },
+  {
+    "table": "ods_alias_bestelregels",
+    "schema": "stg",
+    "result": {
+      "status": "error",
+      "message": "'main_connector_id'"
+    }
+  },
+  {
+    "table": "ods_alias_betalingscondities",
+    "schema": "stg",
+    "result": {
+      "status": "error",
+      "message": "'main_connector_id'"
+    }
+  },
+  {
+    "table": "ods_alias_bewakingscodes",
+    "schema": "stg",
+    "result": {
+      "status": "error",
+      "message": "'main_connector_id'"
+    }
+  },
+  {
+    "table": "ods_alias_bewerkingscodes",
+    "schema": "stg",
+    "result": {
+      "status": "error",
+      "message": "'main_connector_id'"
+    }
+  },
+  {
+    "table": "ods_alias_bewerkingsdisciplines",
+    "schema": "stg",
+    "result": {
+      "status": "error",
+      "message": "'main_connector_id'"
+    }
+  },
+  {
+    "table": "ods_alias_bewerkingsgroepen",
+    "schema": "stg",
+    "result": {
+      "status": "error",
+      "message": "'main_connector_id'"
+    }
+  },
+  {
+    "table": "ods_alias_users",
+    "schema": "stg",
+    "result": {
+      "status": "error",
+      "message": "'main_connector_id'"
+    }
+  },
+  {
+    "table": "ods_alias_clog",
+    "schema": "stg",
+    "result": {
+      "status": "error",
+      "message": "'main_connector_id'"
+    }
+  },
+  {
+    "table": "ods_alias_explore_1_v",
+    "schema": "stg",
+    "result": {
+      "status": "skipped",
+      "reason": "no_columns"
+    }
+  },
+  {
+    "table": "ods_alias_ccompetenties",
+    "schema": "stg",
+    "result": {
+      "status": "error",
+      "message": "'main_connector_id'"
+    }
+  },
+  {
+    "table": "ods_alias_cinkfacthistory",
+    "schema": "stg",
+    "result": {
+      "status": "error",
+      "message": "'main_connector_id'"
+    }
+  },
+  {
+    "table": "ods_alias_cinkoopdefaultconditie",
+    "schema": "stg",
+    "result": {
+      "status": "error",
+      "message": "'main_connector_id'"
+    }
+  },
+  {
+    "table": "ods_alias_cmaterieelsoort",
+    "schema": "stg",
+    "result": {
+      "status": "error",
+      "message": "'main_connector_id'"
+    }
+  },
+  {
+    "table": "ods_alias_comzetverwachtingbase",
+    "schema": "stg",
+    "result": {
+      "status": "error",
+      "message": "'main_connector_id'"
+    }
+  },
+  {
+    "table": "ods_alias_comzetverwachtingdetail",
+    "schema": "stg",
+    "result": {
+      "status": "error",
+      "message": "'main_connector_id'"
+    }
+  },
+  {
+    "table": "ods_alias_contactpersonen",
+    "schema": "stg",
+    "result": {
+      "status": "error",
+      "message": "'main_connector_id'"
+    }
+  },
+  {
+    "table": "ods_alias_contractsoorten",
+    "schema": "stg",
+    "result": {
+      "status": "error",
+      "message": "'main_connector_id'"
+    }
+  },
+  {
+    "table": "ods_alias_cperbewakingscode",
+    "schema": "stg",
+    "result": {
+      "status": "error",
+      "message": "'main_connector_id'"
+    }
+  },
+  {
+    "table": "ods_alias_cprojectbewaking",
+    "schema": "stg",
+    "result": {
+      "status": "error",
+      "message": "'main_connector_id'"
+    }
+  },
+  {
+    "table": "ods_alias_ctakenlijst",
+    "schema": "stg",
+    "result": {
+      "status": "error",
+      "message": "'main_connector_id'"
+    }
+  },
+  {
+    "table": "ods_alias_dagboeken",
+    "schema": "stg",
+    "result": {
+      "status": "error",
+      "message": "'main_connector_id'"
+    }
+  },
+  {
+    "table": "ods_alias_documenten",
+    "schema": "stg",
+    "result": {
+      "status": "error",
+      "message": "'main_connector_id'"
+    }
+  },
+  {
+    "table": "ods_alias_documentmappen",
+    "schema": "stg",
+    "result": {
+      "status": "error",
+      "message": "'main_connector_id'"
+    }
+  },
+  {
+    "table": "ods_alias_calcstaartregels",
+    "schema": "stg",
+    "result": {
+      "status": "error",
+      "message": "'main_connector_id'"
+    }
+  },
+  {
+    "table": "ods_alias_calcstaartwaarden",
+    "schema": "stg",
+    "result": {
+      "status": "error",
+      "message": "'main_connector_id'"
+    }
+  },
+  {
+    "table": "ods_alias_calcuitbestedingscodes",
+    "schema": "stg",
+    "result": {
+      "status": "error",
+      "message": "'main_connector_id'"
+    }
+  },
+  {
+    "table": "ods_alias_calculatiehoofdstukken",
+    "schema": "stg",
+    "result": {
+      "status": "error",
+      "message": "'main_connector_id'"
+    }
+  },
+  {
+    "table": "ods_alias_calculatieregels",
+    "schema": "stg",
+    "result": {
+      "status": "error",
+      "message": "'main_connector_id'"
+    }
+  },
+  {
+    "table": "ods_alias_calculaties",
+    "schema": "stg",
+    "result": {
+      "status": "error",
+      "message": "'main_connector_id'"
+    }
+  },
+  {
+    "table": "ods_alias_calcuurcodes",
+    "schema": "stg",
+    "result": {
+      "status": "error",
+      "message": "'main_connector_id'"
+    }
+  },
+  {
+    "table": "ods_alias_calcuurtarieven",
+    "schema": "stg",
+    "result": {
+      "status": "error",
+      "message": "'main_connector_id'"
+    }
+  },
+  {
+    "table": "ods_alias_calcuurtotalen",
+    "schema": "stg",
+    "result": {
+      "status": "error",
+      "message": "'main_connector_id'"
+    }
+  },
+  {
+    "table": "ods_alias_cbewakingsub",
+    "schema": "stg",
+    "result": {
+      "status": "error",
+      "message": "'main_connector_id'"
+    }
+  }
+]

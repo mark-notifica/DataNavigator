@@ -1,9 +1,9 @@
 import json
 import os
 
-def store_analysis_result_to_file(name: str, result_json: dict, output_dir="./tests/output"):
+def store_analysis_result_to_file(name: str, result_json: dict, output_dir="./tests/output") -> str:
     """
-    Slaat analyse op als lokaal JSON-bestand (voor debugging of dry-run)
+    Slaat analyse op als lokaal JSON-bestand en retourneert het pad (voor dry-run logging).
     """
     try:
         os.makedirs(output_dir, exist_ok=True)
@@ -19,4 +19,5 @@ def store_analysis_result_to_file(name: str, result_json: dict, output_dir="./te
     with open(filepath, "w") as f:
         json.dump(result_json, f, indent=2)
 
-    print(f"[DEBUG] filepath = {filepath}")  
+    print(f"[DEBUG] filepath = {filepath}")
+    return filepath

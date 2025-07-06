@@ -1,0 +1,14 @@
+[
+  {
+    "schema": "stg",
+    "table": "ods_alias_landen",
+    "status": "error",
+    "message": "tuple index out of range"
+  },
+  {
+    "schema": "stg",
+    "table": "ods_alias_landen_v",
+    "status": "error",
+    "message": "tuple index out of range"
+  }
+]

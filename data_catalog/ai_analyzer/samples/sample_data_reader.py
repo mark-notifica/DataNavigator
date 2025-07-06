@@ -28,7 +28,7 @@ def execute_sample_query(table: dict, query: str) -> pd.DataFrame:
         conn_info = main_conn.copy()
         conn_info["database_name"] = table["database_name"]
 
-        with connect_to_source_database(conn_info) as conn:
+        with connect_to_source_database(conn_info, database_name=conn_info["database_name"]) as conn:
             df = pd.read_sql(query, conn)
             return df
 

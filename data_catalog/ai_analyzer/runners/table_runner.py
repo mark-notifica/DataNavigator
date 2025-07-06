@@ -3,27 +3,42 @@ from collections import Counter
 import os
 import json
 from dotenv import load_dotenv
+import logging
+import sys
 
 from ai_analyzer.utils.catalog_reader import get_metadata_with_ids, get_view_definition_with_ids, get_filtered_tables_with_ids
 from ai_analyzer.prompts.prompt_builder import build_prompt_for_table
 from ai_analyzer.utils.openai_client import analyze_with_openai
 from ai_analyzer.postprocessor.ai_analysis_writer import store_ai_table_analysis
 from ai_analyzer.analysis.analysis_matrix import ANALYSIS_TYPES
+from ai_analyzer.utils.model_config import get_model_config
 from ai_analyzer.postprocessor.ai_analysis_writer import (
     create_analysis_run_entry,
-    finalize_run_with_token_totals,
-    mark_analysis_run_complete,
+    finalize_and_complete_run,
     mark_analysis_run_failed,
-    mark_analysis_run_aborted
+    mark_analysis_run_aborted,
+    update_log_path_for_run
 )
 from connection_handler import (
     get_ai_config_by_id,
     get_specific_connection,
     connect_to_source_database
 )
-from ai_analyzer.utils.file_writer import store_analysis_result_to_file
 
 load_dotenv()
+
+logging.basicConfig(
+    level=logging.DEBUG,
+    format="%(levelname)s %(asctime)s [%(filename)s:%(lineno)d] %(message)s"
+)
+
+logger = logging.getLogger()
+logger.setLevel(logging.DEBUG)
+
+handler = logging.StreamHandler(sys.stdout)
+handler.setLevel(logging.DEBUG)
+handler.setFormatter(logging.Formatter("%(levelname)s %(asctime)s [%(filename)s:%(lineno)d] %(message)s"))
+logger.addHandler(handler)
 
 try:
     MAX_ALLOWED_TABLES = int(os.getenv("AI_MAX_ALLOWED_TABLES", 500))
@@ -35,13 +50,16 @@ ALLOW_UNFILTERED_SELECTION = os.getenv("AI_ALLOW_UNFILTERED_SELECTION", "false")
 
 
 
-def run_batch_tables_by_config(connection_id: int, ai_config_id: int, analysis_type: str, author: str, dry_run: bool):
+def run_batch_tables_by_config(ai_config_id: int, analysis_type: str, author: str, dry_run: bool):
+    print("[TEST] run_batch_tables_by_config aangeroepen")
+    logging.info("[TEST] LOGGING: run_batch_tables_by_config aangeroepen")
     ai_config = get_ai_config_by_id(ai_config_id)
     if not ai_config:
         logging.error(f"[ABORT] Geen AI-config gevonden met id={ai_config_id}")
         return
 
     try:
+        #Connection ID vanuit ai_config
         connection = get_specific_connection(ai_config["connection_id"])
     except Exception as e:
         logging.error(f"[ABORT] Kan geen verbinding ophalen: {e}")
@@ -49,6 +67,8 @@ def run_batch_tables_by_config(connection_id: int, ai_config_id: int, analysis_t
 
     schema = ai_config.get("ai_schema_filter") or ''
     prefix = ai_config.get("ai_table_filter") or ''
+    model_used, temperature, max_tokens, model_config_source = get_model_config(analysis_type, ai_config)
+    logging.info(f"[CONFIG] model={model_used}, temp={temperature}, max_tokens={max_tokens} voor analysis_type={analysis_type} (bron: {model_config_source})")
 
     run_id = create_analysis_run_entry(
         server=connection["host"],
@@ -59,7 +79,11 @@ def run_batch_tables_by_config(connection_id: int, ai_config_id: int, analysis_t
         author=author,
         is_dry_run=dry_run,
         connection_id=connection["id"],
-        ai_config_id=ai_config_id
+        ai_config_id=ai_config_id,
+        model_used=model_used,
+        temperature=temperature,
+        max_tokens=max_tokens,
+        model_config_source=model_config_source
     )
 
     try:
@@ -91,6 +115,19 @@ def run_batch_tables_by_config(connection_id: int, ai_config_id: int, analysis_t
         logging.info(f"[INFO] {len(tables)} tabellen geselecteerd uit catalogus.")
         issue_counts = Counter()
 
+        batch_results = []
+        log_filename = f"run_{run_id}_{'dryrun' if dry_run else 'live'}_results.json"
+
+        # relatieve en absolute paden scheiden
+        rel_log_path = os.path.join("data_catalog", "logfiles", "ai_analyzer", log_filename)
+        abs_log_path = os.path.abspath(rel_log_path)
+
+        # zorg dat de directory bestaat
+        os.makedirs(os.path.dirname(abs_log_path), exist_ok=True)
+
+        logging.info(f"[CONFIG] model={model_used}, temp={temperature}, max_tokens={max_tokens} via {model_config_source}")
+        logging.info(f"[RUN] Start batch-analyse voor {len(tables)} tabellen (run_id={run_id})")
+
         for row in tables:
             table = {
                 "server_name": connection["host"],
@@ -98,10 +135,22 @@ def run_batch_tables_by_config(connection_id: int, ai_config_id: int, analysis_t
                 "schema_name": row["schema_name"],
                 "table_name": row["table_name"],
                 "connection_id": connection["id"],
+                "main_connector_id": connection["id"],
+                "ai_config_id": ai_config_id,
                 "table_type": "BASE TABLE"
             }
             try:
-                run_single_table(table, analysis_type, author, dry_run, run_id)
+                result = run_single_table(
+                    table,
+                    analysis_type,
+                    author,
+                    dry_run,
+                    run_id,
+                    model_used,
+                    temperature,
+                    max_tokens
+                )
+                batch_results.append(result)
             except Exception as e:
                 issue_counts["exceptions"] += 1
                 logging.exception(f"[ERROR] Fout bij analyse van {table['table_name']}: {e}")
@@ -112,8 +161,15 @@ def run_batch_tables_by_config(connection_id: int, ai_config_id: int, analysis_t
             for issue, count in issue_counts.items():
                 logging.info(f"  - {issue}: {count}")
 
-        finalize_run_with_token_totals(run_id)
-        mark_analysis_run_complete(run_id)
+        with open(abs_log_path, "w", encoding="utf-8") as f:
+            json.dump(batch_results, f, indent=2, default=str)
+
+        logging.info(f"[DEBUG] rel_log_path = {rel_log_path}")
+        logging.info(f"[DEBUG] update_log_path_for_run({run_id}, {rel_log_path}) wordt aangeroepen")
+        update_log_path_for_run(run_id, rel_log_path)
+        logging.info(f"[LOG] Resultaatbestand opgeslagen in {abs_log_path}")
+        logging.info(f"[RUN] Batch-analyse voltooid voor {len(tables)} tabellen (run_id={run_id})")
+        finalize_and_complete_run(run_id)
         logging.info(f"[DONE] Batch-analyse {'gesimuleerd' if dry_run else 'voltooid'}")
 
     except Exception as e:
@@ -123,64 +179,152 @@ def run_batch_tables_by_config(connection_id: int, ai_config_id: int, analysis_t
         conn = connect_to_source_database(connection, ai_config["ai_database_filter"])  # ← conn moet beschikbaar zijn
         conn.close()
 
-def run_single_table(table: dict, analysis_type: str, author: str, dry_run: bool, run_id: int):
+def run_single_table(table: dict, analysis_type: str, author: str, dry_run: bool, run_id: int, model_used: str, temperature: float, max_tokens: int):
     logging.info(f"[RUN] Analyse gestart voor {table['table_name']} (run_id={run_id})")
     is_view = table.get("table_type", "").upper() in ("V", "VIEW")
 
     try:
+        # --- VIEW ANALYSE ---
         if analysis_type == "view_definition_analysis" and is_view:
             view_def = get_view_definition_with_ids(table)
+
             if not view_def:
                 logging.warning(f"[SKIP] Geen viewdefinitie voor {table['table_name']}")
                 result = {"issues": ["no_view_definition"]}
-                if dry_run:
-                    store_analysis_result_to_file(table['table_name'], result)
-                else:
+                if not dry_run:
                     store_ai_table_analysis(run_id, table, result, analysis_type)
-                return
+                return {
+                    "schema": table["schema_name"],
+                    "table": table["table_name"],
+                    "type": "view",
+                    "status": "skipped",
+                    "reason": "no_view_definition",
+                    "prompt": None
+                }
 
             prompt = build_prompt_for_table(table, {"definition": view_def}, None, analysis_type)
+
             if dry_run:
-                store_analysis_result_to_file(table['table_name'], {"prompt": prompt})
-                return
+                return {
+                    "schema": table["schema_name"],
+                    "table": table["table_name"],
+                    "type": "view",
+                    "status": "ok",
+                    "prompt": prompt
+                }
 
-            result = analyze_with_openai(prompt)
-            result["analysis_type"] = analysis_type
+            result = analyze_with_openai(prompt, model=model_used, temperature=temperature, max_tokens=max_tokens)
+            result.update({
+                "analysis_type": analysis_type,
+                "prompt": prompt,
+                "model_used": model_used,
+                "temperature": temperature,
+                "max_tokens": max_tokens
+            })
             store_ai_table_analysis(run_id, table, result, analysis_type)
-            return
+            logging.info(f"[OK] Analyse opgeslagen voor {table['table_name']}")
 
+            return {
+                "schema": table["schema_name"],
+                "table": table["table_name"],
+                "type": "view",
+                "status": "ok",
+                "prompt": prompt
+            }
+
+        # --- METADATA CHECK ---
         metadata = get_metadata_with_ids(table)
+
         if not metadata:
             logging.warning(f"[SKIP] Geen kolommen voor {table['table_name']}")
             result = {"issues": ["no_columns"]}
-            if dry_run:
-                store_analysis_result_to_file(table['table_name'], result)
-            else:
+            if not dry_run:
                 store_ai_table_analysis(run_id, table, result, analysis_type)
-            return
+            return {
+                "schema": table["schema_name"],
+                "table": table["table_name"],
+                "type": "table",
+                "status": "skipped",
+                "reason": "no_columns",
+                "prompt": None
+            }
 
+        # --- SAMPLEDATA CHECK ---
         sample_data_func = ANALYSIS_TYPES.get(analysis_type, {}).get("sample_data_function")
         sample = sample_data_func(table) if sample_data_func else None
 
         if sample is None or sample.empty:
             logging.warning(f"[SKIP] Geen data in {table['table_name']}")
             result = {"issues": ["no_sample_data"]}
-            if dry_run:
-                store_analysis_result_to_file(table['table_name'], result)
-            else:
+            if not dry_run:
                 store_ai_table_analysis(run_id, table, result, analysis_type)
-            return
+            return {
+                "schema": table["schema_name"],
+                "table": table["table_name"],
+                "type": "table",
+                "status": "skipped",
+                "reason": "no_sample_data",
+                "prompt": None
+            }
 
+        # --- PROMPT + AI ---
         prompt = build_prompt_for_table(table, metadata, sample, analysis_type)
-        if dry_run:
-            store_analysis_result_to_file(table['table_name'], {"prompt": prompt})
-            return
 
-        result = analyze_with_openai(prompt)
-        result["analysis_type"] = analysis_type
+        if dry_run:
+            return {
+                "schema": table["schema_name"],
+                "table": table["table_name"],
+                "type": "table",
+                "status": "ok",
+                "prompt": prompt,
+                "metadata": metadata,
+                "sample": sample.to_dict(orient="records")
+            }
+
+        result = analyze_with_openai(prompt, model=model_used, temperature=temperature, max_tokens=max_tokens)
+        result.update({
+            "analysis_type": analysis_type,
+            "prompt": prompt,
+            "model_used": model_used,
+            "temperature": temperature,
+            "max_tokens": max_tokens
+        })
+
+        if analysis_type == "column_classification":
+            raw_response = result.get("result", "")
+            try:
+                # Strip Markdown + parse JSON
+                cleaned = (
+                    raw_response.strip()
+                    .removeprefix("```json")
+                    .removeprefix("```")
+                    .removesuffix("```")
+                    .strip()
+                )
+                parsed = json.loads(cleaned)
+                result["column_classification"] = parsed
+            except Exception as e:
+                logging.exception(f"[ERROR] JSON-parsing fout voor column_classification-resultaat: {e}")
+
         store_ai_table_analysis(run_id, table, result, analysis_type)
         logging.info(f"[OK] Analyse opgeslagen voor {table['table_name']}")
 
+        return {
+            "schema": table["schema_name"],
+            "table": table["table_name"],
+            "type": "table",
+            "status": "ok",
+            "prompt": prompt,
+            "metadata": metadata,
+            "sample": sample.to_dict(orient="records")
+        }
+
     except Exception as e:
         logging.exception(f"[FAIL] Analyse gefaald voor {table.get('table_name', '?')}: {e}")
-        store_analysis_result_to_file(table.get("table_name", "onbekend"), {"error": str(e)})
+        return {
+            "schema": table.get("schema_name"),
+            "table": table.get("table_name"),
+            "status": "error",
+            "message": str(e)
+        }
+
