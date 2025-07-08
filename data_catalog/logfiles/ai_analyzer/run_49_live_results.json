@@ -1,0 +1,130 @@
+[
+  {
+    "schema": "stg",
+    "table": "ods_alias_landen",
+    "type": "table",
+    "status": "skipped",
+    "reason": "no_sample_data",
+    "prompt": null
+  },
+  {
+    "schema": "stg",
+    "table": "ods_alias_leverancierbedrijf",
+    "type": "table",
+    "status": "skipped",
+    "reason": "no_sample_data",
+    "prompt": null
+  },
+  {
+    "schema": "stg",
+    "table": "ods_alias_leverancierberichtprofielregelsemail",
+    "type": "table",
+    "status": "skipped",
+    "reason": "no_sample_data",
+    "prompt": null
+  },
+  {
+    "schema": "stg",
+    "table": "ods_alias_leverancierberichtprofielregelsmap",
+    "type": "table",
+    "status": "skipped",
+    "reason": "no_sample_data",
+    "prompt": null
+  },
+  {
+    "schema": "stg",
+    "table": "ods_alias_leveranciercrediteurnrs",
+    "type": "table",
+    "status": "skipped",
+    "reason": "no_sample_data",
+    "prompt": null
+  },
+  {
+    "schema": "stg",
+    "table": "ods_alias_leverancierdebiteurnrs",
+    "type": "table",
+    "status": "skipped",
+    "reason": "no_sample_data",
+    "prompt": null
+  },
+  {
+    "schema": "stg",
+    "table": "ods_alias_leveranciersbijlage",
+    "type": "table",
+    "status": "skipped",
+    "reason": "no_sample_data",
+    "prompt": null
+  },
+  {
+    "schema": "stg",
+    "table": "ods_alias_landen_v",
+    "type": "table",
+    "status": "skipped",
+    "reason": "no_columns",
+    "prompt": null
+  },
+  {
+    "schema": "stg",
+    "table": "ods_alias_leverancierbedrijf_v",
+    "type": "table",
+    "status": "skipped",
+    "reason": "no_columns",
+    "prompt": null
+  },
+  {
+    "schema": "stg",
+    "table": "ods_alias_leverancierberichtprofielregelsemail_v",
+    "type": "table",
+    "status": "skipped",
+    "reason": "no_columns",
+    "prompt": null
+  },
+  {
+    "schema": "stg",
+    "table": "ods_alias_leverancierberichtprofielregelsmap_v",
+    "type": "table",
+    "status": "skipped",
+    "reason": "no_columns",
+    "prompt": null
+  },
+  {
+    "schema": "stg",
+    "table": "ods_alias_leveranciercrediteurnrs_v",
+    "type": "table",
+    "status": "skipped",
+    "reason": "no_columns",
+    "prompt": null
+  },
+  {
+    "schema": "stg",
+    "table": "ods_alias_leverancierdebiteurnrs_v",
+    "type": "table",
+    "status": "skipped",
+    "reason": "no_columns",
+    "prompt": null
+  },
+  {
+    "schema": "stg",
+    "table": "ods_alias_leveranciersbijlage_v",
+    "type": "table",
+    "status": "skipped",
+    "reason": "no_columns",
+    "prompt": null
+  },
+  {
+    "schema": "stg",
+    "table": "ods_alias_leverancierusers_v",
+    "type": "table",
+    "status": "skipped",
+    "reason": "no_columns",
+    "prompt": null
+  },
+  {
+    "schema": "stg",
+    "table": "ods_alias_leverancierusers",
+    "type": "table",
+    "status": "skipped",
+    "reason": "no_sample_data",
+    "prompt": null
+  }
+]

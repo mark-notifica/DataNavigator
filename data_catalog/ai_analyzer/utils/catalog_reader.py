@@ -1,7 +1,7 @@
 import re
 from typing import List, Dict, Optional
 from data_catalog.connection_handler import get_catalog_connection
-
+import logging
 
 def get_metadata_with_ids(table: dict) -> List[Dict[str, str]]:
     """
@@ -72,15 +72,11 @@ def get_tables_for_pattern_with_ids(
 
 
 def get_view_definition_with_ids(table: dict) -> Optional[str]:
-    """
-    Haalt de opgeslagen viewdefinitie op uit catalog_view_definitions,
-    werkt op basis van server/database/schema/table met IDs.
-    """
     conn = get_catalog_connection()
     try:
         with conn.cursor() as cur:
             cur.execute("""
-                SELECT v.definition
+                SELECT v.view_definition
                 FROM catalog.catalog_view_definitions v
                 JOIN catalog.catalog_tables t ON v.table_id = t.id
                 JOIN catalog.catalog_schemas s ON t.schema_id = s.id
@@ -89,6 +85,8 @@ def get_view_definition_with_ids(table: dict) -> Optional[str]:
                   AND d.database_name = %s
                   AND s.schema_name = %s
                   AND t.table_name = %s
+                  AND v.is_current = true
+                ORDER BY v.date_created DESC
                 LIMIT 1
             """, (
                 table["server_name"],
@@ -97,7 +95,11 @@ def get_view_definition_with_ids(table: dict) -> Optional[str]:
                 table["table_name"]
             ))
             row = cur.fetchone()
-            return row[0] if row else None
+            if not row:
+                logging.warning(f"[VIEWDEF] Geen view_definitie gevonden voor {table['server_name']}.{table['database_name']}.{table['schema_name']}.{table['table_name']}")
+                return None
+            logging.debug(f"[VIEWDEF] Definitie gevonden voor {table['table_name']} ({len(row[0])} chars)")
+            return row[0]
     finally:
         conn.close()
 
@@ -181,7 +183,7 @@ def _matches_pattern(name: str, pattern: Optional[str]) -> bool:
     '*' vertaald naar regex '.*' voor case-insensitive match.
     """
     if not pattern:
-        return True
+        return False
     patterns = [p.strip() for p in pattern.split(",") if p.strip()]
     for pat in patterns:
         regex_pat = re.escape(pat).replace("\\*", ".*")
@@ -196,7 +198,7 @@ def get_filtered_tables_with_ids(server_name: str,
                                  table_pattern: Optional[str] = None) -> List[dict]:
     """
     Haalt tabellen uit catalogus met optionele filters en wildcards,
-    inclusief bijbehorende IDs.
+    inclusief bijbehorende IDs en table_type (VIEW of BASE TABLE).
     """
     conn = get_catalog_connection()
     try:
@@ -204,7 +206,8 @@ def get_filtered_tables_with_ids(server_name: str,
             query = """
                 SELECT d.server_name, d.database_name, d.id AS database_id,
                        s.schema_name, s.id AS schema_id,
-                       t.table_name, t.id AS table_id
+                       t.table_name, t.id AS table_id,
+                       t.table_type
                 FROM catalog.catalog_tables t
                 JOIN catalog.catalog_schemas s ON t.schema_id = s.id
                 JOIN catalog.catalog_databases d ON s.database_id = d.id

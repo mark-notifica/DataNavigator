@@ -1,0 +1,221 @@
+[
+  {
+    "schema": "stg",
+    "table": "ods_alias_landen",
+    "type": "table",
+    "status": "ok",
+    "prompt": "Doel: Beschrijf de functie van de tabel `ods_alias_landen`.\n        - Wat representeert deze tabel in businesscontext?\n        - Is het een feitentabel, dimensietabel of iets anders?\n\n        Negeer sleutelinformatie zoals primaire of foreign keys. Deze worden later apart geanalyseerd.\n        Sluit af zonder generieke opmerkingen zoals 'Laat het me weten als je vragen hebt'. Beperk je tot de analyse.\n\nVoorbeelddata:\n\n{'schema': 'verheggen', 'landcode': 'B', 'landnaam': 'Belgi\u00eb', 'snelstartcode': 2.0, 'id': 2863211.0, 'date_created': Timestamp('2025-06-17 22:24:33'), 'date_updated': None, 'date_deleted': None, 'aud_id_created': 2863204.0, 'aud_id_updated': None, 'aud_id_deleted': None, 'curr_id': 'Y'}\n\n{'schema': 'verheggen', 'landcode': 'CH', 'landnaam': 'Zwitserland', 'snelstartcode': 251.0, 'id': 2863212.0, 'date_created': Timestamp('2025-06-17 22:24:33'), 'date_updated': None, 'date_deleted': None, 'aud_id_created': 2863204.0, 'aud_id_updated': None, 'aud_id_deleted': None, 'curr_id': 'Y'}\n\n{'schema': 'verheggen', 'landcode': 'FR', 'landnaam': 'Frankrijk', 'snelstartcode': 9.0, 'id': 2863213.0, 'date_created': Timestamp('2025-06-17 22:24:33'), 'date_updated': None, 'date_deleted': None, 'aud_id_created': 2863204.0, 'aud_id_updated': None, 'aud_id_deleted': None, 'curr_id': 'Y'}\n\n{'schema': 'verheggen', 'landcode': 'D', 'landnaam': 'Duitsland', 'snelstartcode': 3.0, 'id': 2863214.0, 'date_created': Timestamp('2025-06-17 22:24:33'), 'date_updated': None, 'date_deleted': None, 'aud_id_created': 2863204.0, 'aud_id_updated': None, 'aud_id_deleted': None, 'curr_id': 'Y'}\n\n{'schema': 'verheggen', 'landcode': 'NL', 'landnaam': 'Nederland', 'snelstartcode': 1.0, 'id': 2863215.0, 'date_created': Timestamp('2025-06-17 22:24:33'), 'date_updated': None, 'date_deleted': None, 'aud_id_created': 2863204.0, 'aud_id_updated': None, 'aud_id_deleted': None, 'curr_id': 'Y'}\n\n{'schema': 'verheggen', 'landcode': 'AT', 'landnaam': 'Oostenrijk', 'snelstartcode': 4.0, 'id': 2863216.0, 'date_created': Timestamp('2025-06-17 22:24:33'), 'date_updated': None, 'date_deleted': None, 'aud_id_created': 2863204.0, 'aud_id_updated': None, 'aud_id_deleted': None, 'curr_id': 'Y'}\n\n{'schema': 'verheggen', 'landcode': 'GB', 'landnaam': 'Verenigd Koninkrijk', 'snelstartcode': 10.0, 'id': 2863217.0, 'date_created': Timestamp('2025-06-17 22:24:33'), 'date_updated': None, 'date_deleted': None, 'aud_id_created': 2863204.0, 'aud_id_updated': None, 'aud_id_deleted': None, 'curr_id': 'Y'}\n\n{'schema': 'verheggen', 'landcode': 'PL', 'landnaam': 'Polen', 'snelstartcode': 24.0, 'id': 2863218.0, 'date_created': Timestamp('2025-06-17 22:24:33'), 'date_updated': None, 'date_deleted': None, 'aud_id_created': 2863204.0, 'aud_id_updated': None, 'aud_id_deleted': None, 'curr_id': 'Y'}\n\n{'schema': 'verheggen', 'landcode': 'LU', 'landnaam': 'Luxemburg', 'snelstartcode': 28.0, 'id': 2863219.0, 'date_created': Timestamp('2025-06-17 22:24:33'), 'date_updated': None, 'date_deleted': None, 'aud_id_created': 2863204.0, 'aud_id_updated': None, 'aud_id_deleted': None, 'curr_id': 'Y'}\n\n{'schema': 'verheggen', 'landcode': 'DK', 'landnaam': 'Denemarken', 'snelstartcode': nan, 'id': 2863220.0, 'date_created': Timestamp('2025-06-17 22:24:33'), 'date_updated': None, 'date_deleted': None, 'aud_id_created': 2863204.0, 'aud_id_updated': None, 'aud_id_deleted': None, 'curr_id': 'Y'}",
+    "metadata": [
+      {
+        "column_id": 301253,
+        "name": "schema",
+        "type": "character varying"
+      },
+      {
+        "column_id": 301254,
+        "name": "landcode",
+        "type": "character varying"
+      },
+      {
+        "column_id": 301255,
+        "name": "landnaam",
+        "type": "character varying"
+      },
+      {
+        "column_id": 301256,
+        "name": "snelstartcode",
+        "type": "integer"
+      },
+      {
+        "column_id": 301257,
+        "name": "id",
+        "type": "double precision"
+      },
+      {
+        "column_id": 301258,
+        "name": "date_created",
+        "type": "timestamp without time zone"
+      },
+      {
+        "column_id": 301259,
+        "name": "date_updated",
+        "type": "timestamp without time zone"
+      },
+      {
+        "column_id": 301260,
+        "name": "date_deleted",
+        "type": "timestamp without time zone"
+      },
+      {
+        "column_id": 301261,
+        "name": "aud_id_created",
+        "type": "double precision"
+      },
+      {
+        "column_id": 301262,
+        "name": "aud_id_updated",
+        "type": "double precision"
+      },
+      {
+        "column_id": 301263,
+        "name": "aud_id_deleted",
+        "type": "double precision"
+      },
+      {
+        "column_id": 301264,
+        "name": "curr_id",
+        "type": "character varying"
+      }
+    ],
+    "sample": [
+      {
+        "schema": "verheggen",
+        "landcode": "B",
+        "landnaam": "Belgi\u00eb",
+        "snelstartcode": 2.0,
+        "id": 2863211.0,
+        "date_created": "2025-06-17 22:24:33",
+        "date_updated": null,
+        "date_deleted": null,
+        "aud_id_created": 2863204.0,
+        "aud_id_updated": null,
+        "aud_id_deleted": null,
+        "curr_id": "Y"
+      },
+      {
+        "schema": "verheggen",
+        "landcode": "CH",
+        "landnaam": "Zwitserland",
+        "snelstartcode": 251.0,
+        "id": 2863212.0,
+        "date_created": "2025-06-17 22:24:33",
+        "date_updated": null,
+        "date_deleted": null,
+        "aud_id_created": 2863204.0,
+        "aud_id_updated": null,
+        "aud_id_deleted": null,
+        "curr_id": "Y"
+      },
+      {
+        "schema": "verheggen",
+        "landcode": "FR",
+        "landnaam": "Frankrijk",
+        "snelstartcode": 9.0,
+        "id": 2863213.0,
+        "date_created": "2025-06-17 22:24:33",
+        "date_updated": null,
+        "date_deleted": null,
+        "aud_id_created": 2863204.0,
+        "aud_id_updated": null,
+        "aud_id_deleted": null,
+        "curr_id": "Y"
+      },
+      {
+        "schema": "verheggen",
+        "landcode": "D",
+        "landnaam": "Duitsland",
+        "snelstartcode": 3.0,
+        "id": 2863214.0,
+        "date_created": "2025-06-17 22:24:33",
+        "date_updated": null,
+        "date_deleted": null,
+        "aud_id_created": 2863204.0,
+        "aud_id_updated": null,
+        "aud_id_deleted": null,
+        "curr_id": "Y"
+      },
+      {
+        "schema": "verheggen",
+        "landcode": "NL",
+        "landnaam": "Nederland",
+        "snelstartcode": 1.0,
+        "id": 2863215.0,
+        "date_created": "2025-06-17 22:24:33",
+        "date_updated": null,
+        "date_deleted": null,
+        "aud_id_created": 2863204.0,
+        "aud_id_updated": null,
+        "aud_id_deleted": null,
+        "curr_id": "Y"
+      },
+      {
+        "schema": "verheggen",
+        "landcode": "AT",
+        "landnaam": "Oostenrijk",
+        "snelstartcode": 4.0,
+        "id": 2863216.0,
+        "date_created": "2025-06-17 22:24:33",
+        "date_updated": null,
+        "date_deleted": null,
+        "aud_id_created": 2863204.0,
+        "aud_id_updated": null,
+        "aud_id_deleted": null,
+        "curr_id": "Y"
+      },
+      {
+        "schema": "verheggen",
+        "landcode": "GB",
+        "landnaam": "Verenigd Koninkrijk",
+        "snelstartcode": 10.0,
+        "id": 2863217.0,
+        "date_created": "2025-06-17 22:24:33",
+        "date_updated": null,
+        "date_deleted": null,
+        "aud_id_created": 2863204.0,
+        "aud_id_updated": null,
+        "aud_id_deleted": null,
+        "curr_id": "Y"
+      },
+      {
+        "schema": "verheggen",
+        "landcode": "PL",
+        "landnaam": "Polen",
+        "snelstartcode": 24.0,
+        "id": 2863218.0,
+        "date_created": "2025-06-17 22:24:33",
+        "date_updated": null,
+        "date_deleted": null,
+        "aud_id_created": 2863204.0,
+        "aud_id_updated": null,
+        "aud_id_deleted": null,
+        "curr_id": "Y"
+      },
+      {
+        "schema": "verheggen",
+        "landcode": "LU",
+        "landnaam": "Luxemburg",
+        "snelstartcode": 28.0,
+        "id": 2863219.0,
+        "date_created": "2025-06-17 22:24:33",
+        "date_updated": null,
+        "date_deleted": null,
+        "aud_id_created": 2863204.0,
+        "aud_id_updated": null,
+        "aud_id_deleted": null,
+        "curr_id": "Y"
+      },
+      {
+        "schema": "verheggen",
+        "landcode": "DK",
+        "landnaam": "Denemarken",
+        "snelstartcode": NaN,
+        "id": 2863220.0,
+        "date_created": "2025-06-17 22:24:33",
+        "date_updated": null,
+        "date_deleted": null,
+        "aud_id_created": 2863204.0,
+        "aud_id_updated": null,
+        "aud_id_deleted": null,
+        "curr_id": "Y"
+      }
+    ]
+  },
+  {
+    "schema": "stg",
+    "table": "ods_alias_landen_v",
+    "type": "table",
+    "status": "skipped",
+    "reason": "no_columns",
+    "prompt": null
+  }
+]

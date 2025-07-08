@@ -24,7 +24,7 @@ from connection_handler import (
     get_specific_connection,
     connect_to_source_database
 )
-
+from ai_analyzer.utils.openai_parsing import parse_column_classification_response
 load_dotenv()
 
 logging.basicConfig(
@@ -92,6 +92,7 @@ def run_batch_tables_by_config(ai_config_id: int, analysis_type: str, author: st
             mark_analysis_run_aborted(run_id, "onveilige selectie geblokkeerd")
             return
 
+        logging.debug(f"[DEBUG] Python-filter op schema: {schema}, table: {prefix}")
         # ✅ Gebruik catalogus voor filtering met wildcards
         tables = get_filtered_tables_with_ids(
             server_name=connection["host"],
@@ -99,7 +100,7 @@ def run_batch_tables_by_config(ai_config_id: int, analysis_type: str, author: st
             schema_pattern=schema,
             table_pattern=prefix
         )
-
+        
         if not tables:
             logging.warning("[WAARSCHUWING] Geen tabellen gevonden met opgegeven filters.")
             mark_analysis_run_aborted(run_id, "Geen tabellen gevonden in catalogus")
@@ -128,16 +129,31 @@ def run_batch_tables_by_config(ai_config_id: int, analysis_type: str, author: st
         logging.info(f"[CONFIG] model={model_used}, temp={temperature}, max_tokens={max_tokens} via {model_config_source}")
         logging.info(f"[RUN] Start batch-analyse voor {len(tables)} tabellen (run_id={run_id})")
 
+        allowed_types = ANALYSIS_TYPES.get(analysis_type, {}).get("allowed_table_types")
+        if allowed_types:
+            before_count = len(tables)
+            tables = [t for t in tables if t["table_type"].upper() in allowed_types]
+            after_count = len(tables)
+            skipped = before_count - after_count
+            logging.info(f"[FILTER] {after_count} tabellen toegestaan (type ∈ {allowed_types}), {skipped} overgeslagen")
+
+        
         for row in tables:
+            logging.debug(f"[DEBUG] Tabeltype voor {row['table_name']}: {row.get('table_type')}")
+            assert row.get("table_type") in ("VIEW", "BASE TABLE", "V", "T"), f"Onbekend table_type: {row.get('table_type')}"
+
             table = {
                 "server_name": connection["host"],
                 "database_name": ai_config["ai_database_filter"],
                 "schema_name": row["schema_name"],
                 "table_name": row["table_name"],
+                "database_id": row["database_id"],  
+                "schema_id": row["schema_id"], 
+                "table_id": row["table_id"],            
                 "connection_id": connection["id"],
                 "main_connector_id": connection["id"],
                 "ai_config_id": ai_config_id,
-                "table_type": "BASE TABLE"
+                "table_type": row.get("table_type", "BASE TABLE")
             }
             try:
                 result = run_single_table(
@@ -292,19 +308,14 @@ def run_single_table(table: dict, analysis_type: str, author: str, dry_run: bool
 
         if analysis_type == "column_classification":
             raw_response = result.get("result", "")
-            try:
-                # Strip Markdown + parse JSON
-                cleaned = (
-                    raw_response.strip()
-                    .removeprefix("```json")
-                    .removeprefix("```")
-                    .removesuffix("```")
-                    .strip()
-                )
-                parsed = json.loads(cleaned)
+            logging.debug(f"[DEBUG] Ruwe AI-response:\n{raw_response}")
+            parsed = parse_column_classification_response(raw_response)
+            if parsed is not None:
                 result["column_classification"] = parsed
-            except Exception as e:
-                logging.exception(f"[ERROR] JSON-parsing fout voor column_classification-resultaat: {e}")
+            else:
+                logging.warning("[PARSER] Kon AI-resultaat niet parseren tot JSON.")
+
+        logging.debug(json.dumps(result, indent=2))
 
         store_ai_table_analysis(run_id, table, result, analysis_type)
         logging.info(f"[OK] Analyse opgeslagen voor {table['table_name']}")

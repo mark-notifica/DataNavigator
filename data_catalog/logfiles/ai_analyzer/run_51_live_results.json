@@ -1,0 +1,122 @@
+[
+  {
+    "schema": "stg",
+    "table": "ods_alias_landen",
+    "type": "table",
+    "status": "skipped",
+    "reason": "no_sample_data",
+    "prompt": null
+  },
+  {
+    "schema": "stg",
+    "table": "ods_alias_leverancierbedrijf",
+    "type": "table",
+    "status": "skipped",
+    "reason": "no_sample_data",
+    "prompt": null
+  },
+  {
+    "schema": "stg",
+    "table": "ods_alias_leverancierberichtprofielregelsemail",
+    "type": "table",
+    "status": "skipped",
+    "reason": "no_sample_data",
+    "prompt": null
+  },
+  {
+    "schema": "stg",
+    "table": "ods_alias_leverancierberichtprofielregelsmap",
+    "type": "table",
+    "status": "skipped",
+    "reason": "no_sample_data",
+    "prompt": null
+  },
+  {
+    "schema": "stg",
+    "table": "ods_alias_leveranciercrediteurnrs",
+    "type": "table",
+    "status": "skipped",
+    "reason": "no_sample_data",
+    "prompt": null
+  },
+  {
+    "schema": "stg",
+    "table": "ods_alias_leverancierdebiteurnrs",
+    "type": "table",
+    "status": "skipped",
+    "reason": "no_sample_data",
+    "prompt": null
+  },
+  {
+    "schema": "stg",
+    "table": "ods_alias_leveranciersbijlage",
+    "type": "table",
+    "status": "skipped",
+    "reason": "no_sample_data",
+    "prompt": null
+  },
+  {
+    "schema": "stg",
+    "table": "ods_alias_landen_v",
+    "type": "view",
+    "status": "ok",
+    "prompt": "\ud83e\udde0 Doel: Analyseer de onderstaande SQL-viewdefinitie.\n- Wat is het doel van deze view?\n- Welke onderliggende tabellen en relaties worden gebruikt?\n- Welke businesslogica valt op?\n- Zijn er suggesties voor optimalisatie, hernoemen of documentatie?\n\nViewdefinitie van `ods_alias_landen_v`:\n--- SQL START ---\nSELECT (stg_landen.schema)::character varying AS schema,\n    (stg_landen.landcode)::character varying AS landcode,\n    (stg_landen.landnaam)::character varying AS landnaam,\n    (stg_landen.snelstartcode)::integer AS snelstartcode\n   FROM stg.stg_landen;\n--- SQL END ---"
+  },
+  {
+    "schema": "stg",
+    "table": "ods_alias_leverancierbedrijf_v",
+    "type": "view",
+    "status": "ok",
+    "prompt": "\ud83e\udde0 Doel: Analyseer de onderstaande SQL-viewdefinitie.\n- Wat is het doel van deze view?\n- Welke onderliggende tabellen en relaties worden gebruikt?\n- Welke businesslogica valt op?\n- Zijn er suggesties voor optimalisatie, hernoemen of documentatie?\n\nViewdefinitie van `ods_alias_leverancierbedrijf_v`:\n--- SQL START ---\nSELECT (stg_leverancierbedrijf.schema)::character varying AS schema,\n    (stg_leverancierbedrijf.leverancierbedrijfid)::integer AS leverancierbedrijfid,\n    (stg_leverancierbedrijf.leverancier)::character varying AS leverancier,\n    (stg_leverancierbedrijf.bedrijf)::integer AS bedrijf,\n    (stg_leverancierbedrijf.debiteurnr)::integer AS debiteurnr,\n    (stg_leverancierbedrijf.crediteurennr)::character varying AS crediteurennr,\n    (stg_leverancierbedrijf.messagingserviceuserid)::integer AS messagingserviceuserid,\n    (stg_leverancierbedrijf.messagingservicepassword)::character varying AS messagingservicepassword\n   FROM stg.stg_leverancierbedrijf;\n--- SQL END ---"
+  },
+  {
+    "schema": "stg",
+    "table": "ods_alias_leverancierberichtprofielregelsemail_v",
+    "type": "view",
+    "status": "ok",
+    "prompt": "\ud83e\udde0 Doel: Analyseer de onderstaande SQL-viewdefinitie.\n- Wat is het doel van deze view?\n- Welke onderliggende tabellen en relaties worden gebruikt?\n- Welke businesslogica valt op?\n- Zijn er suggesties voor optimalisatie, hernoemen of documentatie?\n\nViewdefinitie van `ods_alias_leverancierberichtprofielregelsemail_v`:\n--- SQL START ---\nSELECT (stg_leverancierberichtprofielregelsemail.schema)::character varying AS schema,\n    (stg_leverancierberichtprofielregelsemail.regelid)::integer AS regelid,\n    (stg_leverancierberichtprofielregelsemail.leverancierscode)::character varying AS leverancierscode,\n    (stg_leverancierberichtprofielregelsemail.profielsoort)::character varying AS profielsoort,\n    (stg_leverancierberichtprofielregelsemail.berichttype)::character varying AS berichttype,\n    (stg_leverancierberichtprofielregelsemail.emailaccount)::character varying AS emailaccount,\n    (stg_leverancierberichtprofielregelsemail.geadresseerdefilter)::character varying AS geadresseerdefilter,\n    (stg_leverancierberichtprofielregelsemail.afzenderfilter)::character varying AS afzenderfilter,\n    (stg_leverancierberichtprofielregelsemail.bijlagefilter)::character varying AS bijlagefilter,\n    (stg_leverancierberichtprofielregelsemail.extrabijlagefilter)::character varying AS extrabijlagefilter,\n    (stg_leverancierberichtprofielregelsemail.factuurnrmask)::character varying AS factuurnrmask,\n    (stg_leverancierberichtprofielregelsemail.factuurdatummask)::character varying AS factuurdatummask,\n    (stg_leverancierberichtprofielregelsemail.bijlagefactuurnrmask)::character varying AS bijlagefactuurnrmask,\n    (stg_leverancierberichtprofielregelsemail.verplaatsipvverwijder)::character varying AS verplaatsipvverwijder,\n    (stg_leverancierberichtprofielregelsemail.altijd1factuurpermail)::character varying AS altijd1factuurpermail\n   FROM stg.stg_leverancierberichtprofielregelsemail;\n--- SQL END ---"
+  },
+  {
+    "schema": "stg",
+    "table": "ods_alias_leverancierberichtprofielregelsmap_v",
+    "type": "view",
+    "status": "ok",
+    "prompt": "\ud83e\udde0 Doel: Analyseer de onderstaande SQL-viewdefinitie.\n- Wat is het doel van deze view?\n- Welke onderliggende tabellen en relaties worden gebruikt?\n- Welke businesslogica valt op?\n- Zijn er suggesties voor optimalisatie, hernoemen of documentatie?\n\nViewdefinitie van `ods_alias_leverancierberichtprofielregelsmap_v`:\n--- SQL START ---\nSELECT (stg_leverancierberichtprofielregelsmap.schema)::character varying AS schema,\n    (stg_leverancierberichtprofielregelsmap.regelid)::integer AS regelid,\n    (stg_leverancierberichtprofielregelsmap.leverancierscode)::character varying AS leverancierscode,\n    (stg_leverancierberichtprofielregelsmap.profielsoort)::character varying AS profielsoort,\n    (stg_leverancierberichtprofielregelsmap.berichttype)::character varying AS berichttype,\n    (stg_leverancierberichtprofielregelsmap.map)::character varying AS map,\n    (stg_leverancierberichtprofielregelsmap.filter)::character varying AS filter,\n    (stg_leverancierberichtprofielregelsmap.factuurnrmask)::character varying AS factuurnrmask,\n    (stg_leverancierberichtprofielregelsmap.factuurdatummask)::character varying AS factuurdatummask,\n    (stg_leverancierberichtprofielregelsmap.verplaatsipvverwijder)::character varying AS verplaatsipvverwijder\n   FROM stg.stg_leverancierberichtprofielregelsmap;\n--- SQL END ---"
+  },
+  {
+    "schema": "stg",
+    "table": "ods_alias_leveranciercrediteurnrs_v",
+    "type": "view",
+    "status": "ok",
+    "prompt": "\ud83e\udde0 Doel: Analyseer de onderstaande SQL-viewdefinitie.\n- Wat is het doel van deze view?\n- Welke onderliggende tabellen en relaties worden gebruikt?\n- Welke businesslogica valt op?\n- Zijn er suggesties voor optimalisatie, hernoemen of documentatie?\n\nViewdefinitie van `ods_alias_leveranciercrediteurnrs_v`:\n--- SQL START ---\nSELECT (stg_leveranciercrediteurnrs.schema)::character varying AS schema,\n    (stg_leveranciercrediteurnrs.leveranciercrediteurid)::integer AS leveranciercrediteurid,\n    (stg_leveranciercrediteurnrs.leverancier)::character varying AS leverancier,\n    (stg_leveranciercrediteurnrs.bedrijf)::integer AS bedrijf,\n    (stg_leveranciercrediteurnrs.crediteurennr)::character varying AS crediteurennr\n   FROM stg.stg_leveranciercrediteurnrs;\n--- SQL END ---"
+  },
+  {
+    "schema": "stg",
+    "table": "ods_alias_leverancierdebiteurnrs_v",
+    "type": "view",
+    "status": "ok",
+    "prompt": "\ud83e\udde0 Doel: Analyseer de onderstaande SQL-viewdefinitie.\n- Wat is het doel van deze view?\n- Welke onderliggende tabellen en relaties worden gebruikt?\n- Welke businesslogica valt op?\n- Zijn er suggesties voor optimalisatie, hernoemen of documentatie?\n\nViewdefinitie van `ods_alias_leverancierdebiteurnrs_v`:\n--- SQL START ---\nSELECT (stg_leverancierdebiteurnrs.schema)::character varying AS schema,\n    (stg_leverancierdebiteurnrs.leverancierdebiteurid)::integer AS leverancierdebiteurid,\n    (stg_leverancierdebiteurnrs.leverancier)::character varying AS leverancier,\n    (stg_leverancierdebiteurnrs.bedrijf)::integer AS bedrijf,\n    (stg_leverancierdebiteurnrs.debiteurnr)::integer AS debiteurnr,\n    (stg_leverancierdebiteurnrs.messagingserviceuserid)::character varying AS messagingserviceuserid,\n    (stg_leverancierdebiteurnrs.messagingservicepassword)::character varying AS messagingservicepassword,\n    (stg_leverancierdebiteurnrs.syncstamp)::timestamp without time zone AS syncstamp\n   FROM stg.stg_leverancierdebiteurnrs;\n--- SQL END ---"
+  },
+  {
+    "schema": "stg",
+    "table": "ods_alias_leveranciersbijlage_v",
+    "type": "view",
+    "status": "ok",
+    "prompt": "\ud83e\udde0 Doel: Analyseer de onderstaande SQL-viewdefinitie.\n- Wat is het doel van deze view?\n- Welke onderliggende tabellen en relaties worden gebruikt?\n- Welke businesslogica valt op?\n- Zijn er suggesties voor optimalisatie, hernoemen of documentatie?\n\nViewdefinitie van `ods_alias_leveranciersbijlage_v`:\n--- SQL START ---\nSELECT (stg_leveranciersbijlage.schema)::character varying AS schema,\n    (stg_leveranciersbijlage.recordbijlageid)::integer AS recordbijlageid,\n    (stg_leveranciersbijlage.keyvalue)::character varying AS keyvalue,\n    (stg_leveranciersbijlage.grootte)::integer AS grootte,\n    (stg_leveranciersbijlage.datum)::timestamp without time zone AS datum,\n    (stg_leveranciersbijlage.bijlagetype)::character varying AS bijlagetype,\n    (stg_leveranciersbijlage.bijlageid)::character varying AS bijlageid,\n    (stg_leveranciersbijlage.id)::character varying AS id,\n    (stg_leveranciersbijlage.bijlageinhoudid)::character varying AS bijlageinhoudid,\n    (stg_leveranciersbijlage.tag)::character varying AS tag,\n    (stg_leveranciersbijlage.aanmaak_datum)::timestamp without time zone AS aanmaak_datum\n   FROM stg.stg_leveranciersbijlage;\n--- SQL END ---"
+  },
+  {
+    "schema": "stg",
+    "table": "ods_alias_leverancierusers_v",
+    "type": "view",
+    "status": "ok",
+    "prompt": "\ud83e\udde0 Doel: Analyseer de onderstaande SQL-viewdefinitie.\n- Wat is het doel van deze view?\n- Welke onderliggende tabellen en relaties worden gebruikt?\n- Welke businesslogica valt op?\n- Zijn er suggesties voor optimalisatie, hernoemen of documentatie?\n\nViewdefinitie van `ods_alias_leverancierusers_v`:\n--- SQL START ---\nSELECT (stg_leverancierusers.schema)::character varying AS schema,\n    (stg_leverancierusers.leverancieruserid)::integer AS leverancieruserid,\n    (stg_leverancierusers.leverancier)::character varying AS leverancier,\n    (stg_leverancierusers.gebruiker)::character varying AS gebruiker,\n    (stg_leverancierusers.username)::character varying AS username,\n    (stg_leverancierusers.password)::character varying AS password,\n    (stg_leverancierusers.logintype)::integer AS logintype,\n    (stg_leverancierusers.debiteurnr)::integer AS debiteurnr,\n    (stg_leverancierusers.inlogurl)::character varying AS inlogurl,\n    (stg_leverancierusers.bedrijf)::integer AS bedrijf,\n    (stg_leverancierusers.defaultinlog)::boolean AS defaultinlog,\n    (stg_leverancierusers.syncstamp)::character varying AS syncstamp\n   FROM stg.stg_leverancierusers;\n--- SQL END ---"
+  },
+  {
+    "schema": "stg",
+    "table": "ods_alias_leverancierusers",
+    "type": "table",
+    "status": "skipped",
+    "reason": "no_sample_data",
+    "prompt": null
+  }
+]

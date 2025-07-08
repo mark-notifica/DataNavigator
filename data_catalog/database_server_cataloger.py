@@ -636,6 +636,9 @@ def process_tables_and_views(catalog_conn, source_conn, schema_id, tables, schem
 
         if table_type in ('VIEW', 'V'):
             current_view_names.append(table_info['table_name'])
+
+            process_columns(catalog_conn, source_conn, schema_name, table_info, table_id, catalog_run_id, progress, summary)
+            
             if table_info.get('view_definition'):
                 view_definitions_batch.append((table_id, table_info['view_definition']))
             else:

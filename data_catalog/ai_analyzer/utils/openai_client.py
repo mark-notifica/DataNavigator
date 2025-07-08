@@ -69,19 +69,14 @@ def analyze_with_openai(
         logging.info(f"[COST] Geschatte kosten: ${total_cost:.4f} (model: {model}, rate: ${cost_rate}/1K tokens)")
 
         return {
-            "prompt": prompt,
-            "response_json": content,
-            "summary_json": None,      
-            "status": "ok",
-            "score": None,
-            "insights_summary": None,
-            "prompt_tokens": prompt_tokens,
-            "completion_tokens": completion_tokens,
-            "total_tokens": total_tokens,
-            "estimated_cost_usd": round(total_cost, 6),
+            "result": content,
             "model_used": model,
-            "temperature": temperature,
-            "max_tokens": max_tokens
+            "tokens": {
+                "prompt": prompt_tokens,
+                "completion": completion_tokens,
+                "total": total_tokens,
+                "estimated_cost_usd": round(total_cost, 6)
+            }
         }
 
     except Exception as e:

@@ -227,7 +227,7 @@ def get_engine_for_schema(main_connector_id: int, database_name: str):
         logger.warning(f"Engine ophalen mislukt voor schema in database {database_name}: {e}")
         return None
     
-def get_sample_data_for_table_description(table: dict) -> pd.DataFrame:
+def get_sample_data_for_base_table_analysis(table: dict) -> pd.DataFrame:
     """
     Sample data voor analyse van tabelbeschrijving (klein fragment).
     """

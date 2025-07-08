@@ -25,25 +25,27 @@ Viewdefinitie van `{table_name}`:
         """.strip()
 
     # -- Tabelbeschrijving --
-    if analysis_type == "table_description":
+    if analysis_type == "base_table_analysis":
         prompt_parts.append(f"""
-🔍 Doel: Beschrijf de functie van de tabel `{table_name}`.
-- Wat representeert deze tabel?
-- Is het een feitentabel, dimensietabel of iets anders?
-- Zijn er primaire of foreign keys?
+        Doel: Beschrijf de functie van de tabel `{table_name}`.
+        - Wat representeert deze tabel in businesscontext?
+        - Is het een feitentabel, dimensietabel of iets anders?
+
+        Negeer sleutelinformatie zoals primaire of foreign keys. Deze worden later apart geanalyseerd.
+        Sluit af zonder generieke opmerkingen zoals 'Laat het me weten als je vragen hebt'. Beperk je tot de analyse.
         """.strip())
 
     # -- Kolomclassificatie --
     if analysis_type == "column_classification":
         prompt_parts.append("""
-🧬 Doel: Classificeer de kolommen van de tabel.
-Gebruik één van de volgende labels per kolom:
-PRIMARY_KEY, FOREIGN_KEY, DATE, MEASURE, DIMENSION, CONTEXT, FLAG, IDENTIFIER, ENUM, ORDERING_FIELD, TIMESTAMP, DURATION, SENSITIVE
+        Doel: Classificeer de kolommen van de tabel.
+        Gebruik één van de volgende labels per kolom:
+        PRIMARY_KEY, FOREIGN_KEY, DATE, MEASURE, DIMENSION, CONTEXT, FLAG, IDENTIFIER, ENUM, ORDERING_FIELD, TIMESTAMP, DURATION, SENSITIVE
 
-Kies het meest passende label per kolom. Als meerdere labels gelden, kies degene die het meest bepalend is voor gebruik in rapportages of analyses.
+        Kies het meest passende label per kolom. Als meerdere labels gelden, kies degene die het meest bepalend is voor gebruik in rapportages of analyses.
 
-Antwoord als JSON: { "kolomnaam": "LABEL" }
-        """.strip())
+        Antwoord als JSON: { "kolomnaam": "LABEL" }
+                """.strip())
 
     # -- Datakwaliteit --
     if analysis_type == "data_quality_check":
@@ -79,6 +81,7 @@ def build_prompt_for_schema(schema_metadata: dict, table_analyses: list, analysi
         f"- `{t['table_name']}`: {t.get('type', 'UNKNOWN')} — {t.get('summary', '')}"
         for t in table_analyses
     ]
+    joined_tables = chr(10).join(table_lines)
 
     if analysis_type == "schema_context":
         return f"""
@@ -87,40 +90,73 @@ def build_prompt_for_schema(schema_metadata: dict, table_analyses: list, analysi
 - Hoe hangen de tabellen logisch samen?
 
 Bekende tabellen:
-{chr(10).join(table_lines)}
+{joined_tables}
         """.strip()
 
-    elif analysis_type == "table_overview":
+    elif analysis_type == "schema_summary":
         return f"""
-📊 Doel: Geef per tabel een korte beschrijving.
-- Is het een feit- of dimensietabel?
+📎 Doel: Vat samen wat dit schema `{schema_name}` doet.
+- Welke soorten tabellen zijn er?
+- Wat is de rol van dit schema binnen de database?
+- Hoe logisch en compleet is het model?
+
+Bekende tabellen:
+{joined_tables}
+        """.strip()
+
+    elif analysis_type == "schema_table_overview":
+        return f"""
+📊 Doel: Geef per tabel een contextuele beschrijving binnen schema `{schema_name}`.
+- Welke rol speelt de tabel binnen het geheel?
+- Is het een feit-, dimensie- of hulpset?
 - Wat zijn sleutelrelaties?
 
 Bekende tabellen:
-{chr(10).join(table_lines)}
+{joined_tables}
         """.strip()
 
     elif analysis_type == "naming_convention":
         return f"""
-🧹 Doel: Evalueer de naamgeving in schema `{schema_name}`.
-- Zijn tabellen en kolommen consistent en logisch benoemd?
-- Zijn er afwijkingen?
+🧹 Doel: Evalueer de naamgeving binnen schema `{schema_name}`.
+- Zijn tabellen en kolommen logisch en consistent benoemd?
+- Zijn er inconsistenties, afkortingen of ongebruikelijke termen?
 
 Bekende tabellen:
-{chr(10).join(table_lines)}
+{joined_tables}
         """.strip()
 
-    elif analysis_type == "all_in_one":
+
+
+    elif analysis_type == "schema_recommendations":
         return f"""
-Je bent een data-architect. Hieronder zie je tabellen van schema `{schema_name}`:
+🛠️ Doel: Geef verbetersuggesties voor schema `{schema_name}`.
+- Welke tabellen kunnen beter hernoemd, gesplitst of samengevoegd worden?
+- Waar ontbreken sleutelrelaties of documentatie?
+- Wat zou je aanpassen om de structuur begrijpelijker of efficiënter te maken?
 
-{chr(10).join(table_lines)}
+Bekende tabellen:
+{joined_tables}
+        """.strip()
 
-Beantwoord:
-1. Welke tabellen horen logisch bij elkaar?
-2. Wat valt op in het datamodel?
-3. Hoe is de naamgeving?
-4. Wat zijn verbetersuggesties?
+    elif analysis_type == "schema_cluster_mapping":
+        return f"""
+🔗 Doel: Koppel tabellen aan thematische domeinen binnen schema `{schema_name}`.
+- Welke groepjes tabellen horen logisch bij elkaar?
+- Welke thema's (bijv. 'klantbeheer', 'facturatie') herken je?
+
+Bekende tabellen:
+{joined_tables}
+        """.strip()
+    
+    elif analysis_type == "schema_evaluation":
+        return f"""
+    🧠 Doel: Geef een expert-oordeel over schema `{schema_name}`.
+    - Beoordeel de samenhang, structuur, naamgeving en modelkwaliteit.
+    - Benoem sterke punten én verbeterpunten.
+    - Waar nodig mag je tabellen of structuren hergroeperen.
+
+    Bekende tabellen:
+    {joined_tables}
         """.strip()
 
     else:

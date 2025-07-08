@@ -58,6 +58,7 @@ def fetch_sample_data(table: dict, analysis_type: str, random: bool = False) -> 
             schema=schema,
             table=table_name,
             engine_type=engine_type,
+            metadata=table,
             random=random
         )
 
@@ -76,8 +77,8 @@ def fetch_sample_data(table: dict, analysis_type: str, random: bool = False) -> 
         logging.exception("Stacktrace:")
         return pd.DataFrame()
 
-def get_sample_data_for_table_description(table: dict) -> pd.DataFrame:
-    return fetch_sample_data(table, analysis_type="table_description")
+def get_sample_data_for_base_table_analysis(table: dict) -> pd.DataFrame:
+    return fetch_sample_data(table, analysis_type="base_table_analysis")
 
 
 def get_sample_data_for_column_classification(table: dict) -> pd.DataFrame:

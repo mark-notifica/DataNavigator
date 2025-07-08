@@ -1,0 +1,14 @@
+[
+  {
+    "schema": "stg",
+    "table": "ods_alias_landen",
+    "status": "error",
+    "message": "not all arguments converted during string formatting"
+  },
+  {
+    "schema": "stg",
+    "table": "ods_alias_landen_v",
+    "status": "error",
+    "message": "not all arguments converted during string formatting"
+  }
+]

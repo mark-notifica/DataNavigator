@@ -43,7 +43,7 @@ LIMIT {limit}
     """.strip()
 
 
-def build_table_description_query(schema: str, table: str, engine_type: str, random: bool = False) -> str:
+def build_base_table_analysis_query(schema: str, table: str, engine_type: str, random: bool = False) -> str:
     return build_select_sample_query(schema, table, limit=50, engine_type=engine_type, random=random)
 
 
@@ -51,12 +51,69 @@ def build_column_classification_query(schema: str, table: str, engine_type: str,
     return build_select_sample_query(schema, table, limit=200, engine_type=engine_type, random=random)
 
 
-def build_data_quality_query(schema: str, table: str, engine_type: str, random: bool = False) -> str:
-    return build_select_sample_query(schema, table, limit=500, engine_type=engine_type, random=random)
+def build_data_quality_query(
+    schema: str,
+    table: str,
+    engine_type: str,
+    random: bool = False,
+    table_type: Optional[str] = None
+) -> str:
+    """
+    Bouwt een SQL-query om sample data op te halen voor datakwaliteitsanalyse.
+    Past gedrag aan voor views (bijvoorbeeld minder rows, geen ORDER BY).
+    """
+    table_type = (table_type or "").upper()
+
+    if table_type in ("VIEW", "V"):
+        # Voorzichtigere aanpak voor views
+        return build_select_sample_query(
+            schema=schema,
+            table=table,
+            limit=100,
+            engine_type=engine_type,
+            random=False  # vaak niet toegestaan of traag bij views
+        )
+    else:
+        return build_select_sample_query(
+            schema=schema,
+            table=table,
+            limit=500,
+            engine_type=engine_type,
+            random=random
+        )
 
 
-def build_data_presence_query(schema: str, table: str, engine_type: str, random: bool = False) -> str:
-    return build_select_sample_query(schema, table, limit=10, engine_type=engine_type, random=random)
+def build_data_presence_query(
+    schema: str,
+    table: str,
+    engine_type: str,
+    random: bool = False,
+    table_type: Optional[str] = None
+) -> str:
+    """
+    Bouwt een SQL-query om data-aanwezigheid en actualiteit te analyseren.
+    Past gedrag aan voor views (bijv. vaste limiet, geen random ordering).
+    """
+    table_type = (table_type or "").upper()
+
+    if table_type in ("VIEW", "V"):
+        # Voorzichtige strategie bij views: minder rijen, geen random
+        return build_select_sample_query(
+            schema=schema,
+            table=table,
+            limit=20,
+            engine_type=engine_type,
+            random=False
+        )
+    else:
+        # Base tables mogen random en grotere steekproef
+        return build_select_sample_query(
+            schema=schema,
+            table=table,
+            limit=100,
+            engine_type=engine_type,
+            random=random
+        )
 
 
 def build_view_definition_query(table_metadata: dict) -> Optional[str]:
@@ -76,16 +133,36 @@ def get_query_for_analysis_type(
 ) -> Optional[str]:
     """
     Routed per analysis_type naar juiste querygenerator.
+    Geeft ook table_type door indien relevant.
     """
-    if analysis_type == "table_description":
-        return build_table_description_query(schema, table, engine_type, random)
+    table_type = (metadata or {}).get("table_type", "BASE TABLE")
+
+    if analysis_type == "base_table_analysis":
+        return build_base_table_analysis_query(schema, table, engine_type, random)
+
     elif analysis_type == "column_classification":
         return build_column_classification_query(schema, table, engine_type, random)
+
     elif analysis_type == "data_quality_check":
-        return build_data_quality_query(schema, table, engine_type, random)
+        return build_data_quality_query(
+            schema=schema,
+            table=table,
+            engine_type=engine_type,
+            random=random,
+            table_type=table_type
+        )
+
     elif analysis_type == "data_presence_analysis":
-        return build_data_presence_query(schema, table, engine_type, random)
+        return build_data_presence_query(
+            schema=schema,
+            table=table,
+            engine_type=engine_type,
+            random=random,
+            table_type=table_type
+        )
+
     elif analysis_type == "view_definition_analysis":
         return build_view_definition_query(metadata or {})
+
     else:
         raise ValueError(f"Onbekend analysis_type: {analysis_type}")
