@@ -1,0 +1,2 @@
+# bedacht voor graph builder maar momenteel nog onduidelijk of dit wel iets toevoegd. Verschillende benamingen gaan verzamelen voor kolommen die helemaal
+# niet gelijk zijn aan elkaar en geen Key zijn lijkt me niet handig. Misschien wel handig voor de kolommen die wel Key zijn en gelijk zijn aan elkaar.

@@ -20,10 +20,10 @@ from ai_analyzer.postprocessor.ai_analysis_writer import (
     update_log_path_for_run
 )
 from connection_handler import (
-    get_ai_config_by_id,
     get_specific_connection,
     connect_to_source_database
 )
+from data_catalog.ai_analyzer.utils.config_reader import get_ai_config_by_id
 from ai_analyzer.utils.openai_parsing import parse_column_classification_response
 load_dotenv()
 
@@ -47,8 +47,6 @@ except ValueError:
     logging.warning("[WAARSCHUWING] AI_MAX_ALLOWED_TABLES bevat geen geldige integer — fallback naar 500")
     
 ALLOW_UNFILTERED_SELECTION = os.getenv("AI_ALLOW_UNFILTERED_SELECTION", "false").lower() == "true"
-
-
 
 def run_batch_tables_by_config(ai_config_id: int, analysis_type: str, author: str, dry_run: bool):
     print("[TEST] run_batch_tables_by_config aangeroepen")

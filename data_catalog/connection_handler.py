@@ -255,25 +255,25 @@ def get_ai_config_by_main_connector_id(connection_id: int) -> dict | None:
     finally:
         conn.close()
 
-def get_ai_config_by_id(config_id: int) -> dict | None:
-    """
-    Haalt een AI-analyzerconfiguratie op op basis van config ID.
-    Geeft een dict terug of None als niet gevonden.
-    """
-    conn = get_catalog_connection()
-    try:
-        with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
-            cur.execute("""
-                SELECT ai.*
-                FROM config.ai_analyzer_connection_config ai
-                WHERE ai.id = %s
-                  AND ai.is_active = TRUE
-                  AND ai.use_for_ai = TRUE
-                LIMIT 1
-            """, (config_id,))
-            return cur.fetchone()
-    finally:
-        conn.close()
+# def get_ai_config_by_id(config_id: int) -> dict | None:
+#     """
+#     Haalt een AI-analyzerconfiguratie op op basis van config ID.
+#     Geeft een dict terug of None als niet gevonden.
+#     """
+#     conn = get_catalog_connection()
+#     try:
+#         with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
+#             cur.execute("""
+#                 SELECT ai.*
+#                 FROM config.ai_analyzer_connection_config ai
+#                 WHERE ai.id = %s
+#                   AND ai.is_active = TRUE
+#                   AND ai.use_for_ai = TRUE
+#                 LIMIT 1
+#             """, (config_id,))
+#             return cur.fetchone()
+#     finally:
+#         conn.close()
 
 def build_sqlalchemy_engine(conn_info: dict, database_name: str = None):
     """

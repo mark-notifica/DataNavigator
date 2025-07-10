@@ -56,3 +56,24 @@ def table_is_allowed_by_config(
     if not matches_filter(table_name, table_filter):
         return False
     return True
+
+def resolve_ai_config_and_connection(ai_config_id: int):
+    """
+    Haalt AI-config + bijbehorende connectie op uit configuratie.
+    Raise bij fouten.
+
+    Returns:
+        ai_config (dict), connection_info (dict)
+    """
+    from ..config import get_ai_config_by_id, get_specific_connection
+
+    ai_config = get_ai_config_by_id(ai_config_id)
+    if not ai_config:
+        raise ValueError(f"Geen AI-config gevonden voor id={ai_config_id}")
+
+    try:
+        connection = get_specific_connection(ai_config["connection_id"])
+    except Exception as e:
+        raise ConnectionError(f"Kan geen connectie ophalen uit ai_config: {e}")
+
+    return ai_config, connection
