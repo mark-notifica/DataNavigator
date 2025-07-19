@@ -2,7 +2,7 @@ import json
 from sqlalchemy import text
 from datetime import datetime
 from data_catalog.connection_handler import get_catalog_connection
-from ai_analyzer.utils.catalog_reader import get_column_id
+from ai_analyzer.catalog_access.catalog_reader import get_column_id
 import logging
 
 def generate_run_name(analysis_type: str, author: str = None) -> str:

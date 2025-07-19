@@ -1,5 +1,7 @@
 import re
 from typing import Optional
+from ai_analyzer.catalog_access.dw_config_reader import get_dw_ai_config_by_id
+from data_catalog.connection_handler import get_specific_connection
 
 def matches_filter(
     name: str,
@@ -58,16 +60,7 @@ def table_is_allowed_by_config(
     return True
 
 def resolve_ai_config_and_connection(ai_config_id: int):
-    """
-    Haalt AI-config + bijbehorende connectie op uit configuratie.
-    Raise bij fouten.
-
-    Returns:
-        ai_config (dict), connection_info (dict)
-    """
-    from ..config import get_ai_config_by_id, get_specific_connection
-
-    ai_config = get_ai_config_by_id(ai_config_id)
+    ai_config = get_dw_ai_config_by_id(ai_config_id)
     if not ai_config:
         raise ValueError(f"Geen AI-config gevonden voor id={ai_config_id}")
 

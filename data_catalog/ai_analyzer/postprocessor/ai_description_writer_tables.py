@@ -1,6 +1,6 @@
 from datetime import datetime
 from data_catalog.connection_handler import get_catalog_connection
-from ai_analyzer.utils.catalog_metadata import get_table_metadata, get_column_metadata
+from ai_analyzer.catalog_access.catalog_metadata import get_table_metadata, get_column_metadata
 
 def write_table_description(run_id, server, database, schema, table_name, result_json, author="ai_analyzer"):
     table = get_table_metadata(server, database, schema, table_name)

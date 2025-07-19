@@ -6,12 +6,13 @@ from dotenv import load_dotenv
 import logging
 import sys
 
-from ai_analyzer.utils.catalog_reader import get_metadata_with_ids, get_view_definition_with_ids, get_filtered_tables_with_ids
+from ai_analyzer.catalog_access.catalog_reader import get_metadata_with_ids, get_view_definition_with_ids, get_filtered_tables_with_ids
 from ai_analyzer.prompts.prompt_builder import build_prompt_for_table
-from ai_analyzer.utils.openai_client import analyze_with_openai
+from ai_analyzer.model_logic.llm_clients.openai_client import analyze_with_openai
 from ai_analyzer.postprocessor.ai_analysis_writer import store_ai_table_analysis
 from ai_analyzer.analysis.analysis_matrix import ANALYSIS_TYPES
-from ai_analyzer.utils.model_config import get_model_config
+from ai_analyzer.config.analysis_config_loader import load_analysis_config, merge_analysis_configs
+from ai_analyzer.model_logic.model_config import get_model_config
 from ai_analyzer.postprocessor.ai_analysis_writer import (
     create_analysis_run_entry,
     finalize_and_complete_run,
@@ -23,8 +24,8 @@ from connection_handler import (
     get_specific_connection,
     connect_to_source_database
 )
-from data_catalog.ai_analyzer.utils.config_reader import get_ai_config_by_id
-from ai_analyzer.utils.openai_parsing import parse_column_classification_response
+from ai_analyzer.catalog_access.dw_config_reader import get_ai_config_by_id
+from ai_analyzer.model_logic.llm_clients.openai_parsing import parse_column_classification_response
 load_dotenv()
 
 logging.basicConfig(
@@ -47,6 +48,26 @@ except ValueError:
     logging.warning("[WAARSCHUWING] AI_MAX_ALLOWED_TABLES bevat geen geldige integer — fallback naar 500")
     
 ALLOW_UNFILTERED_SELECTION = os.getenv("AI_ALLOW_UNFILTERED_SELECTION", "false").lower() == "true"
+
+def get_enabled_table_analysis_types() -> dict:
+    """
+    Haalt alle 'active' table analysetypes op uit YAML en koppelt ze aan hun matrixdefinitie.
+    :return: dict van analysis_type → config met runtime logica
+    """
+    config = load_analysis_config()
+    active_items = [item for item in config.get("table_analysis", []) if item.get("status") == "active"]
+
+    matrix = ANALYSIS_TYPES
+    yaml_config = {}
+
+    for item in active_items:
+        name = item["name"]
+        if name not in matrix:
+            raise ValueError(f"Analysis type '{name}' uit YAML bestaat niet in ANALYSIS_TYPES.")
+        yaml_config[name] = item
+
+    combined = merge_analysis_configs(yaml_config, matrix)
+    return combined
 
 def run_batch_tables_by_config(ai_config_id: int, analysis_type: str, author: str, dry_run: bool):
     print("[TEST] run_batch_tables_by_config aangeroepen")
@@ -78,9 +99,9 @@ def run_batch_tables_by_config(ai_config_id: int, analysis_type: str, author: st
         is_dry_run=dry_run,
         connection_id=connection["id"],
         ai_config_id=ai_config_id,
-        model_used=model_used,
-        temperature=temperature,
-        max_tokens=max_tokens,
+        model_used=analysis_config.get("default_model", model_used),
+        temperature=analysis_config.get("temperature", temperature),
+        max_tokens=analysis_config.get("max_tokens", max_tokens),
         model_config_source=model_config_source
     )
 
@@ -127,7 +148,14 @@ def run_batch_tables_by_config(ai_config_id: int, analysis_type: str, author: st
         logging.info(f"[CONFIG] model={model_used}, temp={temperature}, max_tokens={max_tokens} via {model_config_source}")
         logging.info(f"[RUN] Start batch-analyse voor {len(tables)} tabellen (run_id={run_id})")
 
-        allowed_types = ANALYSIS_TYPES.get(analysis_type, {}).get("allowed_table_types")
+        enabled_analyses = get_enabled_table_analysis_types()
+        if analysis_type not in enabled_analyses:
+            logging.error(f"[ABORT] Analyse '{analysis_type}' is niet ingeschakeld in de YAML-configuratie.")
+            mark_analysis_run_aborted(run_id, f"Analyse '{analysis_type}' niet geactiveerd")
+            return
+
+        analysis_config = enabled_analyses[analysis_type]
+        allowed_types = analysis_config.get("allowed_table_types")
         if allowed_types:
             before_count = len(tables)
             tables = [t for t in tables if t["table_type"].upper() in allowed_types]
@@ -162,7 +190,8 @@ def run_batch_tables_by_config(ai_config_id: int, analysis_type: str, author: st
                     run_id,
                     model_used,
                     temperature,
-                    max_tokens
+                    max_tokens,
+                    analysis_config=analysis_config 
                 )
                 batch_results.append(result)
             except Exception as e:
@@ -193,7 +222,7 @@ def run_batch_tables_by_config(ai_config_id: int, analysis_type: str, author: st
         conn = connect_to_source_database(connection, ai_config["ai_database_filter"])  # ← conn moet beschikbaar zijn
         conn.close()
 
-def run_single_table(table: dict, analysis_type: str, author: str, dry_run: bool, run_id: int, model_used: str, temperature: float, max_tokens: int):
+def run_single_table(table: dict, analysis_type: str, author: str, dry_run: bool, run_id: int, model_used: str, temperature: float, max_tokens: int, analysis_config: dict):
     logging.info(f"[RUN] Analyse gestart voor {table['table_name']} (run_id={run_id})")
     is_view = table.get("table_type", "").upper() in ("V", "VIEW")
 
@@ -264,7 +293,7 @@ def run_single_table(table: dict, analysis_type: str, author: str, dry_run: bool
             }
 
         # --- SAMPLEDATA CHECK ---
-        sample_data_func = ANALYSIS_TYPES.get(analysis_type, {}).get("sample_data_function")
+        sample_data_func = analysis_config.get("sample_data_function")
         sample = sample_data_func(table) if sample_data_func else None
 
         if sample is None or sample.empty:

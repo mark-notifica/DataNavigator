@@ -9,7 +9,7 @@ from ai_analyzer.postprocessor.ai_description_writer_tables import (
 from ai_analyzer.postprocessor.ai_description_writer_schemas import (
     store_schema_description
 )
-from ai_analyzer.utils.catalog_metadata import get_table_metadata
+from ai_analyzer.catalog_access.catalog_metadata import get_table_metadata
 
 logging.basicConfig(
     level=logging.INFO,

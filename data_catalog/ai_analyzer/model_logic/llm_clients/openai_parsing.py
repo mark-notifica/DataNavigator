@@ -66,3 +66,10 @@ def parse_column_classification_response(raw_response: str) -> dict[str, str] | 
         return None
 
     return parsed
+
+def extract_text_from_response(response: dict) -> str:
+    try:
+        return response["choices"][0]["message"]["content"]
+    except Exception as e:
+        logging.warning(f"[PARSER] Kan tekst niet extraheren: {e}")
+        return ""

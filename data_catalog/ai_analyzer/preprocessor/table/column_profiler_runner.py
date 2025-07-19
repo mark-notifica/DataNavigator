@@ -34,8 +34,8 @@ from data_catalog.connection_handler import (
     connect_to_source_database,
     get_specific_connection
 )
-from data_catalog.ai_analyzer.utils.config_reader import get_ai_config_by_id
-from data_catalog.ai_analyzer.utils.catalog_reader import (
+from ai_analyzer.catalog_access.dw_config_reader import get_ai_config_by_id
+from ai_analyzer.catalog_access.catalog_reader import (
     get_filtered_tables_with_ids,
     get_metadata_with_ids
 )
@@ -82,15 +82,53 @@ def analyze_column(series: pd.Series) -> dict:
 
 def write_profile_to_db(conn, run_id, server, db, schema, table, column, table_id, column_id, profile: dict):
     with conn.cursor() as cur:
+        # STEP 1: Markeer oudere profielen als niet-actueel (is_current = FALSE)
+        if table_id is not None and column_id is not None:
+            cur.execute("""
+                UPDATE catalog.catalog_column_profiles
+                SET is_current = FALSE
+                WHERE table_id = %(table_id)s AND column_id = %(column_id)s
+            """, {
+                "table_id": table_id,
+                "column_id": column_id
+            })
+        elif table_id is not None:
+            cur.execute("""
+                UPDATE catalog.catalog_column_profiles
+                SET is_current = FALSE
+                WHERE table_id = %(table_id)s AND column_name = %(column)s
+            """, {
+                "table_id": table_id,
+                "column": column
+            })
+        else:
+            # laatste fallback op naamvelden
+            cur.execute("""
+                UPDATE catalog.catalog_column_profiles
+                SET is_current = FALSE
+                WHERE server_name = %(server)s AND database_name = %(db)s AND
+                      schema_name = %(schema)s AND table_name = %(table)s AND
+                      column_name = %(column)s
+            """, {
+                "server": server,
+                "db": db,
+                "schema": schema,
+                "table": table,
+                "column": column
+            })
+
+        # STEP 2: Insert nieuwe profiel als huidige (is_current = TRUE)
         cur.execute("""
-            insert into catalog.catalog_column_profiles (
+            INSERT INTO catalog.catalog_column_profiles (
                 preprocessor_run_id, server_name, database_name, schema_name, table_name,
                 table_id, column_name, column_id,
-                data_type, null_count, non_null_count, unique_count, row_count, uniqueness_ratio
-            ) values (
+                data_type, null_count, non_null_count, unique_count, row_count, uniqueness_ratio,
+                is_current
+            ) VALUES (
                 %(run_id)s, %(server)s, %(db)s, %(schema)s, %(table)s,
                 %(table_id)s, %(column)s, %(column_id)s,
-                %(data_type)s, %(null_count)s, %(non_null_count)s, %(unique_count)s, %(row_count)s, %(uniqueness_ratio)s
+                %(data_type)s, %(null_count)s, %(non_null_count)s, %(unique_count)s, %(row_count)s, %(uniqueness_ratio)s,
+                TRUE
             )
         """, {
             "run_id": run_id,
@@ -108,7 +146,7 @@ def write_profile_to_db(conn, run_id, server, db, schema, table, column, table_i
             "row_count": profile.get("row_count"),
             "uniqueness_ratio": profile.get("uniqueness_ratio"),
         })
-    conn.commit()
+
 
 def profile_table(
     source_conn,
@@ -121,6 +159,7 @@ def profile_table(
     - Leest data uit bron
     - Analyseert alle kolommen
     - Schrijft profielen weg naar catalogus
+    - Commit bij succes, rollback bij fout
     Retourneert: aantal geprofileerde kolommen (int)
     """
     try:
@@ -162,10 +201,12 @@ def profile_table(
             except Exception as col_err:
                 logger.warning(f"[COLUMN ERROR] Fout bij kolom '{colname}' in {table['table_name']}: {col_err}")
 
+        catalog_conn.commit()
         return profiled_count
 
     except Exception as e:
-        logger.error(f"[TABLE ERROR] Kan tabel {table['table_name']} niet profileren: {e}")
+        catalog_conn.rollback()
+        logger.error(f"[TABLE ERROR] Rollback bij profileren van {table['table_name']}: {e}")
         return 0
     
 def run_column_profiler_batch_by_config(ai_config: dict, author: str = None, log_path: str = None):

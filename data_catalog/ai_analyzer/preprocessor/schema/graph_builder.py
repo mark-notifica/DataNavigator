@@ -1,5 +1,5 @@
 import networkx as nx
-from ai_analyzer.utils.ai_config import table_is_allowed_by_config
+from ai_analyzer.model_logic.dw_ai_config_utils import table_is_allowed_by_config
 from rapidfuzz.fuzz import ratio
 
 

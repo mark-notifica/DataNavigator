@@ -1,0 +1,23 @@
+models:
+  gpt-3.5-turbo:
+    provider: openai
+    endpoint: https://api.openai.com/v1/chat/completions
+    model_name: gpt-3.5-turbo
+    api_key_env: OPENAI_API_KEY
+
+  gpt-4:
+    provider: openai
+    endpoint: https://api.openai.com/v1/chat/completions
+    model_name: gpt-4
+    api_key_env: OPENAI_API_KEY
+
+  azure_gpt-4:
+    provider: azure
+    deployment_name: gpt4-prod
+    endpoint: https://myazure.openai.azure.com/
+    api_key_env: AZURE_OPENAI_API_KEY
+
+  mistral-7b:
+    provider: self_hosted
+    endpoint: http://10.3.152.2:11434/api/generate
+    model_name: mistral-7b-instruct-v0.1
