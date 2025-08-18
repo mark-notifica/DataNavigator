@@ -326,14 +326,14 @@ def start_catalog_run(catalog_conn, connection_info, databases_to_catalog=None, 
             databases_count = len(databases_to_catalog)
         
         cursor.execute("""
-            INSERT INTO catalog.catalog_runs 
+            INSERT INTO catalog.dw_catalog_runs 
             (connection_id, catalog_config_id, connection_name, connection_type, connection_host, connection_port, 
             databases_to_catalog, databases_count, run_started_at, run_status)
             VALUES (%s, %s, %s, %s, %s, %s, %s, %s, CURRENT_TIMESTAMP, 'running')
             RETURNING id
         """, (
             connection_info['id'],
-            catalog_config_id,  # 👈 toegevoegd
+            catalog_config_id,
             connection_info['name'],
             connection_info['connection_type'],
             connection_info['host'],
@@ -349,7 +349,7 @@ def start_catalog_run(catalog_conn, connection_info, databases_to_catalog=None, 
         
         # Store relative log filename in database
         cursor.execute("""
-            UPDATE catalog.catalog_runs 
+            UPDATE catalog.dw_catalog_runs 
             SET log_filename = %s
             WHERE id = %s
         """, (relative_log_filename, run_id))
@@ -360,7 +360,7 @@ def start_catalog_run(catalog_conn, connection_info, databases_to_catalog=None, 
                 actual_databases = get_databases_on_server(connection_info)
                 actual_count = len(actual_databases)
                 cursor.execute("""
-                    UPDATE catalog.catalog_runs 
+                    UPDATE catalog.dw_catalog_runs 
                     SET databases_count = %s,
                         databases_to_catalog = %s
                     WHERE id = %s
@@ -370,7 +370,7 @@ def start_catalog_run(catalog_conn, connection_info, databases_to_catalog=None, 
         
         catalog_conn.commit()
         
-        logger.info(f"Started catalog run {run_id} for connection {connection_info['name']}")
+        logger.info(f"Started dw catalog run {run_id} for connection {connection_info['name']}")
         logger.info(f"Databases to catalog: {databases_info}")
         logger.info(f"Expected database count: {databases_count}")
         logger.info(f"Relative log file path: {relative_log_filename}")
@@ -384,7 +384,7 @@ def complete_catalog_run(catalog_conn, run_id, summary):
         with catalog_conn.cursor() as cursor:
             # Mark as completed
             cursor.execute("""
-                UPDATE catalog.catalog_runs 
+                UPDATE catalog.dw_catalog_runs 
                 SET run_completed_at = CURRENT_TIMESTAMP,
                     run_status = 'completed'
                 WHERE id = %s
@@ -402,7 +402,7 @@ def complete_catalog_run(catalog_conn, run_id, summary):
             # Get final counts for logging only
             cursor.execute("""
                 SELECT databases_processed, schemas_processed, tables_processed, views_processed, columns_processed
-                FROM catalog.catalog_runs 
+                FROM catalog.dw_catalog_runs 
                 WHERE id = %s
             """, (run_id,))
             
@@ -428,7 +428,7 @@ def fail_catalog_run(catalog_conn, run_id, error_message):
     """Mark catalog run as failed with error message"""
     with catalog_conn.cursor() as cursor:
         cursor.execute("""
-            UPDATE catalog.catalog_runs 
+            UPDATE catalog.dw_catalog_runs 
             SET run_completed_at = CURRENT_TIMESTAMP,
                 run_status = 'failed',
                 error_message = %s
@@ -441,7 +441,7 @@ def upsert_database_temporal(catalog_conn, connection_info, catalog_run_id,summa
     with catalog_conn.cursor() as cursor:
         # Check if current record exists
         cursor.execute("""
-            SELECT id, server_name FROM catalog.catalog_databases 
+            SELECT id, server_name FROM catalog.dw_databases 
             WHERE database_name = %s AND server_name = %s 
             AND date_deleted IS NULL AND is_current = true
         """, (connection_info.get('database_name', ''), connection_info['host']))
@@ -457,7 +457,7 @@ def upsert_database_temporal(catalog_conn, connection_info, catalog_run_id,summa
                 
                 # 1. Mark current record as no longer current
                 cursor.execute("""
-                    UPDATE catalog.catalog_databases 
+                    UPDATE catalog.dw_databases 
                     SET is_current = false,
                         date_updated = CURRENT_TIMESTAMP
                     WHERE id = %s
@@ -465,7 +465,7 @@ def upsert_database_temporal(catalog_conn, connection_info, catalog_run_id,summa
                 
                 # 2. Insert new current version
                 cursor.execute("""
-                    INSERT INTO catalog.catalog_databases 
+                    INSERT INTO catalog.dw_databases 
                     (database_name, server_name, date_created, is_current, catalog_run_id)
                     VALUES (%s, %s, CURRENT_TIMESTAMP, true, %s)
                     RETURNING id
@@ -486,7 +486,7 @@ def upsert_database_temporal(catalog_conn, connection_info, catalog_run_id,summa
         else:
             # Insert new database (first time seeing it)
             cursor.execute("""
-                INSERT INTO catalog.catalog_databases 
+                INSERT INTO catalog.dw_databases 
                 (database_name, server_name, date_created, is_current, catalog_run_id)
                 VALUES (%s, %s, CURRENT_TIMESTAMP, true, %s)
                 RETURNING id
@@ -724,7 +724,7 @@ def upsert_schema_temporal(catalog_conn, database_id, schema_name, catalog_run_i
     """Insert or update schema with temporal versioning."""
     with catalog_conn.cursor() as cursor:
         cursor.execute("""
-            SELECT id FROM catalog.catalog_schemas
+            SELECT id FROM catalog.dw_schemas
             WHERE database_id = %s AND schema_name = %s AND is_current = true
         """, (database_id, schema_name))
         result = cursor.fetchone()
@@ -735,7 +735,7 @@ def upsert_schema_temporal(catalog_conn, database_id, schema_name, catalog_run_i
         else:
             # Insert new schema
             cursor.execute("""
-                INSERT INTO catalog.catalog_schemas (database_id, schema_name, date_created, is_current, catalog_run_id)
+                INSERT INTO catalog.dw_schemas (database_id, schema_name, date_created, is_current, catalog_run_id)
                 VALUES (%s, %s, CURRENT_TIMESTAMP, true, %s)
                 RETURNING id
             """, (database_id, schema_name, catalog_run_id))
@@ -750,7 +750,7 @@ def upsert_table_temporal(catalog_conn, schema_id, table_info, catalog_run_id, s
     with catalog_conn.cursor() as cursor:
         # Check if current record exists
         cursor.execute("""
-            SELECT id, table_type FROM catalog.catalog_tables 
+            SELECT id, table_type FROM catalog.dw_tables 
             WHERE schema_id = %s AND table_name = %s 
             AND date_deleted IS NULL AND is_current = true
         """, (schema_id, table_info['table_name']))
@@ -766,7 +766,7 @@ def upsert_table_temporal(catalog_conn, schema_id, table_info, catalog_run_id, s
                 
                 # 1. Mark current record as no longer current
                 cursor.execute("""
-                    UPDATE catalog.catalog_tables 
+                    UPDATE catalog.dw_tables 
                     SET is_current = false,
                         date_updated = CURRENT_TIMESTAMP
                     WHERE id = %s
@@ -774,7 +774,7 @@ def upsert_table_temporal(catalog_conn, schema_id, table_info, catalog_run_id, s
                 
                 # 2. Insert new current version
                 cursor.execute("""
-                    INSERT INTO catalog.catalog_tables (schema_id, table_name, table_type, date_created, is_current, catalog_run_id)
+                    INSERT INTO catalog.dw_tables (schema_id, table_name, table_type, date_created, is_current, catalog_run_id)
                     VALUES (%s, %s, %s, CURRENT_TIMESTAMP, true, %s)
                     RETURNING id
                 """, (schema_id, table_info['table_name'], table_info.get('table_type'), catalog_run_id))
@@ -790,7 +790,7 @@ def upsert_table_temporal(catalog_conn, schema_id, table_info, catalog_run_id, s
         else:
             # Insert new table (first time seeing it)
             cursor.execute("""
-                INSERT INTO catalog.catalog_tables (schema_id, table_name, table_type, date_created, is_current, catalog_run_id)
+                INSERT INTO catalog.dw_tables (schema_id, table_name, table_type, date_created, is_current, catalog_run_id)
                 VALUES (%s, %s, %s, CURRENT_TIMESTAMP, true, %s)
                 RETURNING id
             """, (schema_id, table_info['table_name'], table_info.get('table_type'), catalog_run_id))
@@ -836,8 +836,8 @@ def upsert_view_definitions_batch(catalog_conn, table_id_definitions, catalog_ru
         placeholders = ','.join(['%s'] * len(table_ids))
         cursor.execute(f"""
             SELECT vd.table_id, vd.definition_hash, t.table_name 
-            FROM catalog.catalog_view_definitions vd
-            JOIN catalog.catalog_tables t ON vd.table_id = t.id
+            FROM catalog.dw_view_definitions vd
+            JOIN catalog.dw_tables t ON vd.table_id = t.id
             WHERE vd.table_id IN ({placeholders}) 
             AND vd.date_deleted IS NULL 
             AND vd.is_current = true
@@ -872,7 +872,7 @@ def upsert_view_definitions_batch(catalog_conn, table_id_definitions, catalog_ru
         # Execute batch updates
         if updates:
             cursor.executemany("""
-                UPDATE catalog.catalog_view_definitions 
+                UPDATE catalog.dw_view_definitions 
                 SET view_definition = %s, definition_hash = %s, catalog_run_id = %s, is_current = true, date_updated = CURRENT_TIMESTAMP
                 WHERE table_id = %s
             """, updates)
@@ -880,7 +880,7 @@ def upsert_view_definitions_batch(catalog_conn, table_id_definitions, catalog_ru
         # Execute batch inserts
         if inserts:
             cursor.executemany("""
-                INSERT INTO catalog.catalog_view_definitions 
+                INSERT INTO catalog.dw_view_definitions 
                 (table_id, view_definition, definition_hash, catalog_run_id, is_current)
                 VALUES (%s, %s, %s, %s, true)
             """, inserts)
@@ -892,8 +892,8 @@ def mark_deleted_view_definitions_batch(catalog_conn, schema_id, current_view_na
             placeholders = ','.join(['%s'] * len(current_view_names))
             cursor.execute(f"""
                 SELECT vd.id, t.table_name 
-                FROM catalog.catalog_view_definitions vd
-                JOIN catalog.catalog_tables t ON vd.table_id = t.id
+                FROM catalog.dw_view_definitions vd
+                JOIN catalog.dw_tables t ON vd.table_id = t.id
                 WHERE t.schema_id = %s 
                 AND t.table_type = 'VIEW'
                 AND t.table_name NOT IN ({placeholders})
@@ -904,8 +904,8 @@ def mark_deleted_view_definitions_batch(catalog_conn, schema_id, current_view_na
             # No views found - mark all current view definitions as deleted
             cursor.execute("""
                 SELECT vd.id, t.table_name 
-                FROM catalog.catalog_view_definitions vd
-                JOIN catalog.catalog_tables t ON vd.table_id = t.id
+                FROM catalog.dw_view_definitions vd
+                JOIN catalog.dw_tables t ON vd.table_id = t.id
                 WHERE t.schema_id = %s 
                 AND t.table_type = 'VIEW'
                 AND vd.is_current = true 
@@ -917,7 +917,7 @@ def mark_deleted_view_definitions_batch(catalog_conn, schema_id, current_view_na
         # Update all deleted definitions in a batch
         for def_id, view_name in deleted_definitions:
             cursor.execute("""
-                UPDATE catalog.catalog_view_definitions 
+                UPDATE catalog.dw_view_definitions 
                 SET is_current = false,
                     date_deleted = CURRENT_TIMESTAMP,
                     deleted_by_catalog_run_id = %s
@@ -934,7 +934,7 @@ def upsert_column_temporal(catalog_conn, table_id, column_info, catalog_run_id,s
     with catalog_conn.cursor() as cursor:
         # Check if current record exists
         cursor.execute("""
-            SELECT id, data_type, is_nullable, column_default, ordinal_position FROM catalog.catalog_columns 
+            SELECT id, data_type, is_nullable, column_default, ordinal_position FROM catalog.dw_columns 
             WHERE table_id = %s AND column_name = %s 
             AND date_deleted IS NULL AND is_current = true
         """, (table_id, column_info['column_name']))
@@ -957,7 +957,7 @@ def upsert_column_temporal(catalog_conn, table_id, column_info, catalog_run_id,s
                 
                 # 1. Mark current record as no longer current
                 cursor.execute("""
-                    UPDATE catalog.catalog_columns 
+                    UPDATE catalog.dwg_columns 
                     SET is_current = false,
                         date_updated = CURRENT_TIMESTAMP
                     WHERE id = %s
@@ -965,7 +965,7 @@ def upsert_column_temporal(catalog_conn, table_id, column_info, catalog_run_id,s
                 
                 # 2. Insert new current version
                 cursor.execute("""
-                    INSERT INTO catalog.catalog_columns 
+                    INSERT INTO catalog.dw_columns 
                     (table_id, column_name, data_type, is_nullable, column_default, ordinal_position, date_created, is_current, catalog_run_id)
                     VALUES (%s, %s, %s, %s, %s, %s, CURRENT_TIMESTAMP, true, %s)
                 """, (
@@ -986,7 +986,7 @@ def upsert_column_temporal(catalog_conn, table_id, column_info, catalog_run_id,s
         else:
             # Insert new column (first time seeing it)
             cursor.execute("""
-                INSERT INTO catalog.catalog_columns 
+                INSERT INTO catalog.dw_columns 
                 (table_id, column_name, data_type, is_nullable, column_default, ordinal_position, date_created, is_current, catalog_run_id)
                 VALUES (%s, %s, %s, %s, %s, %s, CURRENT_TIMESTAMP, true, %s)
             """, (
@@ -1007,7 +1007,7 @@ def update_table_row_count_temporal(catalog_conn, table_id, row_count, catalog_r
     with catalog_conn.cursor() as cursor:
         # Update main table
         cursor.execute("""
-            UPDATE catalog.catalog_tables 
+            UPDATE catalog.dw_tables 
             SET row_count_estimated = %s, 
                 row_count_updated = CURRENT_TIMESTAMP
             WHERE id = %s AND is_current = true
@@ -1015,7 +1015,7 @@ def update_table_row_count_temporal(catalog_conn, table_id, row_count, catalog_r
         
         # Log in rowcounts table with run reference
         cursor.execute("""
-            INSERT INTO catalog.catalog_table_rowcounts (table_id, row_count_estimated, collected_at, catalog_run_id)
+            INSERT INTO catalog.dw_table_rowcounts (table_id, row_count_estimated, collected_at, catalog_run_id)
             VALUES (%s, %s, CURRENT_TIMESTAMP, %s)
         """, (table_id, row_count, catalog_run_id))
 
@@ -1261,7 +1261,7 @@ def update_run_progress(catalog_conn, catalog_run_id, progress):
     try:
         with catalog_conn.cursor() as cursor:
             cursor.execute("""
-                UPDATE catalog.catalog_runs 
+                UPDATE catalog.dw_catalog_runs 
                 SET databases_processed = %s,
                     schemas_processed = %s,
                     tables_processed = %s,

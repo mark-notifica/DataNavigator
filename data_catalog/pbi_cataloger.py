@@ -326,7 +326,7 @@ def parse_relationships(path):
 
 def insert_model(cur, name, filename, catalog_run_id=None):
     cur.execute("""
-        INSERT INTO metadata.semantic_models (model_name, file_name, date_imported, catalog_run_id)
+        INSERT INTO catalog.pbi_models (model_name, file_name, date_imported, catalog_run_id)
         VALUES (%s, %s, %s, %s) RETURNING id
     """, (name, filename, datetime.now(), catalog_run_id))
     return cur.fetchone()[0]
@@ -335,7 +335,7 @@ def insert_tables(cur, model_id, tables, catalog_run_id=None):
     table_ids = {}
     for t in tables:
         cur.execute("""
-            INSERT INTO metadata.semantic_tables (model_id, table_name, catalog_run_id)
+            INSERT INTO catalog.pbi_tables (model_id, table_name, catalog_run_id)
             VALUES (%s, %s, %s) RETURNING id
         """, (
             model_id,
@@ -349,7 +349,7 @@ def insert_columns(cur, table_ids, tables, catalog_run_id=None):
     for t in tables:
         for c in t.get("columns", []):
             cur.execute("""
-                INSERT INTO metadata.semantic_columns (
+                INSERT INTO catalog.pbi_columns (
                     semantic_table_id, column_name, data_type, catalog_run_id
                 )
                 VALUES (%s, %s, %s, %s)
@@ -365,7 +365,7 @@ def insert_measures(cur, table_ids, tables, catalog_run_id=None):
         for m in t.get("measures", []):
             print(m)
             cur.execute("""
-                INSERT INTO metadata.semantic_measures (
+                INSERT INTO catalog.pbi_measures (
                     semantic_table_id
                     , measure_name
                     , dax_expression
@@ -394,7 +394,7 @@ def insert_measures(cur, table_ids, tables, catalog_run_id=None):
 def insert_relationships(cur, model_id, relationships, catalog_run_id=None):
     for r in relationships:
         cur.execute("""
-            INSERT INTO metadata.semantic_relationships (
+            INSERT INTO catalog.pbi_relationships (
                 model_id, from_table, from_column, to_table, to_column, is_active, catalog_run_id
             )
             VALUES (%s, %s, %s, %s, %s, %s, %s)
@@ -413,7 +413,7 @@ def insert_model(cur, name, catalog_run_id):
     
     # Check if model already exists
     cur.execute("""
-        SELECT id FROM catalog.semantic_models 
+        SELECT id FROM catalog.pbi_models 
         WHERE model_name = %s
     """, (name,))
     
@@ -423,7 +423,7 @@ def insert_model(cur, name, catalog_run_id):
         model_id = existing[0]
         # Update catalog_run_id to show it was processed in this run
         cur.execute("""
-            UPDATE catalog.semantic_models 
+            UPDATE catalog.pbi_models 
             SET catalog_run_id = %s
             WHERE id = %s
         """, (catalog_run_id, model_id))
@@ -433,7 +433,7 @@ def insert_model(cur, name, catalog_run_id):
     else:
         # New model
         cur.execute("""
-            INSERT INTO catalog.semantic_models 
+            INSERT INTO catalog.pbi_models 
             (model_name, catalog_run_id)
             VALUES (%s, %s) RETURNING id
         """, (name, catalog_run_id))
@@ -450,7 +450,7 @@ def upsert_semantic_tables_temporal_with_summary(catalog_conn, model_id, table_i
         # Check for existing current record
         cursor.execute("""
             SELECT id, display_folder, is_hidden, source_table
-            FROM catalog.semantic_tables 
+            FROM catalog.pbi_tables 
             WHERE model_id = %s AND table_name = %s AND is_current = true
         """, (model_id, table_name))
         
@@ -470,14 +470,14 @@ def upsert_semantic_tables_temporal_with_summary(catalog_conn, model_id, table_i
                 
                 # Mark old record as not current
                 cursor.execute("""
-                    UPDATE catalog.semantic_tables 
+                    UPDATE catalog.pbi_tables 
                     SET is_current = false, date_updated = CURRENT_TIMESTAMP
                     WHERE id = %s
                 """, (existing_id,))
                 
                 # Insert new record
                 cursor.execute("""
-                    INSERT INTO catalog.semantic_tables 
+                    INSERT INTO catalog.pbi_tables 
                     (model_id, table_name, display_folder, is_hidden, source_table, catalog_run_id, is_current)
                     VALUES (%s, %s, %s, %s, %s, %s, %s) RETURNING id
                 """, (model_id, table_name, current_display_folder, current_is_hidden, current_source_table, catalog_run_id, True))
@@ -488,7 +488,7 @@ def upsert_semantic_tables_temporal_with_summary(catalog_conn, model_id, table_i
             else:
                 # No changes, just update catalog_run_id
                 cursor.execute("""
-                    UPDATE catalog.semantic_tables 
+                    UPDATE catalog.pbi_tables 
                     SET catalog_run_id = %s, date_updated = CURRENT_TIMESTAMP
                     WHERE id = %s
                 """, (catalog_run_id, existing_id))
@@ -498,7 +498,7 @@ def upsert_semantic_tables_temporal_with_summary(catalog_conn, model_id, table_i
         else:
             # New table
             cursor.execute("""
-                INSERT INTO catalog.semantic_tables 
+                INSERT INTO catalog.pbi_tables 
                 (model_id, table_name, display_folder, is_hidden, source_table, catalog_run_id, is_current)
                 VALUES (%s, %s, %s, %s, %s, %s, %s) RETURNING id
             """, (model_id, table_name, table_info.get("display_folder"), table_info.get("is_hidden"), table_info.get("source_table"), catalog_run_id, True))
@@ -516,7 +516,7 @@ def upsert_semantic_columns_temporal_with_summary(catalog_conn, semantic_table_i
         # Check for existing current record
         cursor.execute("""
             SELECT id, data_type, is_hidden, format_string, display_folder
-            FROM catalog.semantic_columns 
+            FROM catalog.pbi_columns 
             WHERE semantic_table_id = %s AND column_name = %s AND is_current = true
         """, (semantic_table_id, column_name))
         
@@ -538,14 +538,14 @@ def upsert_semantic_columns_temporal_with_summary(catalog_conn, semantic_table_i
                 
                 # Mark old record as not current
                 cursor.execute("""
-                    UPDATE catalog.semantic_columns 
+                    UPDATE catalog.pbi_columns 
                     SET is_current = false, date_updated = CURRENT_TIMESTAMP
                     WHERE id = %s
                 """, (existing_id,))
                 
                 # Insert new record
                 cursor.execute("""
-                    INSERT INTO catalog.semantic_columns 
+                    INSERT INTO catalog.pbi_columns 
                     (semantic_table_id, column_name, data_type, is_hidden, format_string, display_folder, catalog_run_id, is_current)
                     VALUES (%s, %s, %s, %s, %s, %s, %s, %s) RETURNING id
                 """, (semantic_table_id, column_name, current_data_type, current_is_hidden, current_format_string, current_display_folder, catalog_run_id, True))
@@ -556,7 +556,7 @@ def upsert_semantic_columns_temporal_with_summary(catalog_conn, semantic_table_i
             else:
                 # No changes, just update catalog_run_id
                 cursor.execute("""
-                    UPDATE catalog.semantic_columns 
+                    UPDATE catalog.pbi_columns 
                     SET catalog_run_id = %s, date_updated = CURRENT_TIMESTAMP
                     WHERE id = %s
                 """, (catalog_run_id, existing_id))
@@ -566,7 +566,7 @@ def upsert_semantic_columns_temporal_with_summary(catalog_conn, semantic_table_i
         else:
             # New column
             cursor.execute("""
-                INSERT INTO catalog.semantic_columns 
+                INSERT INTO catalog.pbi_columns 
                 (semantic_table_id, column_name, data_type, is_hidden, format_string, display_folder, catalog_run_id, is_current)
                 VALUES (%s, %s, %s, %s, %s, %s, %s, %s) RETURNING id
             """, (semantic_table_id, column_name, column_info.get("dataType"), column_info.get("is_hidden"), column_info.get("format_string"), column_info.get("display_folder"), catalog_run_id, True))
@@ -584,7 +584,7 @@ def upsert_semantic_measures_temporal_with_summary(catalog_conn, semantic_table_
         # Check for existing current record
         cursor.execute("""
             SELECT id, dax_expression, format_string, display_folder, lineage_tag, is_hidden, is_private, is_available_in_mdx
-            FROM catalog.semantic_measures 
+            FROM catalog.pbi_measures 
             WHERE semantic_table_id = %s AND measure_name = %s AND is_current = true
         """, (semantic_table_id, measure_name))
         
@@ -609,14 +609,14 @@ def upsert_semantic_measures_temporal_with_summary(catalog_conn, semantic_table_
                 
                 # Mark old record as not current
                 cursor.execute("""
-                    UPDATE catalog.semantic_measures 
+                    UPDATE catalog.pbi_measures 
                     SET is_current = false, date_updated = CURRENT_TIMESTAMP
                     WHERE id = %s
                 """, (existing_id,))
                 
                 # Insert new record
                 cursor.execute("""
-                    INSERT INTO catalog.semantic_measures 
+                    INSERT INTO catalog.pbi_measures 
                     (semantic_table_id, measure_name, dax_expression, format_string, display_folder, 
                      lineage_tag, is_hidden, is_private, is_available_in_mdx, catalog_run_id, is_current)
                     VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s) RETURNING id
@@ -629,7 +629,7 @@ def upsert_semantic_measures_temporal_with_summary(catalog_conn, semantic_table_
             else:
                 # No changes, just update catalog_run_id
                 cursor.execute("""
-                    UPDATE catalog.semantic_measures 
+                    UPDATE catalog.pbi_measures 
                     SET catalog_run_id = %s, date_updated = CURRENT_TIMESTAMP
                     WHERE id = %s
                 """, (catalog_run_id, existing_id))
@@ -639,7 +639,7 @@ def upsert_semantic_measures_temporal_with_summary(catalog_conn, semantic_table_
         else:
             # New measure
             cursor.execute("""
-                INSERT INTO catalog.semantic_measures 
+                INSERT INTO catalog.pbi_measures 
                 (semantic_table_id, measure_name, dax_expression, format_string, display_folder, 
                  lineage_tag, is_hidden, is_private, is_available_in_mdx, catalog_run_id, is_current)
                 VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s) RETURNING id
@@ -664,7 +664,7 @@ def upsert_semantic_relationships_temporal_with_summary(catalog_conn, model_id, 
         # Check for existing current record
         cursor.execute("""
             SELECT id, is_active, relationship_type, cross_filter
-            FROM catalog.semantic_relationships 
+            FROM catalog.pbi_relationships 
             WHERE model_id = %s AND from_table = %s AND from_column = %s 
             AND to_table = %s AND to_column = %s AND is_current = true
         """, (model_id, from_table, from_column, to_table, to_column))
@@ -683,14 +683,14 @@ def upsert_semantic_relationships_temporal_with_summary(catalog_conn, model_id, 
                 
                 # Mark old record as not current
                 cursor.execute("""
-                    UPDATE catalog.semantic_relationships 
+                    UPDATE catalog.pbi_relationships 
                     SET is_current = false, date_updated = CURRENT_TIMESTAMP
                     WHERE id = %s
                 """, (existing_id,))
                 
                 # Insert new record
                 cursor.execute("""
-                    INSERT INTO catalog.semantic_relationships 
+                    INSERT INTO catalog.pbi_relationships 
                     (model_id, from_table, from_column, to_table, to_column, is_active, 
                      relationship_type, cross_filter, catalog_run_id, is_current)
                     VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s) RETURNING id
@@ -703,7 +703,7 @@ def upsert_semantic_relationships_temporal_with_summary(catalog_conn, model_id, 
             else:
                 # No changes, just update catalog_run_id
                 cursor.execute("""
-                    UPDATE catalog.semantic_relationships 
+                    UPDATE catalog.pbi_relationships 
                     SET catalog_run_id = %s, date_updated = CURRENT_TIMESTAMP
                     WHERE id = %s
                 """, (catalog_run_id, existing_id))
@@ -713,7 +713,7 @@ def upsert_semantic_relationships_temporal_with_summary(catalog_conn, model_id, 
         else:
             # New relationship
             cursor.execute("""
-                INSERT INTO catalog.semantic_relationships 
+                INSERT INTO catalog.pbi_relationships 
                 (model_id, from_table, from_column, to_table, to_column, is_active, 
                  relationship_type, cross_filter, catalog_run_id, is_current)
                 VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s) RETURNING id
@@ -826,7 +826,7 @@ def upsert_semantic_m_code_temporal_with_summary(catalog_conn, semantic_table_id
         # Check for existing current record
         cursor.execute("""
             SELECT id, mode, query_group, m_expression
-            FROM catalog.semantic_m_code 
+            FROM catalog.pbi_m_code 
             WHERE semantic_table_id = %s AND partition_name = %s AND is_current = true
         """, (semantic_table_id, partition_name))
         
@@ -846,14 +846,14 @@ def upsert_semantic_m_code_temporal_with_summary(catalog_conn, semantic_table_id
                 
                 # Mark old record as not current
                 cursor.execute("""
-                    UPDATE catalog.semantic_m_code 
+                    UPDATE catalog.pbi_m_code 
                     SET is_current = false, date_updated = CURRENT_TIMESTAMP
                     WHERE id = %s
                 """, (existing_id,))
                 
                 # Insert new record
                 cursor.execute("""
-                    INSERT INTO catalog.semantic_m_code 
+                    INSERT INTO catalog.pbi_m_code 
                     (semantic_table_id, partition_name, mode, query_group, m_expression, catalog_run_id, is_current)
                     VALUES (%s, %s, %s, %s, %s, %s, %s) RETURNING id
                 """, (semantic_table_id, partition_name, current_mode, current_query_group, current_m_expression, catalog_run_id, True))
@@ -864,7 +864,7 @@ def upsert_semantic_m_code_temporal_with_summary(catalog_conn, semantic_table_id
             else:
                 # No changes, just update catalog_run_id
                 cursor.execute("""
-                    UPDATE catalog.semantic_m_code 
+                    UPDATE catalog.pbi_m_code 
                     SET catalog_run_id = %s, date_updated = CURRENT_TIMESTAMP
                     WHERE id = %s
                 """, (catalog_run_id, existing_id))
@@ -874,7 +874,7 @@ def upsert_semantic_m_code_temporal_with_summary(catalog_conn, semantic_table_id
         else:
             # New M-code partition
             cursor.execute("""
-                INSERT INTO catalog.semantic_m_code 
+                INSERT INTO catalog.pbi_m_code 
                 (semantic_table_id, partition_name, mode, query_group, m_expression, catalog_run_id, is_current)
                 VALUES (%s, %s, %s, %s, %s, %s, %s) RETURNING id
             """, (semantic_table_id, partition_name, m_code_info.get("mode"), m_code_info.get("query_group"), m_code_info.get("m_expression"), catalog_run_id, True))
@@ -893,7 +893,7 @@ def process_m_code_for_model_with_summary(catalog_conn, table_ids, tables_dir, c
         with catalog_conn.cursor() as cursor:
             cursor.execute("""
                 SELECT id, partition_name 
-                FROM catalog.semantic_m_code 
+                FROM catalog.pbi_m_code 
                 WHERE semantic_table_id = %s AND is_current = true
             """, (table_id,))
             
@@ -926,7 +926,7 @@ def process_m_code_for_model_with_summary(catalog_conn, table_ids, tables_dir, c
             deleted_partition_id = existing_partitions[deleted_partition_name]
             with catalog_conn.cursor() as cursor:
                 cursor.execute("""
-                    UPDATE catalog.semantic_m_code 
+                    UPDATE catalog.pbi_m_code 
                     SET is_current = false, date_deleted = CURRENT_TIMESTAMP, 
                         deleted_by_catalog_run_id = %s, date_updated = CURRENT_TIMESTAMP
                     WHERE id = %s
@@ -951,7 +951,7 @@ def start_powerbi_catalog_run(catalog_conn, connection_info, project_folder):
     """Start a PowerBI catalog run"""
     with catalog_conn.cursor() as cursor:
         cursor.execute("""
-            INSERT INTO catalog.catalog_runs 
+            INSERT INTO catalog.pbi_catalog_runs 
             (connection_id, connection_name, connection_type, connection_host, connection_port, 
              databases_to_catalog, databases_count, run_started_at, run_status)
             VALUES (%s, %s, %s, %s, %s, %s, %s, CURRENT_TIMESTAMP, 'running')
@@ -973,7 +973,7 @@ def start_powerbi_catalog_run(catalog_conn, connection_info, project_folder):
         
         # Store relative log filename in database
         cursor.execute("""
-            UPDATE catalog.catalog_runs 
+            UPDATE catalog.pbi_catalog_runs 
             SET log_filename = %s
             WHERE id = %s
         """, (relative_log_filename, run_id))
@@ -988,7 +988,7 @@ def complete_powerbi_catalog_run(catalog_conn, run_id, processed_counts):
     try:
         with catalog_conn.cursor() as cursor:
             cursor.execute("""
-                UPDATE catalog.catalog_runs 
+                UPDATE catalog.pbi_catalog_runs 
                 SET run_completed_at = CURRENT_TIMESTAMP,
                     run_status = 'completed',
                     databases_processed = 1,
@@ -1024,7 +1024,7 @@ def fail_catalog_run(catalog_conn, run_id, error_message):
     try:
         with catalog_conn.cursor() as cursor:
             cursor.execute("""
-                UPDATE catalog.catalog_runs 
+                UPDATE catalog.pbi_catalog_runs 
                 SET run_completed_at = CURRENT_TIMESTAMP,
                     run_status = 'failed',
                     error_message = %s
