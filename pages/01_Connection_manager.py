@@ -1,1275 +1,743 @@
+# pages/01_Connection_manager_v2.py
+import app_boot  # zet ROOT en ROOT/webapp op sys.path
+
+import os
+from pathlib import Path
+from typing import Optional
+
 import streamlit as st
 import sqlalchemy as sa
+from dotenv import load_dotenv
+import pandas as pd
+from datetime import datetime
+from data_catalog.db import q_all,q_one,exec_tx
 
-# Add page config as the FIRST Streamlit command
+# Helpers/UX uit jouw project
+from shared_utils import (
+    apply_compact_styling,
+    test_main_connection,
+    get_main_connection_test_status
+)
+
+from data_catalog.connection_handler import (
+    # connections (main)
+    load_mapping_df,
+    list_connections_df,
+    upsert_connection_row,
+    set_connection_last_test_result,
+    clear_connection_last_test_result,
+    deactivate_connection,
+    reactivate_connection,
+    soft_delete_connection,
+
+    # details (voor inflate/legacy)
+    fetch_secret,
+    fetch_dw_details,
+    fetch_pbi_local_details,
+    # upserts als je die pagina ook gebruikt om details te bewaren:
+    upsert_dw_details,
+    upsert_pbi_local_details,
+    upsert_pbi_service_details,
+    upsert_dl_details,
+)
+
+from data_catalog.config_handler import (
+    # DW configs
+    fetch_dw_catalog_configs,
+    fetch_dw_catalog_config_by_id,
+    insert_dw_catalog_config,
+    update_dw_catalog_config,
+    deactivate_dw_catalog_config,
+    reactivate_dw_catalog_config,
+    set_dw_catalog_last_test_result,
+    clear_dw_catalog_last_test_result,
+
+    # PBI configs
+    fetch_pbi_catalog_configs,
+    fetch_pbi_catalog_config_by_id,
+    insert_pbi_catalog_config,
+    update_pbi_catalog_config,
+    deactivate_pbi_catalog_config,
+    reactivate_pbi_catalog_config,
+    set_pbi_catalog_last_test_result,
+    clear_pbi_catalog_last_test_result,
+
+    # DL configs
+    fetch_dl_catalog_configs,
+    fetch_dl_catalog_config_by_id,
+    insert_dl_catalog_config,
+    update_dl_catalog_config,
+    deactivate_dl_catalog_config,
+    reactivate_dl_catalog_config,
+    set_dl_catalog_last_test_result,
+    clear_dl_catalog_last_test_result,
+
+    # AI-configs (DW/PBI/DL) – geen last_test_* kolommen
+    fetch_dw_ai_configs,
+    fetch_pbi_ai_configs,
+    fetch_dl_ai_configs,
+    fetch_dw_ai_config_by_id,
+    fetch_pbi_ai_config_by_id,
+    fetch_dl_ai_config_by_id,
+    insert_pbi_ai_config,
+    update_pbi_ai_config,
+    insert_dl_ai_config,
+    update_dl_ai_config,
+    insert_dw_ai_config,
+    update_dw_ai_config,
+)
+
+
+
+
+# ---------------- Page config & styling ----------------
 st.set_page_config(
-    page_title="Connection Manager",
+    page_title="Connection Manager (v2)",
     page_icon="🔗",
     layout="wide",
-    initial_sidebar_state="expanded"
+    initial_sidebar_state="expanded",
 )
-
-import pandas as pd
-import sqlalchemy as sa
-from dotenv import load_dotenv
-from pathlib import Path
-import os
-import sys
-import pyodbc
-import logging
-
-from datetime import datetime
-from pytz import UTC
-from shared_utils import (
-    test_main_connection,
-    test_catalog_config,
-    test_ai_config,
-    get_main_connection_test_status,
-    get_catalog_config_test_status,
-    get_ai_config_test_status,
-)
-
-# Apply styling
-sys.path.append(str(Path(__file__).parent.parent))
-from shared_utils import apply_compact_styling
 apply_compact_styling()
 
-# Print Python executable path
-# print("Python executable:", sys.executable)
-# st.write(st.__version__)
+# ---------------- DB connectie ----------------
+# .env naast repo-root of pas pad aan
+load_dotenv(dotenv_path=os.path.join(Path(__file__).resolve().parent.parent, ".env"))
 
-# Load environment variables for the DataNavigator database
-load_dotenv(dotenv_path=os.path.join(os.path.dirname(__file__), "../.env"))
-
-# Connect to the DataNavigator database
 db_url = sa.engine.URL.create(
     drivername="postgresql+psycopg2",
     username=os.getenv("NAV_DB_USER"),
     password=os.getenv("NAV_DB_PASSWORD"),
     host=os.getenv("NAV_DB_HOST"),
     port=os.getenv("NAV_DB_PORT"),
-    database=os.getenv("NAV_DB_NAME")
+    database=os.getenv("NAV_DB_NAME"),
 )
-engine = sa.create_engine(db_url)
-
-# Initialize logger
-logger = logging.getLogger(__name__)
-logger.setLevel(logging.DEBUG)
-
-# Create console handler and set level to debug
-console_handler = logging.StreamHandler()
-console_handler.setLevel(logging.DEBUG)
-
-# Create formatter and add it to the handler
-formatter = logging.Formatter('%(asctime)s [%(levelname)s] %(message)s')
-console_handler.setFormatter(formatter)
-
-# Add the handler to the logger
-logger.addHandler(console_handler)
-
-# --- Helper functies voor resetten sessievelden ---
-
-def reset_main_connection_session_keys():
-    keys = [
-        "edit_name",
-        "edit_type",
-        "edit_host",
-        "edit_port",
-        "edit_user",
-        "edit_folder",
-        "edit_active",
-        "edit_password",
-    ]
-    for key in keys:
-        if key in st.session_state:
-            st.session_state.pop(key)
-
-def reset_catalog_config_session_keys(config_id="new"):
-    keys = [
-        f"catalog_name_{config_id}",
-        f"catalog_dbf_{config_id}",
-        f"catalog_scf_{config_id}",
-        f"catalog_tbf_{config_id}",
-        f"catalog_views_{config_id}",
-        f"catalog_sys_{config_id}",
-        f"catalog_active_{config_id}",
-        f"catalog_notes_{config_id}",
-    ]
-    for key in keys:
-        if key in st.session_state:
-            st.session_state.pop(key)
-
-def reset_ai_config_session_keys(config_id="new"):
-    keys = [
-        f"ai_name_{config_id}",
-        f"ai_database_filter_{config_id}",
-        f"ai_schema_filter_{config_id}",
-        f"ai_table_filter_{config_id}",
-        f"ai_model_version_{config_id}",
-        f"ai_active_{config_id}",
-        f"ai_notes_{config_id}",
-    ]
-    for key in keys:
-        if key in st.session_state:
-            st.session_state.pop(key)
-
-# --- Functie om catalog config formulier te resetten vanuit DB ---
-def reset_catalog_config_session_keys(uid):
-    keys = [
-        f"catalog_name_{uid}",
-        f"catalog_database_filter_{uid}",
-        f"catalog_schema_filter_{uid}",
-        f"catalog_table_filter_{uid}",
-        f"catalog_active_{uid}",
-        f"catalog_notes_{uid}"
-    ]
-    for key in keys:
-        if key in st.session_state:
-            del st.session_state[key]
-
-def trigger_reset_catalog_config(config_id):
-    st.session_state["reset_catalog_form"] = True
-    st.session_state["reset_catalog_form_id"] = config_id
-    st.rerun() 
+engine = sa.create_engine(db_url, future=True)
 
 
-def reset_catalog_config_form(engine, config_id):
-    with engine.connect() as conn:
-        result = conn.execute(sa.text("""
-            SELECT config_name, catalog_database_filter, catalog_schema_filter, catalog_table_filter,
-                   is_active, notes
-            FROM config.catalog_connection_config
-            WHERE id = :id
-        """), {"id": config_id}).fetchone()
-
-    if result:
-        row = dict(result._mapping)  # <-- hier omzetten naar dict
-        st.session_state[f"catalog_name_{config_id}"] = row["config_name"]
-        st.session_state[f"catalog_database_filter_{config_id}"] = row["catalog_database_filter"] or ""
-        st.session_state[f"catalog_schema_filter_{config_id}"] = row["catalog_schema_filter"] or ""
-        st.session_state[f"catalog_table_filter_{config_id}"] = row["catalog_table_filter"] or ""
-        st.session_state[f"catalog_active_{config_id}"] = row["is_active"]
-        st.session_state[f"catalog_notes_{config_id}"] = row["notes"] or ""
-
-# --- Functie om ai config formulier te resetten vanuit DB ---
-
-def reset_ai_config_form(engine, config_id):
-    with engine.connect() as conn:
-        result = conn.execute(
-            sa.text("""
-                SELECT config_name, ai_database_filter, ai_schema_filter, ai_table_filter,
-                       ai_model_version, is_active, notes
-                FROM config.ai_analyzer_connection_config
-                WHERE id = :id
-            """),
-            {"id": config_id}
-        ).fetchone()
-
-    if result:
-        row = dict(result._mapping)  # Zet om naar dict
-        st.session_state[f"ai_name_{config_id}"] = row["config_name"]
-        st.session_state[f"ai_database_filter_{config_id}"] = row["ai_database_filter"] or ""
-        st.session_state[f"ai_schema_filter_{config_id}"] = row["ai_schema_filter"] or ""
-        st.session_state[f"ai_table_filter_{config_id}"] = row["ai_table_filter"] or ""
-        st.session_state[f"ai_model_version_{config_id}"] = row["ai_model_version"] or ""
-        st.session_state[f"ai_active_{config_id}"] = row["is_active"]
-        st.session_state[f"ai_notes_{config_id}"] = row["notes"] or ""
-    st.rerun()
-
-# --- Render functies ---
-
-def render_catalog_config_section(selected_conn, engine):
-    if not selected_conn:
-        st.info("No connection selected, cannot show catalog configurations.")
-        return
-
-    selected_conn_id = selected_conn["id"]
-
-    # Reset check: laad resetwaarden in st.session_state vóór widgets renderen
-    if st.session_state.get("reset_catalog_form", False):
-        config_id = st.session_state.get("reset_catalog_form_id")
-        if config_id is not None:
-            with engine.connect() as conn:
-                result = conn.execute(sa.text("""
-                    SELECT config_name, catalog_database_filter, catalog_schema_filter, catalog_table_filter,
-                           is_active, notes
-                    FROM config.catalog_connection_config
-                    WHERE id = :id
-                """), {"id": config_id}).fetchone()
-
-            if result:
-                row = dict(result._mapping)
-                st.session_state[f"catalog_name_{config_id}"] = row["config_name"]
-                st.session_state[f"catalog_database_filter_{config_id}"] = row["catalog_database_filter"] or ""
-                st.session_state[f"catalog_schema_filter_{config_id}"] = row["catalog_schema_filter"] or ""
-                st.session_state[f"catalog_table_filter_{config_id}"] = row["catalog_table_filter"] or ""
-                st.session_state[f"catalog_active_{config_id}"] = row["is_active"]
-                st.session_state[f"catalog_notes_{config_id}"] = row["notes"] or ""
-
-        st.session_state["reset_catalog_form"] = False
-        st.session_state["reset_catalog_form_id"] = None
-
-    try:
-        with engine.connect() as db_conn:
-            catalog_configs = db_conn.execute(sa.text(f"""
-                SELECT * FROM config.catalog_connection_config
-                WHERE connection_id = :id AND is_active = TRUE
-                ORDER BY updated_at DESC
-            """), {"id": selected_conn_id}).fetchall()
-    except Exception as e:
-        st.error(f"Failed to fetch catalog configurations: {e}")
-        catalog_configs = []
-
-    # st.write(f"Catalog configs for connection {selected_conn_id}:", catalog_configs)
-
-    st.divider()
-    st.markdown("## 📚 Catalog Configurations")
-    show_inactive = st.checkbox(
-        "Show inactive catalog configurations",
-        value=False,
-        key=f"show_inactive_catalog_{selected_conn_id}"
-    )
-
-    with engine.connect() as db_conn:
-        catalog_configs = db_conn.execute(sa.text(f"""
-            SELECT * FROM config.catalog_connection_config
-            WHERE connection_id = :id
-            {"AND is_active = TRUE" if not show_inactive else ""}
-        """), {"id": selected_conn_id}).fetchall()
-
-    edit_config_id = st.session_state.get("edit_catalog_config_id")
-    new_config_id = st.session_state.get("new_config_connection_id")
-
-    if catalog_configs:
-        catalog_options = {
-            f"📚 Catalog ID {c.id} | {'🟢 Active' if c.is_active else '🔴 Inactive'} | DB: {c.catalog_database_filter or '-'} | SC: {c.catalog_schema_filter or '-'} | TB: {c.catalog_table_filter or '-'}":
-            dict(c._mapping)
-            for c in catalog_configs
-        }
-        selected_label = st.selectbox(
-            "Select catalog configuration",
-            list(catalog_options.keys()),
-            key=f"catalog_select_{selected_conn_id}"
-        )
-        selected_catalog_config = catalog_options[selected_label]
-
-        if edit_config_id == selected_catalog_config["id"]:
-            with st.expander(f"✍️ Edit Catalog Configuration - {selected_catalog_config['config_name']}", expanded=True):
-                render_catalog_config_editor(engine, selected_conn_id, edit_config_id)
-
-                if st.button("❌ Cancel", key=f"cancel_edit_catalog_{edit_config_id}"):
-                    reset_catalog_config_session_keys(edit_config_id)
-                    st.session_state.pop("edit_catalog_config_id", None)
-                    st.rerun()
+# # ---------------- Inflate: maak “oude” velden voor testers ----------------
 
 
-        else:
-            with st.expander(f"⚙️ Catalog Configuration - {selected_catalog_config['config_name']}", expanded=False):
-                render_catalog_config_readonly(selected_catalog_config)
+def to_legacy_type(type_code: str) -> str:
+    mapping = {
+        "POSTGRESQL": "PostgreSQL",
+        "AZURE_SQL_SERVER": "Azure SQL Server",
+        "POWERBI_LOCAL": "Power BI Semantic Model",
+        "POWERBI_SERVICE": "Power BI Semantic Model",
+    }
+    return mapping.get(type_code, type_code)
 
-                col_test, col_edit, col_deactivate = st.columns(3)
+def inflate_connection_row(base_row: dict) -> dict:
+    conn = dict(base_row)
+    conn.update({"host": None, "port": None, "username": None, "password": None, "folder_path": None})
 
-                with col_test:
-                    if st.button("🔍 Test Config", key=f"btn_test_catalog_config_{selected_catalog_config['id']}"):
-                        connection_info = {
-                            "id": selected_conn["id"],
-                            "connection_type": selected_conn["connection_type"],
-                            "host": selected_conn.get("host"),
-                            "port": selected_conn.get("port"),
-                            "username": selected_conn.get("username"),
-                            "password": selected_conn.get("password"),
-                            "folder_path": selected_conn.get("folder_path")
-                        }
-                        results = test_catalog_config(connection_info, selected_catalog_config, engine)
-                        for msg in results:
-                            if msg.startswith("✅"):
-                                st.success(msg)
-                            elif msg.startswith("❌"):
-                                st.error(msg)
-                            else:
-                                st.info(msg)
+    # sc = conn.get("short_code")
+    # ctype = conn.get("connection_type")
 
-                with col_edit:
-                    if st.button("✏️ Edit", key=f"btn_edit_catalog_config_{selected_catalog_config['id']}"):
-                        st.session_state["edit_catalog_config_id"] = selected_catalog_config["id"]
-                        st.session_state["new_config_connection_id"] = None
-                        st.rerun()
+    # if sc == "dw":
+    #     d = fetch_dw_details(conn["id"])
+    #     if d:
+    #         conn["host"] = d.get("host")
+    #         conn["port"] = d.get("port")
+    #         conn["username"] = d.get("username")
+    #         secret_ref = d.get("secret_ref")
+    #         conn["password"] = fetch_secret(secret_ref) if secret_ref else None
 
-                with col_deactivate:
-                    if st.button("🗑️ Deactivate", key=f"btn_deactivate_catalog_config_{selected_catalog_config['id']}"):
-                        try:
-                            with engine.begin() as conn:
-                                conn.execute(sa.text("""
-                                    UPDATE config.catalog_connection_config
-                                    SET is_active = FALSE,
-                                        updated_at = CURRENT_TIMESTAMP
-                                    WHERE id = :id
-                                """), {"id": selected_catalog_config["id"]})
-                            st.success("Catalog configuration deactivated.")
-                            st.rerun()
-                        except Exception as e:
-                            st.error(f"❌ Deactivation failed: {e}")
+    # elif sc == "pbi" and ctype == "POWERBI_LOCAL":
+    #     d = fetch_pbi_local_details(conn["id"])
+    #     if d:
+    #         conn["folder_path"] = d.get("folder_path")
 
+    # conn["name"] = conn.get("connection_name")
+    # conn["connection_type_label"] = to_legacy_type(ctype or "")
+    # return conn
+
+    sc = conn.get("short_code")         # bv. "dw" | "pbi" | "dl"
+    ctype = conn.get("connection_type") # bv. "POWERBI_LOCAL" | "POWERBI_SERVICE"
+
+    if sc == "dw":
+        d = fetch_dw_details(conn["id"])
+        if d:
+            conn["host"] = d.get("host")
+            conn["port"] = d.get("port")
+            conn["username"] = d.get("username")
+            # password via secret vault
+            secret_ref = d.get("secret_ref")
+            conn["password"] = fetch_secret(secret_ref) if secret_ref else None
+
+    elif sc == "pbi":
+        if ctype == "POWERBI_LOCAL":
+            d = fetch_pbi_local_details(conn["id"])
+            if d:
+                conn["folder_path"] = d.get("folder_path")
+        elif ctype == "POWERBI_SERVICE":
+            # testers kunnen hier eventueel tenant/auth tonen; geen host/port nodig
+            pass
+
+    elif sc == "dl":
+        # testers verwachten hier geen host/port; niets toe te voegen
+        pass
+
+    # compat met oude testers: "name" key
+    conn["name"] = conn.get("connection_name")
+
+    # label-variant voor UX
+    conn["connection_type_label"] = to_legacy_type(ctype or "")
+
+    return conn
+
+# ---------------- Shared state
+if "selected_conn_id" not in st.session_state:
+    st.session_state.selected_conn_id = None
+
+#-----------------------
+# UI -------------------   
+# ----------------------
+
+
+st.title("🔌 Connection Manager")
+
+
+# 0) Mapping laden (registry)
+mapping_df = load_mapping_df()
+if mapping_df.empty:
+    st.error("De mapping-tabel `config.connection_type_registry` is leeg of niet bereikbaar.")
+    st.stop()
+
+tab_mc, tab_cc, tab_ac = st.tabs(["Main connection", "Catalog configuration", "AI configuration"])
+
+# ======================================================================================
+# TAB 1: MAIN CONNECTION
+# ======================================================================================
+with tab_mc:
+
+    # ---------------- Connection selectie ----------------
+    # 1) Ophalen van niet-soft-deleted connections
+    df = list_connections_df()  # bevat al alleen c.deleted_at IS NULL
+
+    # 2) Filteroptie: alleen actieve (optioneel)
+    show_active_only = st.toggle("Alleen actieve connections tonen", value=False, key="conn_filter_active_only")
+    if show_active_only and not df.empty:
+        df = df[df["is_active"] == True]
+
+    if df.empty:
+        st.info("Geen (geldige) connections om te beheren. Maak eerst een nieuwe verbinding aan.")
+        selected_row = None
+        conn_id = None
+        short_code = None
     else:
-        st.warning("🔎 No catalog configurations found for this connection.")
+        # 3) Picker op de pagina (incl. optie 'Nieuwe verbinding')
+        NEW_SENTINEL = {"id": None, "connection_name": "➕ Nieuwe verbinding"}
+        options = [NEW_SENTINEL] + df.to_dict(orient="records")
 
-    if st.button("➕ Create New Catalog Configuration", key=f"btn_new_config_{selected_conn_id}"):
-        st.session_state["new_config_connection_id"] = selected_conn_id
-        st.session_state["edit_catalog_config_id"] = None
-        st.rerun()
+        def _fmt_conn(r: dict) -> str:
+            if r.get("id") is None:
+                return r["connection_name"]
+            status = "🟢 Active" if r.get("is_active") else "🔴 Inactive"
+            sc = r.get("short_code", "")
+            ctype = r.get("connection_type", "")
+            return f"#{r['id']} — {r['connection_name']}  [{ctype}/{sc}] · {status}"
 
-    if new_config_id == selected_conn_id and not edit_config_id:
-        with st.expander("➕ New Catalog Configuration", expanded=True):
-            render_catalog_config_editor(engine, selected_conn_id, None)
-
-
-            if st.button("❌ Cancel", key=f"cancel_new_catalog_config_{selected_conn_id}"):
-                reset_catalog_config_session_keys("new")
-                st.session_state.pop("new_config_connection_id", None)
-                st.rerun()
-
-def render_catalog_config_editor(engine, connection_id, config_id):
-    with engine.connect() as conn:
-        selected_conn = conn.execute(
-            sa.text("SELECT * FROM config.connections WHERE id = :id"),
-            {"id": connection_id}
-        ).fetchone()
-
-    config_to_edit = None
-    if config_id:
-        with engine.connect() as conn:
-            config_to_edit = conn.execute(
-                sa.text("SELECT * FROM config.catalog_connection_config WHERE id = :id"),
-                {"id": config_id}
-            ).fetchone()
-
-    st.divider()
-
-    uid = config_id or "new"
-
-    catalog_name = st.text_input(
-        "Configuration name",
-        value=config_to_edit.config_name if config_to_edit else "",
-        key=f"catalog_name_{uid}"
-    )
-    catalog_dbf = st.text_input(
-        "Database filter (optional, comma-separated)",
-        value=config_to_edit.catalog_database_filter if config_to_edit else "",
-        help="Leave empty to test only server connectivity. Enter multiple database names separated by commas.",
-        key=f"catalog_dbf_{uid}"
-    )
-    catalog_scf = st.text_input(
-        "Schema filter (optional - comma separated)",
-        value=config_to_edit.catalog_schema_filter if config_to_edit else "",
-        help="Non-existing or inaccessible schemas will be skipped and are not validated in connection tests.",
-        key=f"catalog_scf_{uid}"
-    )
-    catalog_tbf = st.text_input(
-        "Table filter (optional - comma separated)",
-        value=config_to_edit.catalog_table_filter if config_to_edit else "",
-        help="Use comma-separated table names or patterns with wildcards (e.g., sales_*). Non-existing or inaccessible tables are skipped and not tested.",
-        key=f"catalog_tbf_{uid}"
-    )
-    include_views = st.checkbox(
-        "📄 Include views",
-        value=config_to_edit.include_views if config_to_edit else True,
-        key=f"catalog_views_{uid}"
-    )
-    include_sys = st.checkbox(
-        "⚙️ Include system objects",
-        value=config_to_edit.include_system_objects if config_to_edit else False,
-        key=f"catalog_sys_{uid}"
-    )
-    is_active = st.checkbox(
-        "🟢 Active",
-        value=config_to_edit.is_active if config_to_edit else True,
-        key=f"catalog_active_{uid}"
-    )
-    notes = st.text_area(
-        "Notes",
-        value=config_to_edit.notes if config_to_edit else "",
-        key=f"catalog_notes_{uid}"
-    )
-
-    if not catalog_name.strip():
-        st.warning("⚠️ Please provide a name for this configuration.")
-        return False  # Niet opslaan
-
-    if st.button("💾 Save Catalog Configuration", key=f"save_catalog_editor_{uid}"):
-        with engine.begin() as conn:
-            if config_to_edit:
-                conn.execute(sa.text("""
-                    UPDATE config.catalog_connection_config
-                    SET config_name = :name,
-                        catalog_database_filter = :dbf,
-                        catalog_schema_filter = :scf,
-                        catalog_table_filter = :tbf,
-                        include_views = :views,
-                        include_system_objects = :sys,
-                        is_active = :active,
-                        notes = :notes,
-                        updated_at = CURRENT_TIMESTAMP
-                    WHERE id = :id
-                """), {
-                    "id": config_to_edit.id,
-                    "name": catalog_name.strip(),
-                    "dbf": catalog_dbf.strip(),
-                    "scf": catalog_scf.strip(),
-                    "tbf": catalog_tbf.strip(),
-                    "views": include_views,
-                    "sys": include_sys,
-                    "active": is_active,
-                    "notes": notes.strip()
-                })
-                st.success("✅ Configuratie bijgewerkt.")
-            else:
-                conn.execute(sa.text("""
-                    INSERT INTO config.catalog_connection_config
-                    (connection_id, config_name, catalog_database_filter, catalog_schema_filter, catalog_table_filter,
-                    include_views, include_system_objects, is_active, notes)
-                    VALUES (:cid, :name, :dbf, :scf, :tbf, :views, :sys, :active, :notes)
-                """), {
-                    "cid": selected_conn.id,
-                    "name": catalog_name.strip(),
-                    "dbf": catalog_dbf.strip(),
-                    "scf": catalog_scf.strip(),
-                    "tbf": catalog_tbf.strip(),
-                    "views": include_views,
-                    "sys": include_sys,
-                    "active": is_active,
-                    "notes": notes.strip()
-                })
-                st.success("✅ Nieuwe configuratie opgeslagen.")
-
-        # Na opslaan sessie keys verwijderen om editor te sluiten
-        st.session_state.pop("edit_catalog_config_id", None)
-        st.session_state.pop("new_config_connection_id", None)
-        reset_catalog_config_session_keys(uid)
-        st.rerun()
-        return True
-
-    return False
-
-def get_current_catalog_config_input(config_id=None):
-    uid = config_id or "new"
-
-    return {
-        "config_name": st.session_state.get(f"catalog_name_{uid}", "").strip(),
-        "catalog_database_filter": st.session_state.get(f"catalog_dbf_{uid}", "").strip(),
-        "catalog_schema_filter": st.session_state.get(f"catalog_scf_{uid}", "").strip(),
-        "catalog_table_filter": st.session_state.get(f"catalog_tbf_{uid}", "").strip(),
-        "include_views": st.session_state.get(f"catalog_views_{uid}", True),
-        "include_system_objects": st.session_state.get(f"catalog_sys_{uid}", False),
-        "is_active": st.session_state.get(f"catalog_active_{uid}", True),
-        "notes": st.session_state.get(f"catalog_notes_{uid}", "").strip()
-    }
-
-def render_catalog_config_readonly(config: dict):
-    st.markdown(f"**Status:** {'🟢 Active' if config['is_active'] else '🔴 Inactive'}")
-    st.markdown(f"**Database filter:** `{config['catalog_database_filter'] or '-'}`")
-    st.markdown(f"**Schema filter:** `{config['catalog_schema_filter'] or '-'}`")
-    st.markdown(f"**Table filter:** `{config['catalog_table_filter'] or '-'}`")
-    st.markdown(f"**Include views:** {'✅' if config['include_views'] else '❌'}")
-    st.markdown(f"**Include system objects:** {'✅' if config['include_system_objects'] else '❌'}")
-    st.markdown(f"**Notes:** {config['notes'] or '-'}")
-    st.markdown(f"*Last updated: {config['updated_at'].strftime('%Y-%m-%d %H:%M:%S')}*")
-
-# ---------------- AI Config sectie ----------------
-
-def reset_ai_config_session_keys(uid):
-    # uid is config_id of "new"
-    keys = [
-        f"ai_name_{uid}",
-        f"ai_database_filter_{uid}",
-        f"ai_schema_filter_{uid}",
-        f"ai_table_filter_{uid}",
-        f"ai_model_version_{uid}",
-        f"ai_active_{uid}",
-        f"ai_notes_{uid}"
-    ]
-    for key in keys:
-        if key in st.session_state:
-            del st.session_state[key]
-
-def trigger_reset_ai_config(config_id):
-    st.session_state["reset_ai_form"] = True
-    st.session_state["reset_ai_form_id"] = config_id
-    st.rerun()
-
-def render_ai_config_section(selected_conn, engine):
-    # Reset form values als resetflag staat
-    if st.session_state.get("reset_ai_form", False):
-        config_id = st.session_state.get("reset_ai_form_id")
-        if config_id is not None:
-            with engine.connect() as conn:
-                result = conn.execute(sa.text("""
-                    SELECT config_name, ai_database_filter, ai_schema_filter, ai_table_filter,
-                           ai_model_version, is_active, notes
-                    FROM config.ai_analyzer_connection_config
-                    WHERE id = :id
-                """), {"id": config_id}).fetchone()
-
-            if result:
-                row = dict(result._mapping)
-                st.session_state[f"ai_name_{config_id}"] = row["config_name"]
-                st.session_state[f"ai_database_filter_{config_id}"] = row["ai_database_filter"] or ""
-                st.session_state[f"ai_schema_filter_{config_id}"] = row["ai_schema_filter"] or ""
-                st.session_state[f"ai_table_filter_{config_id}"] = row["ai_table_filter"] or ""
-                st.session_state[f"ai_model_version_{config_id}"] = row["ai_model_version"] or ""
-                st.session_state[f"ai_active_{config_id}"] = row["is_active"]
-                st.session_state[f"ai_notes_{config_id}"] = row["notes"] or ""
-
-        st.session_state["reset_ai_form"] = False
-        st.session_state["reset_ai_form_id"] = None
-
-    if not selected_conn:
-        st.info("No connection selected, cannot show AI configurations.")
-        return
-
-    selected_conn_id = selected_conn["id"]
-
-    st.divider()
-    st.markdown("## 🧠 AI Analysis Configurations")
-
-    show_inactive = st.checkbox(
-        "Show inactive AI configurations",
-        value=False,
-        key=f"show_inactive_ai_{selected_conn_id}"
-    )
-
-    try:
-        with engine.connect() as db_conn:
-            ai_configs = db_conn.execute(sa.text(f"""
-                SELECT * FROM config.ai_analyzer_connection_config
-                WHERE connection_id = :id
-                {"AND is_active = TRUE" if not show_inactive else ""}
-                ORDER BY updated_at DESC
-            """), {"id": selected_conn_id}).fetchall()
-    except Exception as e:
-        st.error(f"Failed to fetch AI configurations: {e}")
-        ai_configs = []
-
-    edit_ai_id = st.session_state.get("edit_ai_config_id")
-    new_ai_conn_id = st.session_state.get("new_ai_config_connection_id")
-
-    if ai_configs:
-        ai_options = {
-            f"🧠 AI ID {a.id} | {'🟢 Active' if a.is_active else '🔴 Inactive'} | DB: {a.ai_database_filter or '-'} | SC: {a.ai_schema_filter or '-'} | TB: {a.ai_table_filter or '-'}":
-            dict(a._mapping)
-            for a in ai_configs
-        }
-
-        selected_label = st.selectbox(
-            "Select AI configuration",
-            list(ai_options.keys()),
-            key=f"ai_select_{selected_conn_id}"
+        selected_row = st.selectbox(
+            "Kies een connection (of maak een nieuwe)",
+            options=options,
+            format_func=_fmt_conn,
+            key="cm_conn_select",
+            index=0  # default: Nieuwe verbinding
         )
-        selected_ai_config = ai_options[selected_label]
 
-        if edit_ai_id == selected_ai_config["id"]:
-            with st.expander(f"✍️ Edit AI Configuration - {selected_ai_config['config_name']}", expanded=True):
-                render_ai_config_editor(engine, selected_conn_id, edit_ai_id)
-
-
-                if st.button("❌ Cancel", key=f"cancel_edit_ai_{selected_ai_config['id']}"):
-                    reset_ai_config_session_keys(edit_ai_id)
-                    st.session_state.pop("edit_ai_config_id", None)
-                    st.rerun()
-
-
+        # 4) Afleidingen voor vervolgsecties
+        if selected_row.get("id") is not None:
+            conn_id    = int(selected_row["id"])
+            short_code = selected_row.get("short_code")
+            st.caption(
+                f"**Gekozen:** {conn_id} · {selected_row['connection_name']}"
+                # f"{'🟢 Active' if selected_row.get('is_active') else '🔴 Inactive'}"
+            )
         else:
-            with st.expander(f"⚙️ AI Configuration - {selected_ai_config['config_name']}", expanded=False):
-                render_ai_config_readonly(selected_ai_config)
-
-                connection_info = {
-                    "id": selected_conn["id"],
-                    "connection_type": selected_conn["connection_type"],
-                    "host": selected_conn.get("host"),
-                    "port": selected_conn.get("port"),
-                    "username": selected_conn.get("username"),
-                    "password": selected_conn.get("password"),
-                    "folder_path": selected_conn.get("folder_path")
-                }
-
-                col_test, col_edit, col_deactivate = st.columns(3)
-
-                with col_test:
-                    if st.button("🔍 Test AI Config", key=f"btn_test_ai_config_{selected_ai_config['id']}"):
-                        results = test_ai_config(connection_info, selected_ai_config, engine)
-                        for msg in results:
-                            if msg.startswith("✅"):
-                                st.success(msg)
-                            elif msg.startswith("❌"):
-                                st.error(msg)
-                            else:
-                                st.info(msg)
-
-                        # Status opnieuw ophalen om up-to-date te zijn
-                        status_info = get_ai_config_test_status(engine, selected_ai_config["id"])
-                        if status_info["status"] == "success":
-                            st.markdown("Status: 🟢 Test geslaagd")
-                        elif status_info["status"] == "failed":
-                            st.markdown("Status: 🔴 Test mislukt")
-                        else:
-                            st.markdown("Status: ⚪️ Niet getest")
-
-                with col_edit:
-                    if st.button("✏️ Edit", key=f"btn_edit_ai_config_{selected_ai_config['id']}"):
-                        st.session_state["edit_ai_config_id"] = selected_ai_config["id"]
-                        st.session_state["new_ai_config_connection_id"] = None
-                        st.rerun()
-
-                with col_deactivate:
-                    if st.button("🗑️ Deactivate", key=f"btn_deactivate_ai_config_{selected_ai_config['id']}"):
-                        try:
-                            with engine.begin() as conn:
-                                conn.execute(sa.text("""
-                                    UPDATE config.ai_analyzer_connection_config
-                                    SET is_active = FALSE,
-                                        updated_at = CURRENT_TIMESTAMP
-                                    WHERE id = :id
-                                """), {"id": selected_ai_config["id"]})
-                            st.success("AI configuration deactivated.")
-                            st.rerun()
-                        except Exception as e:
-                            st.error(f"❌ Deactivation failed: {e}")
-
-    else:
-        st.warning("🔎 No AI configurations found for this connection.")
-
-    if st.button("➕ Create New AI Configuration", key=f"btn_new_ai_config_{selected_conn_id}"):
-        st.session_state["new_ai_config_connection_id"] = selected_conn_id
-        st.session_state["edit_ai_config_id"] = None
-        st.rerun()
-
-    if new_ai_conn_id == selected_conn_id and not edit_ai_id:
-        with st.expander("➕ New AI Configuration", expanded=True):
-            render_ai_config_editor(engine, selected_conn_id, None)
-
-
-            if st.button("❌ Cancel", key=f"cancel_new_ai_config_{selected_conn_id}"):
-                reset_ai_config_session_keys("new")
-                st.session_state.pop("new_ai_config_connection_id", None)
-                st.rerun()
-
-
-def render_ai_config_editor(engine, connection_id, config_id):
-    with engine.connect() as conn:
-        selected_conn = conn.execute(
-            sa.text("SELECT * FROM config.connections WHERE id = :id"),
-            {"id": connection_id}
-        ).fetchone()
-
-    config_to_edit = None
-    if config_id:
-        with engine.connect() as conn:
-            config_to_edit = conn.execute(
-                sa.text("SELECT * FROM config.ai_analyzer_connection_config WHERE id = :id"),
-                {"id": config_id}
-            ).fetchone()
-
-    # Zet initiele values in st.session_state (indien nog niet gezet)
-    uid = config_id or "new"
-
-    def init_session_state(key, default):
-        if key not in st.session_state:
-            st.session_state[key] = default
-
-    init_session_state(f"ai_name_{uid}", config_to_edit.config_name if config_to_edit else "")
-    init_session_state(f"ai_database_filter_{uid}", config_to_edit.ai_database_filter if config_to_edit else "")
-    init_session_state(f"ai_schema_filter_{uid}", config_to_edit.ai_schema_filter if config_to_edit else "")
-    init_session_state(f"ai_table_filter_{uid}", config_to_edit.ai_table_filter if config_to_edit else "")
-    init_session_state(f"ai_model_version_{uid}", config_to_edit.ai_model_version if config_to_edit else "default")
-    init_session_state(f"ai_active_{uid}", config_to_edit.is_active if config_to_edit else True)
-    init_session_state(f"ai_notes_{uid}", config_to_edit.notes if config_to_edit else "")
+            conn_id = None
+            short_code = None
+            st.caption("Nieuwe verbinding aanmaken…")
 
     st.divider()
 
-    valid_name = True
-    valid_db_filter = True
 
-    ai_name = st.text_input(
-        "Configuration name *",
-        value=st.session_state.get(f"ai_name_{uid}", ""),
-        key=f"ai_name_{uid}"
-    )
+    # ---------------- Basis (buiten de form, zodat type-wissel direct rerunt) ----------------
+    st.markdown("### Basis")
 
-    ai_db_filter = st.text_input(
-        "Database filter (required, single database)",
-        value=st.session_state.get(f"ai_database_filter_{uid}", ""),
-        help="Enter exactly one database name. This database will be tested for connectivity.",
-        key=f"ai_database_filter_{uid}"
-    )
+    # Opties uit mapping; we tonen alleen display_name
+    mapping_opts = mapping_df.to_dict(orient="records")
 
-
-    ai_schema_filter = st.text_input(
-        "Schema filter (optional) - comma separated",
-        help="Optional. Non-existing or inaccessible schemas will be skipped and are not validated in connection tests.",
-        key=f"ai_schema_filter_{uid}"
-    )
-
-    ai_table_filter = st.text_input(
-        "Table filter (optional) - comma separated",
-        help="Optional. Use comma-separated table names or patterns with wildcards (e.g., sales_*). Non-existing or inaccessible tables are skipped and not tested.",
-        key=f"ai_table_filter_{uid}"
-    )
-
-    ai_model_version = st.text_input("Model version", key=f"ai_model_version_{uid}")
-
-    is_active = st.checkbox("🟢 Active", key=f"ai_active_{uid}")
-
-    notes = st.text_area("Notes", key=f"ai_notes_{uid}")
-
-   # Validatie Configuration name
-
-    # Valideer alleen voor foutmeldingen (geen return)
-    if not ai_name.strip():
-        st.error("⚠️ Configuration name is required.")
-        valid_name = False
-
-    db_filter_val = ai_db_filter.strip()
-    if "," in db_filter_val or db_filter_val == "":
-        st.error("⚠️ Please enter exactly one database name (no commas, cannot be empty).")
-        valid_db_filter = False
-
-
-    if not st.session_state[f"ai_name_{uid}"].strip() or not valid_db_filter:
-        return False
-
-    if st.button("💾 Save AI Configuration", key=f"save_ai_config_{uid}"):
-            if not (valid_name and valid_db_filter):
-                st.error("⚠️ Fix errors before saving.")
-            else:
-                with engine.begin() as conn:
-                    if config_to_edit:
-                        conn.execute(sa.text("""
-                            UPDATE config.ai_analyzer_connection_config
-                            SET config_name = :name,
-                                ai_database_filter = :dbf,
-                                ai_schema_filter = :scf,
-                                ai_table_filter = :tbf,
-                                ai_model_version = :model,
-                                is_active = :active,
-                                notes = :notes,
-                                updated_at = CURRENT_TIMESTAMP
-                            WHERE id = :id
-                        """), {
-                            "id": config_to_edit.id,
-                            "name": ai_name.strip(),
-                            "dbf": ai_db_filter.strip(),
-                            "scf": ai_schema_filter.strip(),
-                            "tbf": ai_table_filter.strip(),
-                            "model": ai_model_version.strip(),
-                            "active": is_active,
-                            "notes": notes.strip()
-                        })
-                        st.success("✅ AI configuratie bijgewerkt.")
-                    else:
-                        conn.execute(sa.text("""
-                            INSERT INTO config.ai_analyzer_connection_config
-                            (connection_id, config_name, ai_database_filter, ai_schema_filter, ai_table_filter,
-                            ai_model_version, is_active, notes)
-                            VALUES (:cid, :name, :dbf, :scf, :tbf, :model, :active, :notes)
-                        """), {
-                            "cid": selected_conn.id,
-                            "name": ai_name.strip(),
-                            "dbf": ai_db_filter.strip(),
-                            "scf": ai_schema_filter.strip(),
-                            "tbf": ai_table_filter.strip(),
-                            "model": ai_model_version.strip(),
-                            "active": is_active,
-                            "notes": notes.strip()
-                        })
-                        st.success("✅ Nieuwe AI configuratie opgeslagen.")
-
-            st.session_state.pop("edit_ai_config_id", None)
-            st.session_state.pop("new_ai_config_connection_id", None)
-            reset_ai_config_session_keys(uid)
-            st.rerun()
-            return True
-
-    return False
-
-def get_current_ai_config_input(config_id=None):
-    uid = config_id or "new"
-    return {
-        "config_name": st.session_state.get(f"ai_name_{uid}", "").strip(),
-        "ai_database_filter": st.session_state.get(f"ai_database_filter_{uid}", "").strip(),
-        "ai_schema_filter": st.session_state.get(f"ai_schema_filter_{uid}", "").strip(),
-        "ai_table_filter": st.session_state.get(f"ai_table_filter_{uid}", "").strip(),
-        "ai_model_version": st.session_state.get(f"ai_model_version_{uid}", "").strip(),
-        "is_active": st.session_state.get(f"ai_active_{uid}", True),
-        "notes": st.session_state.get(f"ai_notes_{uid}", "").strip(),
-        "id": config_id
-    }
-
-def render_ai_config_readonly(config: dict):
-    header = config.get("config_name") or f"ID {config.get('id')}"
-    st.markdown(f"### 🧠 AI Configuration – {header}")
-    st.markdown(f"**Status:** {'🟢 Active' if config.get('is_active') else '🔴 Inactive'}")
-    st.markdown(f"**Database filter:** `{config.get('ai_database_filter') or '-'}`")
-    st.markdown(f"**Schema filter:** `{config.get('ai_schema_filter') or '-'}`")
-    st.markdown(f"**Table filter:** `{config.get('ai_table_filter') or '-'}`")
-    st.markdown(f"**Model version:** `{config.get('ai_model_version') or '-'}`")
-    st.markdown(f"**Notes:** {config.get('notes') or '-'}")
-    updated_at = config.get('updated_at')
-    last_test_status = config.get('last_test_status')
-    last_tested_at = config.get('last_tested_at')
-    last_test_notes = config.get('last_test_notes')
-
-    if updated_at:
-        if isinstance(updated_at, str):
-            try:
-                updated_at = datetime.fromisoformat(updated_at)
-            except Exception:
-                # fallback: toon als tekst zonder formatting
-                st.markdown(f"*Last updated: {updated_at}*")
-                return
-        # Nu is het een datetime object, format netjes
-        st.markdown(f"*Last updated: {updated_at.strftime('%Y-%m-%d %H:%M:%S')}*")
-
-    # Format last test info as one line
-    if last_test_status or last_tested_at or last_test_notes:
-        # Format last_tested_at
-        if last_tested_at:
-            if isinstance(last_tested_at, str):
-                try:
-                    last_tested_dt = datetime.fromisoformat(last_tested_at)
-                except Exception:
-                    last_tested_dt = None
-            else:
-                last_tested_dt = last_tested_at
-            last_tested_str = last_tested_dt.strftime('%Y-%m-%d %H:%M:%S') if last_tested_dt else last_tested_at
-        else:
-            last_tested_str = "Unknown"
-        
-        # Construct a concise test info line
-        test_info_line = f"**Last test:** Status: `{last_test_status or '-'} | Tested at: {last_tested_str} | Notes:** {last_test_notes or '-'}"
-        st.markdown(test_info_line)
-
-
-# --- Main Connection sectie ---
-
-def get_current_main_connection_input():
-    return {
-        "name": st.session_state.get("edit_name", "").strip(),
-        "host": st.session_state.get("edit_host", "").strip(),
-        "port": st.session_state.get("edit_port", "").strip(),
-        "username": st.session_state.get("edit_user", "").strip(),
-        "password": st.session_state.get("edit_password", "").strip(),  
-        "folder_path": st.session_state.get("edit_folder", "").strip(),
-        "is_active": st.session_state.get("edit_active", True),
-        "connection_type": st.session_state.get("edit_type", ""),
-    }
-
-def render_main_connection_section(engine):
-    connections = get_source_connections()
-    connections = [{**c, "id": int(c["id"])} for c in connections]
-
-    selected_conn_id = st.session_state.get("selected_main_connection_id")
-    edit_conn_id = st.session_state.get("edit_main_connection_id")
-    new_conn_flag = st.session_state.get("new_main_connection", False)
-
-    conn_labels = [f"{c['name']} (ID: {c['id']})" for c in connections]
-    conn_ids = [c["id"] for c in connections]
-
-    def get_selected_index():
-        if selected_conn_id and selected_conn_id in conn_ids:
-            return conn_ids.index(selected_conn_id)
+    def _default_idx_for_selected():
+        if selected_row and selected_row.get("id") is not None:
+            for i, r in enumerate(mapping_opts):
+                if r["connection_type"] == selected_row["connection_type"]:
+                    return i
         return 0
 
-    selected_label = st.selectbox(
-        "Select an existing main connection",
-        conn_labels,
-        index=get_selected_index(),
-        key="main_connection_select"
+    # Naam (blijft bewerkbaar)
+    st.text_input(
+        "Connection name *",
+        value=(selected_row["connection_name"] if (selected_row and selected_row.get("id") is not None) else ""),
+        key="conn_name",
     )
-    selected_id = int(selected_label.split("ID: ")[-1].rstrip(")"))
 
-    if selected_id != selected_conn_id:
-        st.session_state["selected_main_connection_id"] = selected_id
-        st.session_state.pop("edit_main_connection_id", None)
-        st.session_state["new_main_connection"] = False
-        st.rerun()
+    # Status (read-only)
+    # def _status_badge(active: bool) -> str:
+    #     return "🟢 Active" if active else "🔴 Inactive"
 
-    selected_conn = next((c for c in connections if c["id"] == selected_id), None)
+    # if selected_row and selected_row.get("id") is not None:
+    #     st.markdown(f"**Status:** {_status_badge(bool(selected_row['is_active']))}")
+    # else:
+    #     st.markdown("**Status:** (new) wordt standaard **Active** aangemaakt.")
+
+    # Type-selectie (alleen display_name tonen)
+    choice_row = st.selectbox(
+        "Connection type *",
+        options=mapping_opts,
+        index=_default_idx_for_selected(),
+        format_func=lambda r: r["display_name"],
+        key="conn_type_row",
+    )
+
+    connection_type      = st.session_state["conn_type_row"]["connection_type"]
+    short_code           = st.session_state["conn_type_row"]["short_code"]            # 'dw' | 'pbi' | 'dl'
+    data_source_category = st.session_state["conn_type_row"]["data_source_category"]
+    name                 = (st.session_state.get("conn_name") or "").strip()
 
     st.divider()
 
-    if selected_conn:
-        with st.expander(f"🔌 Main Connection Details - {selected_conn['name']}", expanded=False):
+    # ---------------- Details + Save (binnen de form) ----------------
+    with st.form("conn_form", clear_on_submit=False):
+        st.markdown(f"### Details — **{short_code.upper()}**  ·  _{connection_type}_")
 
-            if edit_conn_id == selected_conn["id"]:
-                render_main_connection_editor(engine, selected_conn)
-                if st.button("❌ Cancel", key="cancel_edit_main_conn"):
-                    st.session_state.pop("edit_main_connection_id", None)
-                    st.rerun()
+        # Prefill alleen als het gekozen type gelijk is aan het bestaande type
+        pre = {}
+        if selected_row and selected_row.get("id") is not None and selected_row["connection_type"] == connection_type:
+            pre = inflate_connection_row(selected_row)
 
+        dw_vals = {}
+        pbi_local_vals = {}
+        pbi_service_vals = {}
+        dl_vals = {}
+
+        if short_code == "dw":
+            col1, col2 = st.columns(2)
+            dw_vals["host"] = col1.text_input("Host *", value=pre.get("host") or "")
+            dw_vals["port"] = col2.text_input("Port", value=str(pre.get("port") or ""))
+
+            dw_vals["default_database"] = st.text_input("Default database (optioneel)", value=pre.get("default_database") or "")
+
+            colu, cols = st.columns(2)
+            dw_vals["username"] = colu.text_input("Username", value=pre.get("username") or "")
+            dw_vals["ssl_mode"] = cols.selectbox(
+                "SSL mode",
+                ["", "require", "disable"],
+                index=(["", "require", "disable"].index(pre.get("ssl_mode")) if pre.get("ssl_mode") in ["", "require", "disable"] else 1)
+            )
+            dw_vals["password_plain"] = st.text_input(
+                "Password (als secret opgeslagen – leeg laten om niet te wijzigen)",
+                type="password",
+                value=""
+            )
+
+        elif short_code == "pbi":
+            if connection_type == "POWERBI_LOCAL":
+                pbi_local_vals["folder_path"] = st.text_input(
+                    "Project root (PBIP/TMDL folder)",
+                    value=pre.get("folder_path") or ""
+                )
+            elif connection_type == "POWERBI_SERVICE":
+                col1, col2 = st.columns(2)
+                pbi_service_vals["tenant_id"] = col1.text_input("Tenant ID", value=pre.get("tenant_id") or "")
+                pbi_service_vals["auth_method"] = col2.selectbox(
+                    "Auth method", ["DEVICE_CODE", "CLIENT_SECRET", "MANAGED_ID"],
+                    index=(["DEVICE_CODE", "CLIENT_SECRET", "MANAGED_ID"].index(pre.get("auth_method")) if pre.get("auth_method") in ["DEVICE_CODE", "CLIENT_SECRET", "MANAGED_ID"] else 0)
+                )
+                col3, col4 = st.columns(2)
+                pbi_service_vals["client_id"] = col3.text_input("Client ID", value=pre.get("client_id") or "")
+                pbi_service_vals["secret_value"] = col4.text_input(
+                    "Client Secret (als secret opgeslagen – leeg laten om niet te wijzigen)",
+                    type="password",
+                    value=""
+                )
+                pbi_service_vals["default_workspace_id"] = st.text_input("Default Workspace ID (optioneel)", value=pre.get("default_workspace_id") or "")
+                pbi_service_vals["default_workspace_name"] = st.text_input("Default Workspace Name (optioneel)", value=pre.get("default_workspace_name") or "")
             else:
-                # Expliciete interpretatie van is_active
-                is_active = selected_conn.get('is_active')
-                is_active_bool = False
-                if isinstance(is_active, bool):
-                    is_active_bool = is_active
-                elif isinstance(is_active, int):
-                    is_active_bool = (is_active != 0)
-                elif isinstance(is_active, str):
-                    is_active_bool = is_active.lower() in ('true', '1', 'yes')
+                st.info("Voor dit PBI-type is nog geen detailformulier gedefinieerd.")
 
-                status_text = "🟢 Active" if is_active_bool else "🔴 Inactive"
-                st.markdown(f"**Status:** {status_text}")
-                st.markdown(f"**Type:** {selected_conn['connection_type']}")
-                st.markdown(f"**Host:** {selected_conn.get('host') or '-'}")
-                st.markdown(f"**Port:** {selected_conn.get('port') or '-'}")
-                st.markdown(f"**Username:** {selected_conn.get('username') or '-'}")
-                st.markdown(f"**Folder Path:** {selected_conn.get('folder_path') or '-'}")
+        elif short_code == "dl":
+            col1, col2 = st.columns(2)
+            dl_vals["storage_type"] = col1.selectbox(
+                "Storage type", ["ADLS", "S3", "GCS"],
+                index=(["ADLS", "S3", "GCS"].index(pre.get("storage_type")) if pre.get("storage_type") in ["ADLS", "S3", "GCS"] else 0)
+            )
+            dl_vals["auth_method"] = col2.selectbox(
+                "Auth method", ["ACCESS_KEY", "SAS", "MSI", "SERVICE_PRINCIPAL"],
+                index=(["ACCESS_KEY", "SAS", "MSI", "SERVICE_PRINCIPAL"].index(pre.get("auth_method")) if pre.get("auth_method") in ["ACCESS_KEY", "SAS", "MSI", "SERVICE_PRINCIPAL"] else 0)
+            )
+            dl_vals["endpoint_url"] = st.text_input("Endpoint URL (optioneel)", value=pre.get("endpoint_url") or "")
+            col3, col4 = st.columns(2)
+            dl_vals["bucket_or_container"] = col3.text_input("Bucket/Container (optioneel)", value=pre.get("bucket_or_container") or "")
+            dl_vals["base_path"] = col4.text_input("Base path (optioneel)", value=pre.get("base_path") or "")
+            dl_vals["access_key_or_secret"] = st.text_input(
+                "Access key / Secret (als secret opgeslagen – leeg laten om niet te wijzigen)",
+                type="password",
+                value=""
+            )
+
+        submitted = st.form_submit_button("💾 Opslaan", type="primary")
+
+        if submitted:
+            if not name:
+                st.error("Connection name is verplicht.")
+                st.stop()
+
+            # 1) Upsert connection (trigger zet data_source_category + short_code)
+            new_id = upsert_connection_row(
+                conn_id=(int(selected_row["id"]) if (selected_row and selected_row.get("id") is not None) else None),
+                connection_name=name,
+                connection_type=connection_type
+            )
+
+            # 2) Details per short_code (met kleine normalisaties/validatie)
+            if short_code == "dw":
+                # Normaliseer port -> int/None
+                port_val = None
+                if dw_vals["port"].strip():
+                    try:
+                        port_val = int(dw_vals["port"])
+                    except ValueError:
+                        st.error("Port moet een getal zijn.")
+                        st.stop()
+
+                if not dw_vals["host"].strip():
+                    st.error("Host is verplicht voor DW.")
+                    st.stop()
+
+                upsert_dw_details(
+                    connection_id=new_id,
+                    engine_type=connection_type,
+                    host=dw_vals["host"].strip(),
+                    port=port_val,
+                    default_database=(dw_vals["default_database"] or "").strip(),
+                    username=(dw_vals["username"] or "").strip(),
+                    ssl_mode=(dw_vals["ssl_mode"] or "").strip(),
+                    password_plain=(dw_vals["password_plain"] or "").strip(),
+                )
+
+            elif short_code == "pbi":
+                if connection_type == "POWERBI_LOCAL":
+                    upsert_pbi_local_details(
+                        connection_id=new_id,
+                        folder_path=(pbi_local_vals["folder_path"] or "").strip(),
+                    )
+                elif connection_type == "POWERBI_SERVICE":
+                    upsert_pbi_service_details(
+                        connection_id=new_id,
+                        tenant_id=(pbi_service_vals["tenant_id"] or "").strip(),
+                        client_id=(pbi_service_vals["client_id"] or "").strip(),
+                        auth_method=pbi_service_vals["auth_method"],
+                        secret_value=(pbi_service_vals["secret_value"] or "").strip(),
+                        default_workspace_id=(pbi_service_vals["default_workspace_id"] or "").strip(),
+                        default_workspace_name=(pbi_service_vals["default_workspace_name"] or "").strip(),
+                    )
+
+            elif short_code == "dl":
+                upsert_dl_details(
+                    connection_id=new_id,
+                    storage_type=dl_vals["storage_type"],
+                    endpoint_url=(dl_vals["endpoint_url"] or "").strip(),
+                    bucket_or_container=(dl_vals["bucket_or_container"] or "").strip(),
+                    base_path=(dl_vals["base_path"] or "").strip(),
+                    auth_method=dl_vals["auth_method"],
+                    access_key_or_secret=(dl_vals["access_key_or_secret"] or "").strip(),
+                )
+
+            st.success(f"✅ Connection #{new_id} opgeslagen ({short_code}, {connection_type})")
+            st.rerun()
 
 
 
-                col_test, col_edit, col_deactivate = st.columns(3)
-                with col_test:
-                    if st.button("🔍 Test Connection", key=f"btn_test_main_conn_{selected_conn['id']}"):
-                        results = test_main_connection(selected_conn, engine)
-                        for msg in results:
-                            if msg.startswith("✅"):
-                                st.success(msg)
-                            elif msg.startswith("❌"):
-                                st.error(msg)
-                            else:
-                                st.info(msg)
-                status_info = get_main_connection_test_status(engine, selected_conn["id"])
+    # ---------------- Overzicht & acties ----------------
+    st.markdown("### Overzicht")
+    df = list_connections_df()
+    if not df.empty:
+        st.dataframe(
+            df[["id", "connection_name", "connection_type", "data_source_category", "short_code", "is_active", "created_at", "updated_at"]],
+            use_container_width=True,
+            hide_index=True,
+        )
+    else:
+        st.info("Nog geen verbindingen aangemaakt.")
 
-                if status_info["status"] == "success":
+
+    # ---------------- Acties ----------------
+    st.markdown("### Acties")
+
+    df = list_connections_df()
+    if df.empty:
+        st.info("Geen verbindingen om te testen of te bewerken.")
+    else:
+        # Opties als records; format_func toont status in het label
+        action_options = df.to_dict(orient="records")
+
+        def _fmt_conn(r: dict) -> str:
+            status = "🟢 Active" if r.get("is_active") else "🔴 Inactive"
+            sc = r.get("short_code", "")
+            ctype = r.get("connection_type", "")
+            return f"#{r['id']} — {r['connection_name']}  [{ctype}/{sc}] · {status}"
+
+        selected_row = st.selectbox(
+            "Kies een connection",
+            options=action_options,
+            format_func=_fmt_conn,
+            key="actions_conn_select",
+        )
+
+        # States
+        is_active_now  = bool(selected_row.get("is_active"))
+        is_deleted_now = bool(selected_row.get("deleted_at"))  # handig als je soft delete ooit gebruikt/tonen wilt
+
+        col1, col2, col3 = st.columns([1, 1, 1])
+
+        # ---------- Test ----------
+        with col1:
+            if st.button("🔍 Test", use_container_width=True, key="btn_action_test"):
+                inflated = inflate_connection_row(selected_row)
+                test_payload = dict(inflated)
+                # tester verwacht leesbare type-waarde:
+                test_payload["connection_type"] = inflated.get("connection_type_label", selected_row["connection_type"])
+
+                results = test_main_connection(test_payload, engine)
+                for msg in results:
+                    if msg.startswith("✅"):
+                        st.success(msg)
+                    elif msg.startswith("❌"):
+                        st.error(msg)
+                    else:
+                        st.info(msg)
+
+                status_info = get_main_connection_test_status(engine, int(selected_row["id"]))
+                if status_info.get("status") == "success":
                     st.markdown("Status: 🟢 Connection OK")
-                elif status_info["status"] == "failed":
+                elif status_info.get("status") == "failed":
                     st.markdown("Status: 🔴 Connection Failed")
                 else:
                     st.markdown("Status: ⚪️ Niet getest")
 
-                with col_edit:
-                    if st.button("✏️ Edit", key=f"btn_edit_main_conn_{selected_conn['id']}"):
-                        st.session_state["edit_main_connection_id"] = selected_conn["id"]
-                        st.rerun()
-                with col_deactivate:
-                    if st.button("🗑️ Deactivate", key=f"btn_deactivate_main_conn_{selected_conn['id']}"):
-                        with engine.begin() as conn:
-                            conn.execute(sa.text("""
-                                UPDATE config.connections
-                                SET is_active = FALSE, updated_at = CURRENT_TIMESTAMP
-                                WHERE id = :id
-                            """), {"id": selected_conn["id"]})
-                        st.success("Connection deactivated.")
-                        st.rerun()
-
-    st.divider()
-    if st.button("➕ Create New Main Connection", key="btn_new_main_connection"):
-        st.session_state["new_main_connection"] = True
-        st.session_state.pop("edit_main_connection_id", None)
-        st.rerun()
-
-    if new_conn_flag:
-        with st.expander("➕ New Main Connection", expanded=True):
-            render_main_connection_editor(engine, None)
-
-            col_test, col_cancel = st.columns([1,1])
-
-            with col_test:
-                if st.button("🔍 Test new connection", key="btn_test_new_main_conn"):
-                    conn_info = {
-                        "name": st.session_state.get("edit_name", ""),
-                        "host": st.session_state.get("edit_host", ""),
-                        "port": st.session_state.get("edit_port", ""),
-                        "username": st.session_state.get("edit_user", ""),
-                        "password": st.session_state.get("edit_password", ""), 
-                        "folder_path": st.session_state.get("edit_folder", ""),
-                        "connection_type": st.session_state.get("edit_type", ""),
-                        "is_active": st.session_state.get("edit_active", True)
-                    }
-                    results = test_main_connection(conn_info, engine)
-                    for msg in results:
-                        if msg.startswith("✅"):
-                            st.success(msg)
-                        elif msg.startswith("❌"):
-                            st.error(msg)
-                        else:
-                            st.info(msg)
-
-            with col_cancel:
-                if st.button("❌ Cancel", key="cancel_new_main_conn"):
-                    st.session_state.pop("new_main_connection", None)
-                    st.rerun()
-
-    return selected_conn
-
-
-
-def render_main_connection_editor(engine, conn=None):
-    allowed_connection_types = [
-        "Power BI Semantic Model",
-        "Azure SQL Server",
-        "PostgreSQL"
-    ]
-
-    conn_type = conn["connection_type"] if conn else None
-    is_sql = conn_type != "Power BI Semantic Model"
-
-    col1, col2 = st.columns(2)
-    with col1:
-        name = st.text_input(
-            "Name *",
-            value=conn["name"] if conn else "",
-            key="edit_name"
-        )
-
-        if conn:
-            # Bestaande connectie: disabled dropdown met huidige waarde
-            st.selectbox(
-                "Connection Type *",
-                options=allowed_connection_types,
-                index=allowed_connection_types.index(conn_type) if conn_type in allowed_connection_types else 0,
-                disabled=True,
-                key="edit_type"
-            )
-        else:
-            # Nieuwe connectie: dropdown select
-            conn_type = st.selectbox(
-                "Connection Type *",
-                options=allowed_connection_types,
-                index=0,
-                key="edit_type"
-            )
-
-        active = st.checkbox(
-            "Active",
-            value=conn.get("is_active", True) if conn else True,
-            key="edit_active"
-        )
-
-    with col2:
-        if is_sql:
-            host = st.text_input(
-                "Host *",
-                value=conn["host"] if conn else "",
-                key="edit_host"
-            )
-            port = st.text_input(
-                "Port",
-                value=conn["port"] if conn else "",
-                key="edit_port"
-            )
-            username = st.text_input(
-                "Username",
-                value=conn["username"] if conn else "",
-                key="edit_user"
-            )
-            password = st.text_input(
-                "Password",
-                value=conn.get("password", "") if conn else "",
-                type="password",
-                key="edit_password"
-            )
-        else:
-            folder = st.text_input(
-                "Folder Path",
-                value=conn.get("folder_path", "") if conn else "",
-                key="edit_folder"
-            )
-
-    # Validatie verplichte velden
-    errors = []
-    if not name.strip():
-        errors.append("⚠️ Name is required.")
-    if not st.session_state.get("edit_type"):
-        errors.append("⚠️ Connection Type is required.")
-    if is_sql and not st.session_state.get("edit_host", "").strip():
-        errors.append("⚠️ Host is required.")
-
-    if errors:
-        for err in errors:
-            st.error(err)
-        return False
-
-    if st.button("💾 Save", key="save_main_connection"):
-        with engine.begin() as db_conn:
-            if conn:
-                db_conn.execute(sa.text("""
+        # ---------- Deactivate (alleen als actief en niet soft-deleted) ----------
+        with col2:
+            if st.button(
+                "🗑️ Deactivate",
+                use_container_width=True,
+                disabled=not is_active_now or is_deleted_now,
+                key="btn_action_deactivate",
+            ):
+                exec_tx("""
                     UPDATE config.connections
-                    SET name = :name,
-                        host = :host,
-                        port = :port,
-                        username = :username,
-                        password = :password,
-                        folder_path = :folder_path,
-                        is_active = :active,
-                        updated_at = CURRENT_TIMESTAMP
-                    WHERE id = :id
-                """), {
-                    "id": conn["id"],
-                    "name": name.strip(),
-                    "host": host.strip() if is_sql else None,
-                    "port": port.strip() if is_sql else None,
-                    "username": username.strip() if is_sql else None,
-                    "password": st.session_state.get("edit_password", "") if is_sql else None,
-                    "folder_path": folder.strip() if not is_sql else None,
-                    "active": active
-                })
-                st.success("Main connection updated.")
-                st.session_state.pop("edit_main_connection_id", None)
-            else:
-                db_conn.execute(sa.text("""
-                    INSERT INTO config.connections
-                    (name, connection_type, host, port, username, password, folder_path, is_active)
-                    VALUES (:name, :ctype, :host, :port, :username, :password, :folder, :active)
-                """), {
-                    "name": name.strip(),
-                    "ctype": st.session_state.get("edit_type"),
-                    "host": host.strip() if is_sql else None,
-                    "port": port.strip() if is_sql else None,
-                    "username": username.strip() if is_sql else None,
-                    "password": st.session_state.get("edit_password", "") if is_sql else None,
-                    "folder": folder.strip() if not is_sql else None,
-                    "active": active
-                })
-                st.success("New main connection created.")
-                st.session_state.pop("new_main_connection", None)
-        st.rerun()
-        return True
+                    SET is_active  = false
+                        , updated_at = CURRENT_TIMESTAMP
+                    WHERE id         = :id
+                    AND   deleted_at IS NULL
+                """, {"id": int(selected_row["id"])})
+                st.success(f"Connection #{int(selected_row['id'])} gedeactiveerd.")
+                st.rerun()
 
-    return False
+        # ---------- Activate (alleen als inactief en niet soft-deleted) ----------
+        with col3:
+            if st.button(
+                "✅ Activate",
+                use_container_width=True,
+                disabled=is_active_now or is_deleted_now,
+                key="btn_action_activate",
+            ):
+                exec_tx("""
+                    UPDATE config.connections
+                    SET is_active  = true
+                        , updated_at = CURRENT_TIMESTAMP
+                    WHERE id         = :id
+                    AND   deleted_at IS NULL
+                """, {"id": int(selected_row["id"])})
+                st.success(f"Connection #{int(selected_row['id'])} geactiveerd.")
+                st.rerun()
 
-def update_main_connection_test_status(engine, connection_id, status, notes):
-    with engine.begin() as conn:
-        conn.execute(sa.text("""
-            UPDATE config.connections
-            SET last_test_status = :status,
-                last_tested_at = CURRENT_TIMESTAMP,
-                last_test_notes = :notes
-            WHERE id = :id
-        """), {
-            "id": connection_id,
-            "status": status,
-            "notes": notes
-        })
 
-def get_source_connections():
-    """Fetch all source database connections from the config.connections table."""
-    try:
-        with engine.connect() as conn:
-            result = conn.execute(sa.text("""
-                SELECT id
-                     , name
-                     , connection_type
-                     , host
-                     , port
-                     , username
-                     , password
-                     , folder_path
-                     , execution_mode
-                     , is_active
-                FROM config.connections
-                WHERE is_active = TRUE
-                ORDER BY id
-            """))
-            connections = [dict(row._mapping) for row in result]
-            return connections
-    except Exception as e:
-        st.error(f"Failed to fetch connections: {e}")
-        return []
+    # ---------------- Deactivated ----------------
+    st.markdown("---")
+    st.subheader("🗂️ Deactivated Connections")
+    del_rows = q_all("""
+        SELECT id
+            , connection_name
+            , connection_type
+            , data_source_category
+            , short_code
+            , is_active
+            , deleted_at
+        FROM   config.connections
+        WHERE  deleted_at IS NULL
+        AND    is_active  = false
+        ORDER  BY id
+    """)
 
-def get_connection_config(table: str, connection_id: int):
-    with engine.connect() as conn:
-        result = conn.execute(sa.text(f"""
-            SELECT * FROM config.{table}
-            WHERE connection_id = :id AND is_active = TRUE
-        """), {"id": connection_id}).fetchone()
-        return dict(result._mapping) if result else None
+    if del_rows:
+        for r in del_rows:
+            d = dict(r._mapping)
+            with st.expander(f"#{d['id']} — {d['connection_name']}  ({d['connection_type']}, {d['short_code']})"):
+                # toon beknopt detail
+                inflated = inflate_connection_row(d)
+                cc = []
+                if inflated.get("host"): cc.append(f"**Host:** {inflated['host']}")
+                if inflated.get("port"): cc.append(f"**Port:** {inflated['port']}")
+                if inflated.get("username"): cc.append(f"**User:** {inflated['username']}")
+                if d["connection_type"] == "POWERBI_LOCAL" and inflated.get("folder_path"):
+                    cc.append(f"**Folder:** {inflated['folder_path']}")
+                st.markdown(" · ".join(cc) or "_(geen detail)_")
 
-def upsert_connection_config(table: str, connection_id: int, data: dict):
-    fields = ", ".join(data.keys())
-    placeholders = ", ".join(f":{k}" for k in data.keys())
-    updates = ", ".join(f"{k} = EXCLUDED.{k}" for k in data.keys())
-    query = f"""
-        INSERT INTO config.{table} (connection_id, {fields})
-        VALUES (:connection_id, {placeholders})
-        ON CONFLICT (connection_id) DO UPDATE
-        SET {updates}, updated_at = CURRENT_TIMESTAMP
-    """
-    with engine.begin() as conn:
-        conn.execute(sa.text(query), {"connection_id": connection_id, **data})
+                # Soft delete: alleen als inactief (hier altijd zo)
+                reason = st.text_input(
+                    f"Reden voor soft delete #{d['id']}",
+                    key=f"ti_softdelete_reason_{d['id']}"
+                )
 
-st.title("Connection Manager")
-
-# Create tabs for active and deleted connections
-tab1, tab2 = st.tabs(["Active Connections", "Deleted Connections"])
-
-# === ACTIVE CONNECTIONS SECTION ===
-with tab1:
-    st.subheader("🔌 Main Connections")
-    selected_conn = render_main_connection_section(engine)
-
-    if selected_conn:
-        render_catalog_config_section(selected_conn, engine)
-        render_ai_config_section(selected_conn, engine)
+                if st.button(f"🧨 Soft delete #{d['id']}", key=f"softdelete_{d['id']}"):
+                    if not reason.strip():
+                        st.error("Geef een reden op voor soft delete.")
+                    else:
+                        exec_tx("""
+                            UPDATE config.connections
+                            SET deleted_at    = CURRENT_TIMESTAMP
+                                , deleted_by    = :user
+                                , delete_reason = :reason
+                                , updated_at    = CURRENT_TIMESTAMP
+                            WHERE id         = :id
+                            AND   deleted_at IS NULL
+                            AND   is_active  = false
+                        """, {
+                            "id": d["id"],
+                            "user": st.session_state.get("user_email", "webapp"),
+                            "reason": reason.strip()
+                        })
+                        st.success(f"Connection #{d['id']} soft-deleted.")
+                        st.rerun()
     else:
-        st.info("No connection selected or no connections available.")
+        st.caption("Geen gedeactiveerde verbindingen.")
 
-# === DELETED CONNECTIONS SECTION ===
-with tab2:
-    st.subheader("Deleted Connections")
+    # ---------------- Soft deleted ----------------
+    # st.markdown("---")
+    # st.subheader("🧺 Soft-deleted Connections")
+    # sd_rows = q_all("""
+    #     SELECT id
+    #          , connection_name
+    #          , connection_type
+    #          , data_source_category
+    #          , short_code
+    #          , is_active
+    #          , deleted_at
+    #          , deleted_by
+    #          , delete_reason
+    #     FROM   config.connections
+    #     WHERE  deleted_at IS NOT NULL
+    #     ORDER  BY id DESC
+    # """)
 
-    try:
-        # Fetch deleted connections
-        with engine.connect() as conn:
-            result = conn.execute(sa.text("""
-            SELECT id, name, connection_type, host, port, username, password, folder_path
-            FROM config.connections
-            WHERE is_active = FALSE
-            ORDER BY id
-            """))
-            deleted_connections = [dict(row._mapping) for row in result]
+    # if sd_rows:
+    #     for r in sd_rows:
+    #         d = dict(r._mapping)
+    #         with st.expander(f"#{d['id']} — {d['connection_name']}  ({d['connection_type']}, {d['short_code']})  — deleted @ {d['deleted_at']}"):
+    #             st.caption(f"by {d.get('deleted_by') or '-'} · reason: {d.get('delete_reason') or '-'}")
 
-        if deleted_connections:
-            # Iterate through each deleted connection and create an expandable box
-            for conn in deleted_connections:
-                with st.expander(f"{conn['name']} (ID: {conn['id']})"):
-                    # Display connection details
-                    # Create two columns for layout
-                    col1, col2 = st.columns(2)
+    #             if st.button(f"Restore #{d['id']}", key=f"restore_sd_{d['id']}"):
+    #                 exec_tx("""
+    #                     UPDATE config.connections
+    #                        SET deleted_at    = NULL
+    #                          , deleted_by    = NULL
+    #                          , delete_reason = NULL
+    #                          , updated_at    = CURRENT_TIMESTAMP
+    #                     WHERE id = :id
+    #                 """, {"id": d["id"]})
+    #                 st.success(f"Connection #{d['id']} hersteld (nog inactief).")
+    #                 st.rerun()
+    # else:
+    #     st.caption("Geen soft-deleted verbindingen.")
 
-                    # Display connection details in the first column
-                    with col1:
-                        st.write(f"**ID:** {conn['id']}")
-                        st.write(f"**Type:** {conn['connection_type']}")
-                        st.write(f"**Host:** {conn['host']}")
-                        st.write(f"**Port:** {conn['port']}")
-                        st.write(f"**Username:** {conn['username']}")
+# ======================================================================================
+# TAB 2: CATALOG CONFIGURATION (DW/PBI/DL) per geselecteerde connection
+# ======================================================================================
+with tab_cc:
+    cid = st.session_state.selected_conn_id
+    if not cid:
+        st.info("Selecteer eerst een connection in de tab *Main connection*.")
+    else:
+        # Bepaal type via lijst df (hergebruik uit tab 1 indien beschikbaar)
+        # Voor eenvoud even opnieuw ophalen:
+        df_all = list_connections_df()
+        base = df_all[df_all["id"] == cid].iloc[0].to_dict()
+        short_code = base["short_code"]  # "dw" | "pbi" | "dl"
 
-                    # Display filters (databases, schemas, and tables) in the second column
-                    with col2:
-                        if conn["connection_type"] == "Power BI Semantic Model":
-                            st.write(f"**Folder Path:** {conn['folder_path'] or 'None'}")
-                        else:
-                            st.write("**Database:** Not stored in main connection")
-                            st.write("**Schemas:** Defined in catalog or AI configs")
-                            st.write("**Tables:** Defined in catalog or AI configs")
-                    
-                    # Add Restore Connection button
-                    if st.button(f"Restore {conn['name']}", key=f"restore_{conn['id']}"):
-                        try:
-                            with engine.begin() as db_conn:
-                                db_conn.execute(
-                                    sa.text("""
-                                        UPDATE config.connections
-                                        SET is_active = TRUE
-                                        WHERE id = :id
-                                    """),
-                                    {"id": conn["id"]}
-                                )
-                            st.success(f"Connection '{conn['name']}' restored.")
-                            st.rerun()
-                        except Exception as e:
-                            st.error(f"❌ Failed to restore connection: {e}")
-        else:
-            st.info("No deleted connections found.")
-    except Exception as e:
-        st.error(f"Failed to fetch deleted connections: {e}")
+        if short_code == "dw":
+            st.caption("DW Catalog configs")
+            cfgs = fetch_dw_catalog_configs(cid)
+            st.dataframe(pd.DataFrame(cfgs) if cfgs else pd.DataFrame())
+            with st.expander("Nieuwe/Bewerken"):
+                # simpel voorbeeld-form
+                new_name = st.text_input("Config name", value="Nieuwe DW catalog")
+                include_views = st.checkbox("Include views", value=True)
+                include_sys = st.checkbox("Include system objects", value=False)
+                notes = st.text_area("Notes", value="")
+                if st.button("➕ Voeg toe"):
+                    insert_dw_catalog_config(cid, new_name, None, None, None, include_views, include_sys, notes, True)
+                    st.success("DW catalog-config toegevoegd.")
+
+        elif short_code == "pbi":
+            st.caption("PBI Catalog configs")
+            cfgs = fetch_pbi_catalog_configs(cid)
+            st.dataframe(pd.DataFrame(cfgs) if cfgs else pd.DataFrame())
+            with st.expander("Nieuwe/Bewerken"):
+                new_name = st.text_input("Config name", value="Nieuwe PBI catalog")
+                include_tmdl = st.checkbox("Include TMDL", value=True)
+                include_bim = st.checkbox("Include model.bim", value=False)
+                respect_persp = st.checkbox("Respect perspectives", value=True)
+                notes = st.text_area("Notes", value="")
+                if st.button("➕ Voeg toe"):
+                    insert_pbi_catalog_config(cid, new_name, None, None, None, include_tmdl, include_bim, respect_persp, notes, True)
+                    st.success("PBI catalog-config toegevoegd.")
+
+        elif short_code == "dl":
+            st.caption("DL Catalog configs")
+            cfgs = fetch_dl_catalog_configs(cid)
+            st.dataframe(pd.DataFrame(cfgs) if cfgs else pd.DataFrame())
+            with st.expander("Nieuwe/Bewerken"):
+                new_name = st.text_input("Config name", value="Nieuwe DL catalog")
+                include_hidden = st.checkbox("Include hidden files", value=False)
+                infer_schema = st.checkbox("Infer schema", value=True)
+                notes = st.text_area("Notes", value="")
+                if st.button("➕ Voeg toe"):
+                    insert_dl_catalog_config(cid, new_name, None, None, None, include_hidden, infer_schema, notes, True)
+                    st.success("DL catalog-config toegevoegd.")
+
+# ======================================================================================
+# TAB 3: AI CONFIGURATION (DW/PBI/DL) per geselecteerde connection
+# ======================================================================================
+with tab_ac:
+    cid = st.session_state.selected_conn_id
+    if not cid:
+        st.info("Selecteer eerst een connection in de tab *Main connection*.")
+    else:
+        df_all = list_connections_df()
+        base = df_all[df_all["id"] == cid].iloc[0].to_dict()
+        short_code = base["short_code"]
+
+        if short_code == "dw":
+            st.caption("DW AI configs")
+            cfgs = fetch_dw_ai_configs(cid)
+            st.dataframe(pd.DataFrame(cfgs) if cfgs else pd.DataFrame())
+
+        elif short_code == "pbi":
+            st.caption("PBI AI configs")
+            cfgs = fetch_pbi_ai_configs(cid)
+            st.dataframe(pd.DataFrame(cfgs) if cfgs else pd.DataFrame())
+
+        elif short_code == "dl":
+            st.caption("DL AI configs")
+            cfgs = fetch_dl_ai_configs(cid)
+            st.dataframe(pd.DataFrame(cfgs) if cfgs else pd.DataFrame())
