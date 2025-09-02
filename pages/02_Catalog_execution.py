@@ -2,7 +2,7 @@ import streamlit as st
 
 # Add page config as the FIRST Streamlit command
 st.set_page_config(
-    page_title="DataNavigator - Catalog Execution",
+    page_title="Catalog Execution",
     page_icon="📊",
     layout="wide",
     initial_sidebar_state="expanded"

@@ -1,7 +1,7 @@
 import streamlit as st
 from pathlib import Path
 from datetime import datetime
-from navigation import render_page_navigation
+from webapp.navigation import render_page_navigation
 import app_boot
 
 # Global page config - set once for entire app

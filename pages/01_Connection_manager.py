@@ -3,7 +3,7 @@ import app_boot  # zet ROOT en ROOT/webapp op sys.path
 
 import os
 from pathlib import Path
-from typing import Optional
+from typing import Optional,Callable
 
 import streamlit as st
 import sqlalchemy as sa
@@ -11,6 +11,7 @@ from dotenv import load_dotenv
 import pandas as pd
 from datetime import datetime
 from data_catalog.db import q_all,q_one,exec_tx
+
 
 # Helpers/UX uit jouw project
 from shared_utils import (
@@ -92,7 +93,7 @@ from data_catalog.config_handler import (
 
 # ---------------- Page config & styling ----------------
 st.set_page_config(
-    page_title="Connection Manager (v2)",
+    page_title="Connection Manager",
     page_icon="🔗",
     layout="wide",
     initial_sidebar_state="expanded",
@@ -190,6 +191,164 @@ if "selected_conn_id" not in st.session_state:
     st.session_state.selected_conn_id = None
 
 #-----------------------
+# HELPERS  
+# ----------------------
+
+def render_active_connection_picker_stable(key_prefix: str = "catalog"):
+    df = list_connections_df()  # bevat alleen deleted_at IS NULL
+    df = df[df["is_active"] == True]  # noqa: E712
+    if df.empty:
+        st.info("No active connections available. Create and activate a connection first.")
+        return None, None
+
+    # 1) Stabiele opties = IDs
+    df = df.sort_values(["connection_name", "id"], kind="mergesort")  # stabiele sort
+    ids = df["id"].astype(int).tolist()
+
+    by_id = {int(row["id"]): row for row in df.to_dict(orient="records")}
+
+    def fmt_conn(conn_id: int) -> str:
+        r = by_id.get(conn_id, {})
+        sc = r.get("short_code") or ""
+        ctype = r.get("connection_type") or ""
+        return f"#{conn_id} — {r.get('connection_name', '')}  [{ctype}/{sc}] · 🟢 Active"
+
+    # 2) Vorige keuze ophalen
+    state_key = f"{key_prefix}_conn_id"
+    sel_id = st.session_state.get(state_key, None)
+
+    # 3) Index bepalen (fallback naar eerste)
+    if sel_id in ids:
+        index = ids.index(sel_id)
+    else:
+        index = 0
+        sel_id = ids[0]
+
+    # 4) Selectbox met opties=IDs
+    chosen_id = st.selectbox(
+        "Select an active connection.",
+        options=ids,
+        index=index,
+        format_func=fmt_conn,
+        key=f"{key_prefix}_conn_selectbox",  # unieke UI-key
+    )
+
+    # 5) Session bijwerken + caption
+    st.session_state[state_key] = chosen_id
+    row = by_id[chosen_id]
+    st.caption(f"**Selected:** {chosen_id} · {row['connection_name']}")
+    st.divider()
+    return chosen_id, row
+
+def render_catalog_config_picker_stable(
+    conn_id: int,
+    short_code: str,
+    key_prefix: str = "catalog",
+):
+    # Type router
+    from data_catalog.config_handler import (
+        fetch_dw_catalog_configs, fetch_pbi_catalog_configs, fetch_dl_catalog_configs,
+    )
+    sc = (short_code or "").strip().lower()
+    fetch_all: Callable[[int], object]
+    label = {"dw": "Data Warehouse", "dl": "Data Lake", "pbi": "Power BI"}.get(sc, sc.upper())
+    if sc == "dw":
+        fetch_all = fetch_dw_catalog_configs
+    elif sc == "dl":
+        fetch_all = fetch_dl_catalog_configs
+    elif sc == "pbi":
+        fetch_all = fetch_pbi_catalog_configs
+    else:
+        st.error(f"Unknown connection type (short_code): '{short_code}'. Expected: dw, dl of pbi.")
+        return None, None
+
+    st.subheader(f"Catalog configuration · {label}")
+
+    # Ophalen en normaliseren
+    def _to_records(data) -> list[dict]:
+        try:
+            if hasattr(data, "to_dict"):
+                return data.to_dict(orient="records")  # pandas DF
+        except Exception:
+            pass
+        if isinstance(data, dict):
+            return [data]
+        if isinstance(data, list):
+            return data
+        return []
+
+    records = _to_records(fetch_all(conn_id))
+    # Extra safety: filter lokaal op conn_id (als kolom bestaat)
+    if records and "connection_id" in records[0]:
+        records = [r for r in records if int(r.get("connection_id") or -1) == int(conn_id)]
+
+    # Toggle actief (default AAN)
+    active_key = f"{key_prefix}_cfg_active_only_{sc}"
+    if st.toggle("Alleen actieve catalog-configs tonen", value=True, key=active_key):
+        records = [r for r in records if bool(r.get("is_active"))]
+
+    if not records:
+        st.info("No (active) catalog-configurations for this connections available.")
+        return None, None
+
+    # Stabiele opties = IDs
+    # Zorg dat 'id' integer is en sorteer stabiel
+    for r in records:
+        r["id"] = int(r["id"])
+    records.sort(key=lambda r: (str(r.get("config_name") or r.get("name") or ""), r["id"]))
+    ids = [r["id"] for r in records]
+    by_id = {r["id"]: r for r in records}
+
+    def fmt_cfg(cfg_id: int) -> str:
+        r = by_id.get(cfg_id, {})
+        status = "🟢" if r.get("is_active") else "🔴"
+        name = r.get("config_name") or r.get("name") or f"Config {cfg_id}"
+        sf = r.get("schema_filter") or "*"
+        tf = r.get("table_filter") or "*"
+        return f"{status} #{cfg_id} — {name} · filters: {sf}/{tf}"
+
+    # Vorige keuze ophalen (per type eigen state key)
+    state_key = f"{key_prefix}_cfg_id_{sc}"
+    sel_id = st.session_state.get(state_key)
+
+    # Index bepalen (fallback naar eerste of behoud als beschikbaar)
+    if sel_id in ids:
+        index = ids.index(sel_id)
+    else:
+        index = 0
+        sel_id = ids[0]
+
+    # Selectbox met opties = IDs
+    chosen_id = st.selectbox(
+        "Select a catalog-configuration",
+        options=ids,
+        index=index,
+        format_func=fmt_cfg,
+        key=f"{key_prefix}_cfg_selectbox_{sc}",  # unieke UI-key
+    )
+    st.session_state[state_key] = chosen_id
+    chosen_cfg = by_id[chosen_id]
+
+    st.caption(f"**Selected catalog-config:** {chosen_id} · {(chosen_cfg.get('config_name') or chosen_cfg.get('name') or '')}")
+
+    with st.expander("Details of this catalog-config"):
+        col1, col2 = st.columns(2)
+        with col1:
+            st.write("**Status**:", "🟢 Active" if chosen_cfg.get("is_active") else "🔴 Inactive")
+            st.write("**Schema filter**:", chosen_cfg.get("schema_filter", "—"))
+            st.write("**Table filter**:", chosen_cfg.get("table_filter", "—"))
+            st.write("**Include views**:", "Ja" if chosen_cfg.get("include_views") else "Nee")
+            st.write("**Remarks**:", chosen_cfg.get("notes", "—"))
+        with col2:
+            st.write("**Target catalog DB**:", chosen_cfg.get("target_catalog_db", "—"))
+            st.write("**Server name**:", chosen_cfg.get("server_name", "—"))
+            st.write("**Database name**:", chosen_cfg.get("database_name", "—"))
+            st.write("**Laatst getest**:", chosen_cfg.get("last_test_at", "—"))
+            st.write("**Laatste testresultaat**:", chosen_cfg.get("last_test_result", "—"))
+    st.divider()
+    return chosen_id, chosen_cfg
+
+#-----------------------
 # UI -------------------   
 # ----------------------
 
@@ -200,7 +359,7 @@ st.title("🔌 Connection Manager")
 # 0) Mapping laden (registry)
 mapping_df = load_mapping_df()
 if mapping_df.empty:
-    st.error("De mapping-tabel `config.connection_type_registry` is leeg of niet bereikbaar.")
+    st.error("The mapping-table `config.connection_type_registry` is empty or not reachable.")
     st.stop()
 
 tab_mc, tab_cc, tab_ac = st.tabs(["Main connection", "Catalog configuration", "AI configuration"])
@@ -215,18 +374,18 @@ with tab_mc:
     df = list_connections_df()  # bevat al alleen c.deleted_at IS NULL
 
     # 2) Filteroptie: alleen actieve (optioneel)
-    show_active_only = st.toggle("Alleen actieve connections tonen", value=False, key="conn_filter_active_only")
+    show_active_only = st.toggle("Only show active connections", value=False, key="conn_filter_active_only")
     if show_active_only and not df.empty:
         df = df[df["is_active"] == True]
 
     if df.empty:
-        st.info("Geen (geldige) connections om te beheren. Maak eerst een nieuwe verbinding aan.")
+        st.info("No (valid) connections to manage. Create a new connection first.")
         selected_row = None
         conn_id = None
         short_code = None
     else:
         # 3) Picker op de pagina (incl. optie 'Nieuwe verbinding')
-        NEW_SENTINEL = {"id": None, "connection_name": "➕ Nieuwe verbinding"}
+        NEW_SENTINEL = {"id": None, "connection_name": "➕ New connection"}
         options = [NEW_SENTINEL] + df.to_dict(orient="records")
 
         def _fmt_conn(r: dict) -> str:
@@ -238,7 +397,7 @@ with tab_mc:
             return f"#{r['id']} — {r['connection_name']}  [{ctype}/{sc}] · {status}"
 
         selected_row = st.selectbox(
-            "Kies een connection (of maak een nieuwe)",
+            "Select connection of create new",
             options=options,
             format_func=_fmt_conn,
             key="cm_conn_select",
@@ -256,13 +415,13 @@ with tab_mc:
         else:
             conn_id = None
             short_code = None
-            st.caption("Nieuwe verbinding aanmaken…")
+            st.caption("Create new connection…")
 
     st.divider()
 
 
     # ---------------- Basis (buiten de form, zodat type-wissel direct rerunt) ----------------
-    st.markdown("### Basis")
+    st.markdown("## Main connection")
 
     # Opties uit mapping; we tonen alleen display_name
     mapping_opts = mapping_df.to_dict(orient="records")
@@ -335,7 +494,7 @@ with tab_mc:
                 index=(["", "require", "disable"].index(pre.get("ssl_mode")) if pre.get("ssl_mode") in ["", "require", "disable"] else 1)
             )
             dw_vals["password_plain"] = st.text_input(
-                "Password (als secret opgeslagen – leeg laten om niet te wijzigen)",
+                "Password (saved as secret – keep empty not to change.)",
                 type="password",
                 value=""
             )
@@ -385,11 +544,11 @@ with tab_mc:
                 value=""
             )
 
-        submitted = st.form_submit_button("💾 Opslaan", type="primary")
+        submitted = st.form_submit_button("💾 Save", type="primary")
 
         if submitted:
             if not name:
-                st.error("Connection name is verplicht.")
+                st.error("Connection name is manadatory.")
                 st.stop()
 
             # 1) Upsert connection (trigger zet data_source_category + short_code)
@@ -407,11 +566,11 @@ with tab_mc:
                     try:
                         port_val = int(dw_vals["port"])
                     except ValueError:
-                        st.error("Port moet een getal zijn.")
+                        st.error("Port must be a number.")
                         st.stop()
 
                 if not dw_vals["host"].strip():
-                    st.error("Host is verplicht voor DW.")
+                    st.error("Host is mandatory for database/datawarehouse.")
                     st.stop()
 
                 upsert_dw_details(
@@ -453,13 +612,13 @@ with tab_mc:
                     access_key_or_secret=(dl_vals["access_key_or_secret"] or "").strip(),
                 )
 
-            st.success(f"✅ Connection #{new_id} opgeslagen ({short_code}, {connection_type})")
+            st.success(f"✅ Connection #{new_id} saved ({short_code}, {connection_type})")
             st.rerun()
 
 
 
     # ---------------- Overzicht & acties ----------------
-    st.markdown("### Overzicht")
+    st.markdown("### Overview")
     df = list_connections_df()
     if not df.empty:
         st.dataframe(
@@ -468,15 +627,15 @@ with tab_mc:
             hide_index=True,
         )
     else:
-        st.info("Nog geen verbindingen aangemaakt.")
+        st.info("No avilable connections.")
 
 
     # ---------------- Acties ----------------
-    st.markdown("### Acties")
+    st.markdown("### Actions")
 
     df = list_connections_df()
     if df.empty:
-        st.info("Geen verbindingen om te testen of te bewerken.")
+        st.info("No connections to test or manage.")
     else:
         # Opties als records; format_func toont status in het label
         action_options = df.to_dict(orient="records")
@@ -488,7 +647,7 @@ with tab_mc:
             return f"#{r['id']} — {r['connection_name']}  [{ctype}/{sc}] · {status}"
 
         selected_row = st.selectbox(
-            "Kies een connection",
+            "Select a connection",
             options=action_options,
             format_func=_fmt_conn,
             key="actions_conn_select",
@@ -595,13 +754,13 @@ with tab_mc:
 
                 # Soft delete: alleen als inactief (hier altijd zo)
                 reason = st.text_input(
-                    f"Reden voor soft delete #{d['id']}",
+                    f"Reason for soft delete #{d['id']}",
                     key=f"ti_softdelete_reason_{d['id']}"
                 )
 
-                if st.button(f"🧨 Soft delete #{d['id']}", key=f"softdelete_{d['id']}"):
+                if st.button(f"🧨 delete #{d['id']}", key=f"softdelete_{d['id']}"):
                     if not reason.strip():
-                        st.error("Geef een reden op voor soft delete.")
+                        st.error("Provide reason for delete.")
                     else:
                         exec_tx("""
                             UPDATE config.connections
@@ -620,7 +779,7 @@ with tab_mc:
                         st.success(f"Connection #{d['id']} soft-deleted.")
                         st.rerun()
     else:
-        st.caption("Geen gedeactiveerde verbindingen.")
+        st.caption("No deactivated connections.")
 
     # ---------------- Soft deleted ----------------
     # st.markdown("---")
@@ -664,57 +823,17 @@ with tab_mc:
 # TAB 2: CATALOG CONFIGURATION (DW/PBI/DL) per geselecteerde connection
 # ======================================================================================
 with tab_cc:
-    cid = st.session_state.selected_conn_id
-    if not cid:
-        st.info("Selecteer eerst een connection in de tab *Main connection*.")
-    else:
-        # Bepaal type via lijst df (hergebruik uit tab 1 indien beschikbaar)
-        # Voor eenvoud even opnieuw ophalen:
-        df_all = list_connections_df()
-        base = df_all[df_all["id"] == cid].iloc[0].to_dict()
-        short_code = base["short_code"]  # "dw" | "pbi" | "dl"
+    # 1) Connection kiezen (stabiel)
+    conn_id, conn_row = render_active_connection_picker_stable("catalog")
+    if conn_id is None:
+        st.stop()
 
-        if short_code == "dw":
-            st.caption("DW Catalog configs")
-            cfgs = fetch_dw_catalog_configs(cid)
-            st.dataframe(pd.DataFrame(cfgs) if cfgs else pd.DataFrame())
-            with st.expander("Nieuwe/Bewerken"):
-                # simpel voorbeeld-form
-                new_name = st.text_input("Config name", value="Nieuwe DW catalog")
-                include_views = st.checkbox("Include views", value=True)
-                include_sys = st.checkbox("Include system objects", value=False)
-                notes = st.text_area("Notes", value="")
-                if st.button("➕ Voeg toe"):
-                    insert_dw_catalog_config(cid, new_name, None, None, None, include_views, include_sys, notes, True)
-                    st.success("DW catalog-config toegevoegd.")
-
-        elif short_code == "pbi":
-            st.caption("PBI Catalog configs")
-            cfgs = fetch_pbi_catalog_configs(cid)
-            st.dataframe(pd.DataFrame(cfgs) if cfgs else pd.DataFrame())
-            with st.expander("Nieuwe/Bewerken"):
-                new_name = st.text_input("Config name", value="Nieuwe PBI catalog")
-                include_tmdl = st.checkbox("Include TMDL", value=True)
-                include_bim = st.checkbox("Include model.bim", value=False)
-                respect_persp = st.checkbox("Respect perspectives", value=True)
-                notes = st.text_area("Notes", value="")
-                if st.button("➕ Voeg toe"):
-                    insert_pbi_catalog_config(cid, new_name, None, None, None, include_tmdl, include_bim, respect_persp, notes, True)
-                    st.success("PBI catalog-config toegevoegd.")
-
-        elif short_code == "dl":
-            st.caption("DL Catalog configs")
-            cfgs = fetch_dl_catalog_configs(cid)
-            st.dataframe(pd.DataFrame(cfgs) if cfgs else pd.DataFrame())
-            with st.expander("Nieuwe/Bewerken"):
-                new_name = st.text_input("Config name", value="Nieuwe DL catalog")
-                include_hidden = st.checkbox("Include hidden files", value=False)
-                infer_schema = st.checkbox("Infer schema", value=True)
-                notes = st.text_area("Notes", value="")
-                if st.button("➕ Voeg toe"):
-                    insert_dl_catalog_config(cid, new_name, None, None, None, include_hidden, infer_schema, notes, True)
-                    st.success("DL catalog-config toegevoegd.")
-
+    # 2) Catalog-config kiezen obv type
+    cfg_id, cfg_row = render_catalog_config_picker_stable(
+        conn_id=conn_id,
+        short_code=conn_row.get("short_code"),
+        key_prefix="catalog",
+    )
 # ======================================================================================
 # TAB 3: AI CONFIGURATION (DW/PBI/DL) per geselecteerde connection
 # ======================================================================================
