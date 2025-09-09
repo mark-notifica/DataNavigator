@@ -1437,53 +1437,93 @@ def render_catalog_config_field_help(sc: str):
                 """
             )
 
-
 import streamlit as st
 import pandas as pd
 
-def render_ai_config_field_help(sc: str, *, state_prefix: str | None = None):
+def render_ai_config_field_help(
+    sc: str,
+    *,
+    state_prefix: str | None = None,
+):
     """
-    Per-parameter guidance for AI config fields.
-    Wrapped in an expander; user can open/close on demand.
-    Supports propagation modes: auto | manual
+    Read-only help (in an expander):
+      - 'Available models' (providers, models, privacy/location) — informational only
+      - Per-parameter guidance (temperature, tokens, etc.)
+      - Propagation modes: auto | manual
     """
 
-    # Defaults (shown in detail text)
+    # Catalog with focus on privacy & data location
+    PROVIDERS = {
+        "OpenAI": {
+            "models": ["o4", "o4-mini", "5"],
+            "privacy": "Data may be processed on OpenAI servers in US/EU. Not stored for training when using enterprise agreements, but still leaves your infrastructure.",
+        },
+        "Microsoft (Azure OpenAI)": {
+            "models": ["o4", "o4-mini", "5"],
+            "privacy": "Data stays within your Azure subscription & chosen region. Good for compliance if your org already uses Azure.",
+        },
+        "Local": {
+            "models": ["mistral-7b"],
+            "privacy": "Runs fully on your own infra. Data never leaves your network and is full privacy proof. Quality and speed depends on your hardware and set-up.",
+        },
+    }
+
+    rows = []
+    for prov, info in PROVIDERS.items():
+        for model in info["models"]:
+            rows.append({
+                "Provider": prov,
+                "Model": model,
+                "Privacy & data location": info["privacy"],
+            })
+    provider_df = pd.DataFrame(rows)
+
+    # Defaults for parameters
     defaults = {
         "temperature": 0.0,
         "max_tokens": 2048,
         "top_p": 1.0,
         "frequency_penalty": 0.0,
         "presence_penalty": 0.0,
-        "propagation_mode": "auto",  # recommended default
+        "propagation_mode": "auto",
     }
 
-    # Parameters (easy to extend later)
-    options = [
-        "Temperature",
-        "Max tokens",
-        "Top-p",
-        "Frequency penalty",
-        "Presence penalty",
-        "Propagation mode",
-        "Overwrite policy",
-    ]
+    # Stable key
+    prefix = state_prefix or "ai_cfg"
+    k_param_selector = f"{prefix}_param_selector"
+    if k_param_selector not in st.session_state:
+        st.session_state[k_param_selector] = "Available models"
 
-    # Stable key (persists selection across reruns)
-    sel_key = f"{state_prefix or 'ai_cfg'}_param_selector"
-    if sel_key not in st.session_state:
-        st.session_state[sel_key] = options[0]
-
-    with st.expander("ℹ️ AI configuration field help", expanded=False):
+    with st.expander("ℹ️ Models & configuration help", expanded=False):
+        st.subheader("Detailed guidance per parameter", anchor=False)
+        options = [
+            "Available models",   # first item
+            "Temperature",
+            "Max tokens",
+            "Top-p",
+            "Frequency penalty",
+            "Presence penalty",
+            "Propagation mode",
+            "Overwrite policy",
+        ]
         choice = st.selectbox(
-            "Select a parameter",
+            "Select a topic",
             options=options,
-            key=sel_key,
-            help="Pick a field to see meaning, guidelines, and defaults.",
+            key=k_param_selector,
+            help="Read what each field means, with guidelines and defaults.",
         )
 
-        # ---- Renderers ----
-        if choice == "Temperature":
+        # --- Renderers ---
+        if choice == "Available models":
+            st.info("**Available model providers and privacy considerations:**")
+            st.dataframe(provider_df, hide_index=True, use_container_width=True)
+
+            st.caption(
+                "Tip: In the actual form you will choose one of these providers/models. "
+                "Here you only see what is available and what it means for privacy and data location."
+            )
+
+        elif choice == "Temperature":
             st.info(
                 f"""**Temperature** controls randomness.
 
@@ -1539,15 +1579,13 @@ def render_ai_config_field_help(sc: str, *, state_prefix: str | None = None):
 
         elif choice == "Propagation mode":
             st.info(
-                f"""**Propagation mode** controls if results are written to descriptions immediately.
+                f"""**Propagation mode** controls if AI results are written to catalog object descriptions immediately. AI results are always stored in the analysis store and can be exported later.
 
 - **auto** *(default)* → results are **written directly** to descriptions (obeying **Overwrite policy**). Each new/overwritten value is flagged as **unreviewed**; users can later mark as **reviewed** or **edited**.
-- **manual** → results are **stored only** in the analysis store. No automatic write. You can later **export → review → apply** (see *Manual propagate*).
-
+- **manual** → results are **stored only** in the analysis store. No automatic write. You can later **exported** to your catalog object descriptions.
 **Recommended default:** **{defaults['propagation_mode']}**"""
             )
 
-            st.caption("Propagation × Overwrite matrix (what actually gets written):")
             matrix = pd.DataFrame(
                 [
                     ["auto", "fill_empty", "Writes only into empty fields; existing text untouched (status = unreviewed)."],
@@ -1563,9 +1601,9 @@ def render_ai_config_field_help(sc: str, *, state_prefix: str | None = None):
             st.info(
                 """**Overwrite policy** (applies when `propagation_mode = auto`):
 
-- **fill_empty** *(safe)* → write only if the target field is empty; existing text remains untouched.
-- **overwrite_if_confident** → replace existing text **only** if model confidence ≥ threshold (e.g., 0.8).
-- **never** → never replace existing text; only empty fields can be filled.
+- **fill_empty** *(safe)* → write only if the target field is empty; existing text remains untouched.  
+- **overwrite_if_confident** → replace existing text **only** if model confidence ≥ threshold (e.g., 0.8).  
+- **never** → never replace existing text; only empty fields can be filled.  
 
 **Note:** All values written in **auto** mode are flagged as **unreviewed**; a user can later mark them as reviewed/edited."""
             )
