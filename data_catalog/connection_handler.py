@@ -13,6 +13,7 @@ from sqlalchemy import create_engine
 from typing import Optional
 import pandas as pd
 
+
 # ---------------------------------------
 # Load environment + logger
 # ---------------------------------------
@@ -269,7 +270,7 @@ def test_dw_catalog_with_config(cfg_id: int, conn_id: int, set_status: bool = Tr
     """
     ok, msg = _ping_db(conn_id)
     if set_status:
-        from .config_handler import set_dw_catalog_last_test_result
+        from .config_crud import set_dw_catalog_last_test_result
         set_dw_catalog_last_test_result(cfg_id, "OK" if ok else "ERROR", msg)
     return ok, msg
 
@@ -279,7 +280,7 @@ def test_pbi_catalog_with_config(cfg_id: int, conn_id: int, set_status: bool = T
     """
     ok, msg = _ping_db(conn_id)
     if set_status:
-        from .config_handler import set_pbi_catalog_last_test_result
+        from .config_crud import set_pbi_catalog_last_test_result
         set_pbi_catalog_last_test_result(cfg_id, "OK" if ok else "ERROR", msg)
     return ok, msg
 
@@ -289,7 +290,7 @@ def test_dl_catalog_with_config(cfg_id: int, conn_id: int, set_status: bool = Tr
     """
     ok, msg = _ping_db(conn_id)
     if set_status:
-        from .config_handler import set_dl_catalog_last_test_result
+        from .config_crud import set_dl_catalog_last_test_result
         set_dl_catalog_last_test_result(cfg_id, "OK" if ok else "ERROR", msg)
     return ok, msg
 

@@ -25,11 +25,6 @@ from data_catalog.connection_handler import (
     load_mapping_df,
     list_connections_df,
     upsert_connection_row,
-    set_connection_last_test_result,
-    clear_connection_last_test_result,
-    deactivate_connection,
-    reactivate_connection,
-    soft_delete_connection,
 
     # details (voor inflate/legacy)
     fetch_secret,
@@ -42,58 +37,55 @@ from data_catalog.connection_handler import (
     upsert_dl_details,
 )
 
-from data_catalog.config_handler import (
-    # DW configs
-    fetch_dw_catalog_configs,
-    fetch_dw_catalog_config_by_id,
-    insert_dw_catalog_config,
-    update_dw_catalog_config,
-    deactivate_dw_catalog_config,
-    reactivate_dw_catalog_config,
-    set_dw_catalog_last_test_result,
-    clear_dw_catalog_last_test_result,
-
-    # PBI configs
-    fetch_pbi_catalog_configs,
-    fetch_pbi_catalog_config_by_id,
-    insert_pbi_catalog_config,
-    update_pbi_catalog_config,
-    deactivate_pbi_catalog_config,
-    reactivate_pbi_catalog_config,
-    set_pbi_catalog_last_test_result,
-    clear_pbi_catalog_last_test_result,
-
-    # DL configs
-    fetch_dl_catalog_configs,
-    fetch_dl_catalog_config_by_id,
-    insert_dl_catalog_config,
-    update_dl_catalog_config,
-    deactivate_dl_catalog_config,
-    reactivate_dl_catalog_config,
-    set_dl_catalog_last_test_result,
-    clear_dl_catalog_last_test_result,
-
-    # AI-configs (DW/PBI/DL) – geen last_test_* kolommen
+from  data_catalog.config_crud import (
     fetch_dw_ai_configs,
     fetch_pbi_ai_configs,
     fetch_dl_ai_configs,
-    fetch_dw_ai_config_by_id,
-    fetch_pbi_ai_config_by_id,
-    fetch_dl_ai_config_by_id,
-    insert_pbi_ai_config,
-    update_pbi_ai_config,
-    insert_dl_ai_config,
-    update_dl_ai_config,
-    insert_dw_ai_config,
-    update_dw_ai_config,
+    deactivate_dw_catalog_config,
+    deactivate_pbi_catalog_config,
+    deactivate_dl_catalog_config,
+    reactivate_dw_catalog_config,
+    reactivate_pbi_catalog_config,
+    reactivate_dl_catalog_config,
+    deactivate_dw_ai_config,
+    deactivate_pbi_ai_config,
+    deactivate_dl_ai_config,
+    reactivate_dw_ai_config,
+    reactivate_pbi_ai_config,
+    reactivate_dl_ai_config,
+    
 )
 
+from data_catalog import config_crud
 
+from  data_catalog.config_service import (
+    render_active_connection_picker_stable,
+    make_catalog_crud_adapters,
+    make_ai_crud_adapters,
+    render_catalog_config_picker_with_edit,
+    render_ai_config_picker_with_edit,
+    format_catalog_cfg_label,
+    format_ai_cfg_label,
+    )
 
+from data_catalog.ui_prompts import (
+    prompt_new_catalog_config,
+    prompt_edit_catalog_config,
+    prompt_new_ai_config,
+    prompt_edit_ai_config,
+    render_catalog_configs_overview,
+    render_catalog_config_actions_minimal,
+    render_ai_configs_overview,
+    render_ai_config_actions_minimal,
+    render_deactivated_catalog_configs,
+    render_deactivated_ai_configs,
+    render_catalog_config_help,
+    render_ai_config_help,
+    )
 
 # ---------------- Page config & styling ----------------
 st.set_page_config(
-    page_title="Connection Manager",
+    page_title="Connection & configuration Manager",
     page_icon="🔗",
     layout="wide",
     initial_sidebar_state="expanded",
@@ -131,26 +123,6 @@ def inflate_connection_row(base_row: dict) -> dict:
     conn = dict(base_row)
     conn.update({"host": None, "port": None, "username": None, "password": None, "folder_path": None})
 
-    # sc = conn.get("short_code")
-    # ctype = conn.get("connection_type")
-
-    # if sc == "dw":
-    #     d = fetch_dw_details(conn["id"])
-    #     if d:
-    #         conn["host"] = d.get("host")
-    #         conn["port"] = d.get("port")
-    #         conn["username"] = d.get("username")
-    #         secret_ref = d.get("secret_ref")
-    #         conn["password"] = fetch_secret(secret_ref) if secret_ref else None
-
-    # elif sc == "pbi" and ctype == "POWERBI_LOCAL":
-    #     d = fetch_pbi_local_details(conn["id"])
-    #     if d:
-    #         conn["folder_path"] = d.get("folder_path")
-
-    # conn["name"] = conn.get("connection_name")
-    # conn["connection_type_label"] = to_legacy_type(ctype or "")
-    # return conn
 
     sc = conn.get("short_code")         # bv. "dw" | "pbi" | "dl"
     ctype = conn.get("connection_type") # bv. "POWERBI_LOCAL" | "POWERBI_SERVICE"
@@ -191,165 +163,17 @@ if "selected_conn_id" not in st.session_state:
     st.session_state.selected_conn_id = None
 
 #-----------------------
-# HELPERS  
+# HELPERS
 # ----------------------
 
-def render_active_connection_picker_stable(key_prefix: str = "catalog"):
-    df = list_connections_df()  # bevat alleen deleted_at IS NULL
-    df = df[df["is_active"] == True]  # noqa: E712
-    if df.empty:
-        st.info("No active connections available. Create and activate a connection first.")
-        return None, None
+# Catalog adapters
+fetch_catalog_cfgs, create_catalog_cfg, update_catalog_cfg = make_catalog_crud_adapters(config_crud)
 
-    # 1) Stabiele opties = IDs
-    df = df.sort_values(["connection_name", "id"], kind="mergesort")  # stabiele sort
-    ids = df["id"].astype(int).tolist()
-
-    by_id = {int(row["id"]): row for row in df.to_dict(orient="records")}
-
-    def fmt_conn(conn_id: int) -> str:
-        r = by_id.get(conn_id, {})
-        sc = r.get("short_code") or ""
-        ctype = r.get("connection_type") or ""
-        return f"#{conn_id} — {r.get('connection_name', '')}  [{ctype}/{sc}] · 🟢 Active"
-
-    # 2) Vorige keuze ophalen
-    state_key = f"{key_prefix}_conn_id"
-    sel_id = st.session_state.get(state_key, None)
-
-    # 3) Index bepalen (fallback naar eerste)
-    if sel_id in ids:
-        index = ids.index(sel_id)
-    else:
-        index = 0
-        sel_id = ids[0]
-
-    # 4) Selectbox met opties=IDs
-    chosen_id = st.selectbox(
-        "Select an active connection.",
-        options=ids,
-        index=index,
-        format_func=fmt_conn,
-        key=f"{key_prefix}_conn_selectbox",  # unieke UI-key
-    )
-
-    # 5) Session bijwerken + caption
-    st.session_state[state_key] = chosen_id
-    row = by_id[chosen_id]
-    st.caption(f"**Selected:** {chosen_id} · {row['connection_name']}")
-    st.divider()
-    return chosen_id, row
-
-def render_catalog_config_picker_stable(
-    conn_id: int,
-    short_code: str,
-    key_prefix: str = "catalog",
-):
-    # Type router
-    from data_catalog.config_handler import (
-        fetch_dw_catalog_configs, fetch_pbi_catalog_configs, fetch_dl_catalog_configs,
-    )
-    sc = (short_code or "").strip().lower()
-    fetch_all: Callable[[int], object]
-    label = {"dw": "Data Warehouse", "dl": "Data Lake", "pbi": "Power BI"}.get(sc, sc.upper())
-    if sc == "dw":
-        fetch_all = fetch_dw_catalog_configs
-    elif sc == "dl":
-        fetch_all = fetch_dl_catalog_configs
-    elif sc == "pbi":
-        fetch_all = fetch_pbi_catalog_configs
-    else:
-        st.error(f"Unknown connection type (short_code): '{short_code}'. Expected: dw, dl of pbi.")
-        return None, None
-
-    st.subheader(f"Catalog configuration · {label}")
-
-    # Ophalen en normaliseren
-    def _to_records(data) -> list[dict]:
-        try:
-            if hasattr(data, "to_dict"):
-                return data.to_dict(orient="records")  # pandas DF
-        except Exception:
-            pass
-        if isinstance(data, dict):
-            return [data]
-        if isinstance(data, list):
-            return data
-        return []
-
-    records = _to_records(fetch_all(conn_id))
-    # Extra safety: filter lokaal op conn_id (als kolom bestaat)
-    if records and "connection_id" in records[0]:
-        records = [r for r in records if int(r.get("connection_id") or -1) == int(conn_id)]
-
-    # Toggle actief (default AAN)
-    active_key = f"{key_prefix}_cfg_active_only_{sc}"
-    if st.toggle("Alleen actieve catalog-configs tonen", value=True, key=active_key):
-        records = [r for r in records if bool(r.get("is_active"))]
-
-    if not records:
-        st.info("No (active) catalog-configurations for this connections available.")
-        return None, None
-
-    # Stabiele opties = IDs
-    # Zorg dat 'id' integer is en sorteer stabiel
-    for r in records:
-        r["id"] = int(r["id"])
-    records.sort(key=lambda r: (str(r.get("config_name") or r.get("name") or ""), r["id"]))
-    ids = [r["id"] for r in records]
-    by_id = {r["id"]: r for r in records}
-
-    def fmt_cfg(cfg_id: int) -> str:
-        r = by_id.get(cfg_id, {})
-        status = "🟢" if r.get("is_active") else "🔴"
-        name = r.get("config_name") or r.get("name") or f"Config {cfg_id}"
-        sf = r.get("schema_filter") or "*"
-        tf = r.get("table_filter") or "*"
-        return f"{status} #{cfg_id} — {name} · filters: {sf}/{tf}"
-
-    # Vorige keuze ophalen (per type eigen state key)
-    state_key = f"{key_prefix}_cfg_id_{sc}"
-    sel_id = st.session_state.get(state_key)
-
-    # Index bepalen (fallback naar eerste of behoud als beschikbaar)
-    if sel_id in ids:
-        index = ids.index(sel_id)
-    else:
-        index = 0
-        sel_id = ids[0]
-
-    # Selectbox met opties = IDs
-    chosen_id = st.selectbox(
-        "Select a catalog-configuration",
-        options=ids,
-        index=index,
-        format_func=fmt_cfg,
-        key=f"{key_prefix}_cfg_selectbox_{sc}",  # unieke UI-key
-    )
-    st.session_state[state_key] = chosen_id
-    chosen_cfg = by_id[chosen_id]
-
-    st.caption(f"**Selected catalog-config:** {chosen_id} · {(chosen_cfg.get('config_name') or chosen_cfg.get('name') or '')}")
-
-    with st.expander("Details of this catalog-config"):
-        col1, col2 = st.columns(2)
-        with col1:
-            st.write("**Status**:", "🟢 Active" if chosen_cfg.get("is_active") else "🔴 Inactive")
-            st.write("**Schema filter**:", chosen_cfg.get("schema_filter", "—"))
-            st.write("**Table filter**:", chosen_cfg.get("table_filter", "—"))
-            st.write("**Include views**:", "Ja" if chosen_cfg.get("include_views") else "Nee")
-            st.write("**Remarks**:", chosen_cfg.get("notes", "—"))
-        with col2:
-            st.write("**Target catalog DB**:", chosen_cfg.get("target_catalog_db", "—"))
-            st.write("**Server name**:", chosen_cfg.get("server_name", "—"))
-            st.write("**Database name**:", chosen_cfg.get("database_name", "—"))
-            st.write("**Laatst getest**:", chosen_cfg.get("last_test_at", "—"))
-            st.write("**Laatste testresultaat**:", chosen_cfg.get("last_test_result", "—"))
-    st.divider()
-    return chosen_id, chosen_cfg
+# AI adapters
+fetch_ai_cfgs, create_ai_cfg, update_ai_cfg = make_ai_crud_adapters(config_crud)
 
 #-----------------------
-# UI -------------------   
+# UI    
 # ----------------------
 
 
@@ -617,7 +441,7 @@ with tab_mc:
 
 
 
-    # ---------------- Overzicht & acties ----------------
+    # ---------------- Overzicht ----------------
     st.markdown("### Overview")
     df = list_connections_df()
     if not df.empty:
@@ -822,41 +646,157 @@ with tab_mc:
 # ======================================================================================
 # TAB 2: CATALOG CONFIGURATION (DW/PBI/DL) per geselecteerde connection
 # ======================================================================================
+# helpers voor teststatus (zet gewoon via update_*_catalog_config de kolommen)
+
 with tab_cc:
-    # 1) Connection kiezen (stabiel)
     conn_id, conn_row = render_active_connection_picker_stable("catalog")
     if conn_id is None:
         st.stop()
 
-    # 2) Catalog-config kiezen obv type
-    cfg_id, cfg_row = render_catalog_config_picker_stable(
-        conn_id=conn_id,
-        short_code=conn_row.get("short_code"),
-        key_prefix="catalog",
+    sc = (conn_row.get("short_code") or "").strip().lower()
+    if sc not in ("dw", "pbi", "dl"):
+        st.error(f"Onbekende connection short_code: '{sc}'. Verwacht: dw, pbi of dl.")
+        st.stop()
+
+    render_catalog_config_help(sc)
+    
+    cfg = render_catalog_config_picker_with_edit(
+        main_connection_id=conn_id,
+        short_code=sc,
+        fetch_configs=fetch_catalog_cfgs,
+        create_config=create_catalog_cfg,
+        update_config=update_catalog_cfg,
+        prompt_new_config=prompt_new_catalog_config,
+        prompt_edit_config=prompt_edit_catalog_config,
+        preselected_config_id=st.session_state.get(f"cfg_pre_{sc}"),
+        title=f"Selecteer of bewerk Catalog Configuration ({sc.upper()})",
     )
+    if not cfg:
+        st.stop()
+
+    
+
+    st.session_state[f"cfg_pre_{sc}"] = cfg["id"]
+    st.success(f"Geselecteerd: {format_catalog_cfg_label(cfg, sc)}")
+
+    # ---------------- Overzicht ----------------
+    # st.markdown("### Overview")
+
+    render_catalog_configs_overview(
+        main_connection_id=conn_id,
+        short_code=sc,
+        fetch_configs=fetch_catalog_cfgs,
+        title="Overview",         # zelfde als bij main connections
+        include_download=False,   # zet True als je CSV-export wil
+        table_height=None,        # bv. 360 voor vaste hoogte
+    )
+
+
+    # ---------------- Actions ----------------
+    def _deactivate_catalog_cfg(conn_id: int, sc: str, cfg_id: int):
+        if sc == "dw": deactivate_dw_catalog_config(cfg_id)             
+        elif sc == "pbi": deactivate_pbi_catalog_config(cfg_id)
+        else: deactivate_dl_catalog_config(cfg_id)
+
+    def _activate_catalog_cfg(conn_id: int, sc: str, cfg_id: int):
+        if sc == "dw": reactivate_dw_catalog_config(cfg_id)              
+        elif sc == "pbi": reactivate_pbi_catalog_config(cfg_id)
+        else: reactivate_dl_catalog_config(cfg_id)
+
+
+    render_catalog_config_actions_minimal(
+        main_connection_id=conn_id,
+        short_code=sc,
+        fetch_configs=fetch_catalog_cfgs,
+        deactivate_fn=_deactivate_catalog_cfg,
+        activate_fn=_activate_catalog_cfg,
+        title="Actions",
+        key_prefix="catalog_actions",
+    )
+
+    render_deactivated_catalog_configs(
+        main_connection_id=conn_id,
+        short_code=sc,
+        key_prefix=f"catalog_deact_{sc}_{conn_id}",
+    )
+
 # ======================================================================================
 # TAB 3: AI CONFIGURATION (DW/PBI/DL) per geselecteerde connection
 # ======================================================================================
 with tab_ac:
-    cid = st.session_state.selected_conn_id
-    if not cid:
-        st.info("Selecteer eerst een connection in de tab *Main connection*.")
+    conn_id, conn_row = render_active_connection_picker_stable("ai_cfg")
+    if conn_id is None:
+        st.stop()
+
+    sc = (conn_row.get("short_code") or "").strip().lower()
+    if sc not in ("dw", "pbi", "dl"):
+        st.error("Onbekende short_code; verwacht dw/pbi/dl.")
+        st.stop()
+
+    pre_key = f"ai_cfg_pre_{sc}_{conn_id}"
+
+    render_ai_config_help(sc)
+
+    ai_cfg = render_ai_config_picker_with_edit(
+        main_connection_id=conn_id,
+        short_code=sc,
+        fetch_configs=fetch_ai_cfgs,
+        create_config=create_ai_cfg,
+        update_config=update_ai_cfg,
+        prompt_new_config=prompt_new_ai_config,
+        prompt_edit_config=prompt_edit_ai_config,
+        preselected_config_id=st.session_state.get(pre_key),
+        title=f"Selecteer of bewerk AI-config ({sc.upper()})",
+    )
+
+    if ai_cfg and isinstance(ai_cfg, dict) and ai_cfg.get("id"):
+        st.session_state[pre_key] = int(ai_cfg["id"])
+        st.success(f"Geselecteerd: {format_ai_cfg_label(cfg, sc)}")
     else:
-        df_all = list_connections_df()
-        base = df_all[df_all["id"] == cid].iloc[0].to_dict()
-        short_code = base["short_code"]
+        st.info("Geen AI-config geselecteerd of aangemaakt.")
 
-        if short_code == "dw":
-            st.caption("DW AI configs")
-            cfgs = fetch_dw_ai_configs(cid)
-            st.dataframe(pd.DataFrame(cfgs) if cfgs else pd.DataFrame())
+    # --- Overview
+    from data_catalog.ui_prompts import render_ai_configs_overview
+    render_ai_configs_overview(
+        main_connection_id=conn_id,
+        short_code=sc,
+        fetch_configs=fetch_ai_cfgs,
+        title="Overview",
+        include_download=False,
+        table_height=None,
+    )
 
-        elif short_code == "pbi":
-            st.caption("PBI AI configs")
-            cfgs = fetch_pbi_ai_configs(cid)
-            st.dataframe(pd.DataFrame(cfgs) if cfgs else pd.DataFrame())
+    # --- Actions (Activate/Deactivate)
+    from data_catalog.ui_prompts import render_ai_config_actions_minimal
 
-        elif short_code == "dl":
-            st.caption("DL AI configs")
-            cfgs = fetch_dl_ai_configs(cid)
-            st.dataframe(pd.DataFrame(cfgs) if cfgs else pd.DataFrame())
+    def _deactivate_ai_cfg(conn_id_: int, sc_: str, cfg_id_: int):
+        if sc_ == "dw":
+            deactivate_dw_ai_config(cfg_id_)
+        elif sc_ == "pbi":
+            deactivate_pbi_ai_config(cfg_id_)
+        else:
+            deactivate_dl_ai_config(cfg_id_)
+
+    def _activate_ai_cfg(conn_id_: int, sc_: str, cfg_id_: int):
+        if sc_ == "dw":
+            reactivate_dw_ai_config(cfg_id_)
+        elif sc_ == "pbi":
+            reactivate_pbi_ai_config(cfg_id_)
+        else:
+            reactivate_dl_ai_config(cfg_id_)
+
+    render_ai_config_actions_minimal(
+        main_connection_id=conn_id,
+        short_code=sc,
+        fetch_configs=fetch_ai_cfgs,
+        deactivate_fn=_deactivate_ai_cfg,
+        activate_fn=_activate_ai_cfg,
+        title="Actions",
+        key_prefix=f"ai_actions_{sc}_{conn_id}",  # unieke keys in dezelfde tab
+    )
+
+    render_deactivated_ai_configs(
+        main_connection_id=conn_id,
+        short_code=sc,
+        key_prefix=f"ai_deact_{sc}_{conn_id}",
+    )

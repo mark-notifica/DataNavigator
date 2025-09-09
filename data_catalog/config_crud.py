@@ -21,21 +21,36 @@ engine = sa.create_engine(db_url, future=True)
 # -----------------------------------------
 # DW Catalog Config Handlers --------------
 # -----------------------------------------
-def deactivate_dw_catalog_config(cfg_id: int) -> None:
-    exec_tx("""
-        UPDATE config.dw_catalog_config
-           SET is_active  = false
-             , updated_at = NOW()
-         WHERE id = :id
-    """, {"id": cfg_id})
+def deactivate_dw_catalog_config(config_id: int, conn_id: int | None = None):
+    params = {"id": config_id}
+    sql = """
+    update config.dw_catalog_config
+       set is_active = false
+         , updated_at = now()
+     where id = :id
+    """
+    if conn_id is not None:
+        sql += """
+          and connection_id = :conn_id
+        """
+        params["conn_id"] = conn_id
+    exec_tx(sql, params)
 
-def reactivate_dw_catalog_config(cfg_id: int) -> None:
-    exec_tx("""
-        UPDATE config.dw_catalog_config
-           SET is_active  = true
-             , updated_at = NOW()
-         WHERE id = :id
-    """, {"id": cfg_id})
+def reactivate_dw_catalog_config(config_id: int, conn_id: int | None = None):
+    params = {"id": config_id}
+    sql = """
+    update config.dw_catalog_config
+       set is_active = true
+         , updated_at = now()
+     where id = :id
+    """
+    if conn_id is not None:
+        sql += """
+          and connection_id = :conn_id
+        """
+        params["conn_id"] = conn_id
+    exec_tx(sql, params)
+
 
 def fetch_dw_catalog_configs(conn_id: int):
     rows = q_all("""
@@ -179,21 +194,35 @@ def clear_dw_catalog_last_test_result(cfg_id: int) -> None:
 # DW AI Config Handlers -------------------
 # -----------------------------------------
 
-def deactivate_dw_ai_config(cfg_id: int) -> None:
-    exec_tx("""
-        UPDATE config.dw_ai_config
-           SET is_active  = false
-             , updated_at = NOW()
-         WHERE id = :id
-    """, {"id": cfg_id})
+def deactivate_dw_ai_config(config_id: int, conn_id: int | None = None) -> None:
+    params = {"id": config_id}
+    sql = """
+        update config.dw_ai_config
+           set is_active = false
+          , updated_at = now()
+         where id = :id
+    """
+    if conn_id is not None:
+        sql += """
+           and connection_id = :conn_id
+        """
+        params["conn_id"] = conn_id
+    exec_tx(sql, params)
 
-def reactivate_dw_ai_config(cfg_id: int) -> None:
-    exec_tx("""
-        UPDATE config.dw_ai_config
-           SET is_active  = true
-             , updated_at = NOW()
-         WHERE id = :id
-    """, {"id": cfg_id})
+def reactivate_dw_ai_config(config_id: int, conn_id: int | None = None) -> None:
+    params = {"id": config_id}
+    sql = """
+        update config.dw_ai_config
+           set is_active = true
+          , updated_at = now()
+         where id = :id
+    """
+    if conn_id is not None:
+        sql += """
+           and connection_id = :conn_id
+        """
+        params["conn_id"] = conn_id
+    exec_tx(sql, params)
 
 def fetch_dw_ai_configs(conn_id: int):
     rows = q_all("""
@@ -540,22 +569,36 @@ def update_pbi_catalog_config(cfg_id: int
           "active": bool(is_active)})
 
 
-def deactivate_pbi_catalog_config(cfg_id: int) -> None:
-    exec_tx("""
-        UPDATE config.pbi_catalog_config
-           SET is_active  = false
-             , updated_at = NOW()
-         WHERE id = :id
-    """, {"id": cfg_id})
+def deactivate_pbi_catalog_config(config_id: int, conn_id: int | None = None):
+    params = {"id": config_id}
+    sql = """
+    update config.pbi_catalog_config
+       set is_active = false
+         , updated_at = now()
+     where id = :id
+    """
+    if conn_id is not None:
+        sql += """
+          and connection_id = :conn_id
+        """
+        params["conn_id"] = conn_id
+    exec_tx(sql, params)
 
+def reactivate_pbi_catalog_config(config_id: int, conn_id: int | None = None):
+    params = {"id": config_id}
+    sql = """
+    update config.pbi_catalog_config
+       set is_active = true
+         , updated_at = now()
+     where id = :id
+    """
+    if conn_id is not None:
+        sql += """
+          and connection_id = :conn_id
+        """
+        params["conn_id"] = conn_id
+    exec_tx(sql, params)
 
-def reactivate_pbi_catalog_config(cfg_id: int) -> None:
-    exec_tx("""
-        UPDATE config.pbi_catalog_config
-           SET is_active  = true
-             , updated_at = NOW()
-         WHERE id = :id
-    """, {"id": cfg_id})
 
 def set_pbi_catalog_last_test_result(cfg_id: int
                                    , status: str | None
@@ -857,22 +900,35 @@ def update_pbi_ai_config(cfg_id: int
           "active": bool(is_active)})
 
 
-def deactivate_pbi_ai_config(cfg_id: int) -> None:
-    exec_tx("""
-        UPDATE config.pbi_ai_config
-           SET is_active  = false
-             , updated_at = NOW()
-         WHERE id = :id
-    """, {"id": cfg_id})
+def deactivate_pbi_ai_config(config_id: int, conn_id: int | None = None) -> None:
+    params = {"id": config_id}
+    sql = """
+        update config.pbi_ai_config
+           set is_active = false
+          , updated_at = now()
+         where id = :id
+    """
+    if conn_id is not None:
+        sql += """
+           and connection_id = :conn_id
+        """
+        params["conn_id"] = conn_id
+    exec_tx(sql, params)
 
-
-def reactivate_pbi_ai_config(cfg_id: int) -> None:
-    exec_tx("""
-        UPDATE config.pbi_ai_config
-           SET is_active  = true
-             , updated_at = NOW()
-         WHERE id = :id
-    """, {"id": cfg_id})
+def reactivate_pbi_ai_config(config_id: int, conn_id: int | None = None) -> None:
+    params = {"id": config_id}
+    sql = """
+        update config.pbi_ai_config
+           set is_active = true
+          , updated_at = now()
+         where id = :id
+    """
+    if conn_id is not None:
+        sql += """
+           and connection_id = :conn_id
+        """
+        params["conn_id"] = conn_id
+    exec_tx(sql, params)
 
 # -----------------------------
 # DL CATALOG CONFIG HELPERS
@@ -999,22 +1055,36 @@ def update_dl_catalog_config(cfg_id: int
           "active": bool(is_active)})
 
 
-def deactivate_dl_catalog_config(cfg_id: int) -> None:
-    exec_tx("""
-        UPDATE config.dl_catalog_config
-           SET is_active  = false
-             , updated_at = NOW()
-         WHERE id = :id
-    """, {"id": cfg_id})
+def deactivate_dl_catalog_config(config_id: int, conn_id: int | None = None):
+    params = {"id": config_id}
+    sql = """
+    update config.dl_catalog_config
+       set is_active = false
+         , updated_at = now()
+     where id = :id
+    """
+    if conn_id is not None:
+        sql += """
+          and connection_id = :conn_id
+        """
+        params["conn_id"] = conn_id
+    exec_tx(sql, params)
 
+def reactivate_dl_catalog_config(config_id: int, conn_id: int | None = None):
+    params = {"id": config_id}
+    sql = """
+    update config.dl_catalog_config
+       set is_active = true
+         , updated_at = now()
+     where id = :id
+    """
+    if conn_id is not None:
+        sql += """
+          and connection_id = :conn_id
+        """
+        params["conn_id"] = conn_id
+    exec_tx(sql, params)
 
-def reactivate_dl_catalog_config(cfg_id: int) -> None:
-    exec_tx("""
-        UPDATE config.dl_catalog_config
-           SET is_active  = true
-             , updated_at = NOW()
-         WHERE id = :id
-    """, {"id": cfg_id})
 
 
 def set_dl_catalog_last_test_result(cfg_id: int
@@ -1307,19 +1377,32 @@ def update_dl_ai_config(cfg_id: int
           "active": bool(is_active)})
 
 
-def deactivate_dl_ai_config(cfg_id: int) -> None:
-    exec_tx("""
-        UPDATE config.dl_ai_config
-           SET is_active  = false
-             , updated_at = NOW()
-         WHERE id = :id
-    """, {"id": cfg_id})
+def deactivate_dl_ai_config(config_id: int, conn_id: int | None = None) -> None:
+    params = {"id": config_id}
+    sql = """
+        update config.dl_ai_config
+           set is_active = false
+          , updated_at = now()
+         where id = :id
+    """
+    if conn_id is not None:
+        sql += """
+           and connection_id = :conn_id
+        """
+        params["conn_id"] = conn_id
+    exec_tx(sql, params)
 
-
-def reactivate_dl_ai_config(cfg_id: int) -> None:
-    exec_tx("""
-        UPDATE config.dl_ai_config
-           SET is_active  = true
-             , updated_at = NOW()
-         WHERE id = :id
-    """, {"id": cfg_id})
+def reactivate_dl_ai_config(config_id: int, conn_id: int | None = None) -> None:
+    params = {"id": config_id}
+    sql = """
+        update config.dl_ai_config
+           set is_active = true
+          , updated_at = now()
+         where id = :id
+    """
+    if conn_id is not None:
+        sql += """
+           and connection_id = :conn_id
+        """
+        params["conn_id"] = conn_id
+    exec_tx(sql, params)
