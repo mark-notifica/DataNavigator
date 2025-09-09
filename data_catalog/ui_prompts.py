@@ -1,7 +1,8 @@
 import streamlit as st
 import pandas as pd
 import json
-
+from typing import Callable, Optional
+import uuid
 
 from data_catalog.config_crud import (
     update_dw_catalog_config,
@@ -16,6 +17,8 @@ from data_catalog.config_service import (
     soft_delete_config, 
     format_ai_cfg_label,
 )
+
+from data_catalog.connection_handler import fetch_connection_type_registry
 
 def _none_if_blank(val: str | None) -> str | None:
     if val is None:
@@ -66,6 +69,7 @@ def prompt_new_catalog_config(main_connection_id: int, short_code: str):
     sc = (short_code or "").strip().lower()
     with st.form(f"new_cfg_form_{main_connection_id}_{sc}"):
         st.subheader(f"Nieuwe catalog-config ({sc.upper()})")
+        render_catalog_config_field_help(sc)
         name = st.text_input("Naam", placeholder="Bijv. 'Standaard scan'")
 
         if sc == "dw":
@@ -127,6 +131,7 @@ def prompt_edit_catalog_config(cfg: dict):
 
     with st.form(f"edit_cfg_form_{cfg.get('id')}"):
         st.subheader(f"Bewerk catalog-config #{cfg.get('id')} ({sc.upper()})")
+        render_catalog_config_field_help(sc)
         name = st.text_input("Naam", value=cfg.get("name") or cfg.get("config_name") or "")
 
         if sc == "dw":
@@ -646,8 +651,9 @@ def _json_text_to_dict(raw: str) -> dict:
 def prompt_new_ai_config(main_connection_id: int, short_code: str):
     sc = (short_code or "").strip().lower()
     with st.form(f"new_ai_cfg_form_{main_connection_id}_{sc}"):
-        st.subheader(f"Nieuwe AI-config ({sc.upper()})")
-
+        st.subheader(f"New AI-config ({sc.upper()})")
+        
+ 
         # Kern (NOT NULL of belangrijk)
         name            = st.text_input("Naam", placeholder="Bijv. 'Default AI profile'")
         analysis_type   = st.text_input("Analysis type", placeholder="Bijv. 'lineage', 'profiling', 'summary'")
@@ -671,7 +677,7 @@ def prompt_new_ai_config(main_connection_id: int, short_code: str):
         with colx[0]:
             runner_concurrency = st.number_input("runner_concurrency", min_value=1, value=2, step=1)
         with colx[1]:
-            propagation_mode = st.selectbox("propagation_mode", ["auto", "suggest_only", "off"], index=0)
+            propagation_mode = st.selectbox("propagation_mode", ["auto", "manual"], index=0)
         with colx[2]:
             overwrite_policy = st.selectbox("overwrite_policy", ["fill_empty", "overwrite_if_confident", "never"], index=0)
 
@@ -694,6 +700,7 @@ def prompt_new_ai_config(main_connection_id: int, short_code: str):
             model_filter       = st.text_input("Model filter", value="")
             table_filter       = st.text_input("Tabel filter", value="")
             include_tmdl       = st.checkbox("Include TMDL", value=True)
+
             include_model_bim  = st.checkbox("Include model.bim", value=False)
             respect_persp      = st.checkbox("Respect perspectives", value=True)
         else:  # dl
@@ -780,6 +787,7 @@ def prompt_edit_ai_config(cfg: dict, short_code: str):
 
     with st.form(f"edit_ai_cfg_form_{cfg.get('id')}"):
         st.subheader(f"Bewerk AI-config #{cfg.get('id')} ({sc.upper()})")
+        
 
         name           = st.text_input("Naam", value=_g("name") or _g("config_name") or "")
         analysis_type  = st.text_input("Analysis type", value=_g("analysis_type") or "")
@@ -801,7 +809,7 @@ def prompt_edit_ai_config(cfg: dict, short_code: str):
         with colx[0]:
             runner_concurrency = st.number_input("runner_concurrency", min_value=1, value=int(_g("runner_concurrency") or 2), step=1)
         with colx[1]:
-            propagation_mode = st.selectbox("propagation_mode", ["auto", "suggest_only", "off"], index=["auto","suggest_only","off"].index(_g("propagation_mode") or "auto"))
+            propagation_mode = st.selectbox("propagation_mode", ["auto","manual"], index=["auto","manual"].index(_g("propagation_mode") or "auto"))
         with colx[2]:
             overwrite_policy = st.selectbox("overwrite_policy", ["fill_empty", "overwrite_if_confident", "never"], index=["fill_empty","overwrite_if_confident","never"].index(_g("overwrite_policy") or "fill_empty"))
 
@@ -1024,78 +1032,540 @@ def render_deactivated_ai_configs(
                     st.success(f"AI-config #{d['id']} soft-deleted.")
                     st.rerun()
 
-import streamlit as st
 
-def render_catalog_config_help(sc: str):
-    sc = (sc or "").strip().lower()
-    # subtiele caption onder de picker
-    st.caption(
-        "Minstens **één** (actieve) catalog-config is nodig om een catalogus te kunnen bouwen."
+# def render_catalog_config_help(conn_row: dict | None = None, short_code: str | None = None):
+#     """
+#     Shows concise guidance below the catalog config picker.
+#     Pass the selected main connection row if available to tailor examples by category.
+#     """
+#     st.caption("You need **at least one** active catalog configuration to build your catalog.")
+
+#     with st.popover("ℹ️ What is a catalog configuration?"):
+#         st.markdown(
+#             """
+# A catalog configuration defines a **broad scope** for discovery (what exists in the source).
+# An AI configuration builds **on top of the catalog** and uses narrower filters for targeted analyses.
+#             """
+#         )
+
+#         # Category-aware examples
+#         dcat = (conn_row or {}).get("data_source_category", "").upper() if conn_row else ""
+#         sc   = (short_code or (conn_row or {}).get("short_code") or "").lower()
+
+#         if dcat == "DATABASE_DATAWAREHOUSE" or sc == "dw":
+#             st.markdown(
+#                 """
+# **Typical filters (Database/Data Warehouse)**  
+# - `database_filter` — e.g., `sales_*`  
+# - `schema_filter` — e.g., `*`  
+# - `table_filter` — e.g., `fact_*`
+#                 """
+#             )
+#         elif dcat == "POWERBI" or sc == "pbi":
+#             st.markdown(
+#                 """
+# **Typical filters (Power BI)**  
+# - `workspace_filter` — target one or more workspaces  
+# - `model_filter` — select specific models  
+# - `table_filter` — narrow to targeted tables
+#                 """
+#             )
+#         elif dcat == "DATA_LAKE" or sc == "dl":
+#             st.markdown(
+#                 """
+# **Typical filters (Data Lake)**  
+# - `path_filter` — e.g., `/bronze/...`  
+# - `format_whitelist` — e.g., `parquet,csv`  
+# - `partition_filter` — include/exclude partitions
+#                 """
+#             )
+
+#     with st.expander("Strategy"):
+#         st.markdown(
+#             """
+# 1) Start broad with your catalog (wide filters) to discover structure.  
+# 2) Validate coverage (schemas, models, paths).  
+# 3) Add **AI configs** with **narrow** filters for each analysis use case.
+#             """
+#         )
+
+# def render_ai_config_help(conn_row: dict | None = None, short_code: str | None = None):
+#     st.caption("An **AI configuration** runs targeted analyses **on top of** your catalog. Keep the scope narrow to control compute.")
+
+#     with st.popover("ℹ️ What is an AI configuration?"):
+#         st.markdown(
+#             """
+# AI configurations define a **narrow scope** for analysis and may be compute-intensive.
+# They rely on the catalog to understand what’s available and then focus on a subset.
+#             """
+#         )
+
+#         dcat = (conn_row or {}).get("data_source_category", "").upper() if conn_row else ""
+#         sc   = (short_code or (conn_row or {}).get("short_code") or "").lower()
+
+#         if dcat == "DATABASE_DATAWAREHOUSE" or sc == "dw":
+#             st.markdown(
+#                 """
+# **Examples (Database/Data Warehouse)**  
+# - Analyze only schemas like `finance_*`  
+# - Focus on tables with a specific prefix  
+# - Limit to a single database for cost control
+#                 """
+#             )
+#         elif dcat == "POWERBI" or sc == "pbi":
+#             st.markdown(
+#                 """
+# **Examples (Power BI)**  
+# - Analyze a single workspace  
+# - Target one model (e.g., `Sales`)  
+# - Limit to 2–3 model tables for a quick run
+#                 """
+#             )
+#         elif dcat == "DATA_LAKE" or sc == "dl":
+#             st.markdown(
+#                 """
+# **Examples (Data Lake)**  
+# - Scope to a single path (e.g., `/bronze/customers/`)  
+# - Restrict to Parquet only  
+# - Analyze one partition first
+#                 """
+#             )
+
+#     with st.expander("Strategy"):
+#         st.markdown(
+#             """
+# - Use the catalog for **breadth**, and AI for **depth**.  
+# - Start small (one schema/path/model), then expand.  
+# - Narrow scopes keep runs fast and cost-effective.
+#             """
+#         )
+
+
+def render_catalog_config_help(conn_or_sc=None, short_code: str | None = None):
+    """
+    One compact popover with everything users need.
+    Accepts either (conn_row, sc) or just sc ('dw'|'pbi'|'dl').
+    """
+    # Normalize inputs
+    if isinstance(conn_or_sc, dict):
+        conn_row = conn_or_sc
+        sc = (short_code or conn_row.get("short_code") or "").strip().lower()
+        dcat = (conn_row.get("data_source_category") or "").upper()
+    else:
+        conn_row = None
+        sc = (conn_or_sc or short_code or "").strip().lower()
+        dcat = ""
+
+    with st.popover("ℹ️ What is a Catalog configuration?"):
+        st.markdown(
+            """
+A **Catalog configuration** defines a **broad discovery scope** (what exists in the source).
+You typically start **broad** here, then add **AI configurations** with a **narrow** scope for targeted analysis.
+            """
+        )
+
+        st.markdown(
+            """
+**Strategy**
+1. Create a **broad** catalog config to discover structure.
+2. Validate coverage (schemas, models, paths).
+3. Add **AI configs** with **narrow** filters per use case.
+            """
+        )
+
+        st.caption("You need **at least one** active catalog config to build a catalog.")
+
+def render_ai_config_help(conn_or_sc=None, short_code: str | None = None):
+    """
+    One compact popover with all AI guidance (+ model parameters).
+    Accepts either (conn_row, sc) or just sc ('dw'|'pbi'|'dl').
+    """
+    # Normalize inputs
+    if isinstance(conn_or_sc, dict):
+        conn_row = conn_or_sc
+        sc = (short_code or conn_row.get("short_code") or "").strip().lower()
+        dcat = (conn_row.get("data_source_category") or "").upper()
+    else:
+        conn_row = None
+        sc = (conn_or_sc or short_code or "").strip().lower()
+        dcat = ""
+
+    with st.popover("ℹ️ What is an AI configuration?"):
+        st.markdown(
+            """
+An **AI configuration** runs **targeted** analyses **on top of** your catalog.
+AI can be compute-intensive — keep scopes **small and specific**.
+            """
+        )
+
+        # Type-aware examples
+        if dcat == "DATABASE_DATAWAREHOUSE" or sc == "dw":
+            st.markdown(
+                """
+**Examples (Database/Data Warehouse)**
+- Analyze only schemas like `finance_*`
+- Focus on a handful of tables (e.g., `fact_*`)
+- Limit to a single database for cost control
+                """
+            )
+        elif dcat == "POWERBI" or sc == "pbi":
+            st.markdown(
+                """
+**Examples (Power BI)**
+- Analyze a single workspace
+- Target one model (e.g., `Sales`)
+- Limit to 2–3 tables for a quick run
+                """
+            )
+        elif dcat == "DATA_LAKE" or sc == "dl":
+            st.markdown(
+                """
+**Examples (Data Lake)**
+- Scope to one directory (e.g., `/bronze/customers/`)
+- Restrict to Parquet only
+- Analyze one partition first
+                """
+            )
+
+        st.markdown(
+            """
+**Strategy**
+- Use the **catalog** for breadth; **AI** for depth.
+- Start with a tiny scope, then expand.
+- Narrow scopes are faster and cheaper.
+            """
+        )
+
+#         st.markdown("---")
+#         st.markdown("#### Model parameters (quick reference)")
+#         st.markdown(
+#             """
+# - **Temperature** — randomness. `0.0` = deterministic; `0.7` = more variety.  
+# - **Max tokens** — output length cap (more = longer, costlier).  
+# - **Top-p** — “nucleus” sampling; lower narrows choices.  
+# - **Frequency penalty** — reduces repetition (−2.0..2.0).  
+# - **Presence penalty** — encourages new topics (−2.0..2.0).  
+# - **Provider / model** — choose the model family/version suited to your task.
+#             """
+#         )
+#         st.caption("Tip: use **low temperature** (0.0–0.3) for analysis; raise it for creative descriptions.")
+
+
+# def render_main_connection_help():
+#     st.caption("A **main connection** is the base data source. Catalog and AI configurations are attached to it.")
+
+#     with st.popover("ℹ️ What’s a main connection?"):
+#         st.markdown(
+#             """
+# A main connection defines **which system** we connect to and **how**.
+# You first pick the main connection, then create catalog and/or AI configurations on top.
+
+# **Data source categories & examples**
+# - **DATABASE/DATAWAREHOUSE** — relational engines (e.g., Azure SQL Server (T-SQL), PostgreSQL).
+# - **POWERBI** — Power BI artifacts (Local PBIP/TMDL, Service workspaces).
+# - **DATA_LAKE (IN DEVELOPMENT)** — file/object storage (e.g., ADLS, S3, GCS).
+
+# **Why this order?**
+# 1) Choose a main connection (the system).  
+# 2) Create a **catalog configuration** (broad scope) to discover what exists.  
+# 3) Add **AI configurations** (narrow scope) for specific analyses that are more compute-intensive.
+#             """
+#         )
+
+#     with st.expander("Good practices"):
+#         st.markdown(
+#             """
+# - Create **one main connection per source** (e.g., one PostgreSQL database, one S3 bucket).
+# - Keep connection metadata tidy (display name, owner, notes).
+# - Prefer clear naming so downstream configs are easy to find.
+#             """
+#         )
+
+
+
+def render_main_connection_help():
+    with st.popover("ℹ️ What is a main connection?"):
+        st.markdown(
+            """
+A **main connection** is the base data source. Catalog and AI configurations are attached to it.
+
+**What it defines**
+- **Which system** we connect to (engine / platform)
+- **How** we connect (credentials, endpoint, folder, workspace)
+
+**Data source categories & examples**
+- **DATABASE_DATAWAREHOUSE** — relational engines (e.g., Azure SQL Server (T-SQL), PostgreSQL)
+- **POWERBI** — Power BI artifacts (Local PBIP/TMDL, Service workspaces)
+- **DATA_LAKE** *(in development)* — file/object storage (e.g., ADLS, S3, GCS)
+
+**Why this order?**
+1. Choose a **main connection** (the system)  
+2. Create a **catalog configuration** (broad scope) to discover what exists  
+3. Add **AI configurations** (narrow scope) for targeted, compute-heavier analyses
+
+**Good practices**
+- Create **one main connection per source** (e.g., one PostgreSQL database, one S3 bucket)
+- Keep metadata tidy (display name, owner, notes)
+- Use clear names so downstream configs are easy to find
+            """
+        )
+
+def describe_connection(conn_row: dict) -> str:
+    """
+    Returns: 'Display Name [connection_type / data_source_category] · Active/Inactive'
+    """
+    display = conn_row.get("display_name") or conn_row.get("connection_name") or "Connection"
+    ctype = conn_row.get("connection_type", "")
+    dcat  = conn_row.get("data_source_category", "")
+    status = "🟢 Active" if conn_row.get("is_active") else "🔴 Inactive"
+    return f"{display} [{ctype}/{dcat}] · {status}"
+
+
+_CATEGORY_ORDER = {
+    "DATABASE_DATAWAREHOUSE": 0,
+    "POWERBI": 1,
+    "DATA_LAKE": 2,
+}
+
+def render_connection_type_legend(
+    *,
+    title: str = "Currently supported connection types",
+    active_only: bool = True,
+    enable_filters: bool = True,
+    height: Optional[int] = None,
+    show_download: bool = False,
+):
+    st.markdown(f"### {title}")
+
+    rows = fetch_connection_type_registry(active_only=active_only)
+    if not rows:
+        st.info("No connection types found in registry.")
+        return
+
+    df = pd.DataFrame(rows)
+
+    # Stable sort: category then display_name
+    df["_cat_order"] = df["data_source_category"].map(_CATEGORY_ORDER).fillna(999)
+    df = df.sort_values(["_cat_order", "display_name"], kind="mergesort")
+
+    # Optional on-screen filters
+    if enable_filters:
+        cols = st.columns(3)
+        with cols[0]:
+            cat_choices = sorted(df["data_source_category"].unique().tolist(), key=lambda c: _CATEGORY_ORDER.get(c, 999))
+            selected_cats = st.multiselect("Filter by category", options=cat_choices, default=cat_choices, key="ctr_filter_cat")
+        with cols[1]:
+            active_filter = st.selectbox("Active filter", options=["Active only", "All"], index=0 if active_only else 1, key="ctr_filter_active")
+        with cols[2]:
+            search = st.text_input("Search display name", key="ctr_filter_search", placeholder="Type to filter…")
+
+        # Apply filters
+        if selected_cats:
+            df = df[df["data_source_category"].isin(selected_cats)]
+        if active_filter == "Active only":
+            df = df[df["is_active"] == True]  # noqa: E712
+        if search.strip():
+            s = search.strip().lower()
+            df = df[df["display_name"].str.lower().str.contains(s)]
+
+    # Final column order
+    show_cols = [
+        "display_name",
+        "connection_type",
+        "data_source_category",
+        "short_code",
+        "is_active",
+        "created_at",
+    ]
+    show_cols = [c for c in show_cols if c in df.columns]
+
+    st.dataframe(
+        df[show_cols],
+        use_container_width=True,
+        hide_index=True,
+        height=height,
     )
 
-    # mini popover naast de caption
-    with st.popover("ℹ️ Uitleg"):
-        st.markdown(
-            """
-**Catalog-config** = *brede* scope (inventariseert wat er **is**).  
-**AI-config** = *smalle* scope (voert **gerichte** analyses uit; kost compute).
-
-**Waarom minimaal één catalog-config?**  
-De catalog-config bepaalt **welke bronnen/filters** gebruikt mogen worden bij het opbouwen van de catalogus.  
-Een AI-config bouwt hierop voort en gebruikt (vaak strakkere) filters om het compute-werk te beperken.
-
-**Voorbeelden (per type):**
-- **DW**: `database_filter`, `schema_filter`, `table_filter` *(bv. `sales_*`, `*`, `fact_*`)*  
-- **PBI**: `workspace_filter`, `model_filter`, `table_filter`  
-- **DL**: `path_filter`, `format_whitelist`, `partition_filter`
-
-> Tip: Begin met een **brede** catalog-config (bv. `schema_filter="*"`) en voeg daarna één of meer **AI-configs** toe met **smalle** filters voor specifieke analyses.
-            """
+    if show_download:
+        csv = df[show_cols].to_csv(index=False).encode("utf-8")
+        st.download_button(
+            "Download types (CSV)",
+            data=csv,
+            file_name="connection_type_registry.csv",
+            mime="text/csv",
         )
 
-    # optioneel: korte verdiepingsdrop
-    with st.expander("Wat is een goede strategie?"):
-        st.markdown(
-            """
-1. Maak een **brede** catalog-config om de structuur te ontdekken.  
-2. Valideer de inhoud (tabellen, paden, werkruimten).  
-3. Maak per use-case **AI-configs** met **smalle** filters (minder compute, sneller resultaat).
-            """
-        )
+def render_catalog_config_field_help(sc: str):
+    """
+    Single popover with all catalog-config guidance, tailored per type (dw/pbi/dl).
+    Call inside your create/edit form, just under the title.
+    """
+    sc = (sc or "").strip().lower()
+    with st.popover("ℹ️ Catalog settings explained"):
+
+        if sc == "dw":
+            st.markdown(
+                """
+**Database / Data Warehouse**
+- `database_filter` — e.g., `sales_*`  
+- `schema_filter` — e.g., `*`  
+- `table_filter` — e.g., `fact_*`
+
+> Tip: Use `*` initially and refine later.
+                """
+            )
+        elif sc == "pbi":
+            st.markdown(
+                """
+**Power BI**
+- `workspace_filter` — one or more workspaces  
+- `model_filter` — specific PBIP/TMDL/BIM models  
+- `table_filter` — targeted tables within a model
+
+> Tip: Start wide to inventory all available content.
+                """
+            )
+        elif sc == "dl":
+            st.markdown(
+                """
+**Data Lake**
+- `path_filter` — e.g., `/bronze/customers/`  
+- `format_whitelist` — e.g., `parquet,csv`  
+- `partition_filter` — include/exclude partitions
+
+> Tip: Begin broad; refine if scans become too large.
+                """
+            )
+
 
 import streamlit as st
+import pandas as pd
 
-def render_ai_config_help(sc: str):
-    sc = (sc or "").strip().lower()
-    st.caption(
-        "Een **AI-config** is optioneel, maar nodig voor analyses. "
-        "AI-configs werken altijd **bovenop** de catalogus."
-    )
+def render_ai_config_field_help(sc: str, *, state_prefix: str | None = None):
+    """
+    Per-parameter guidance for AI config fields.
+    Wrapped in an expander; user can open/close on demand.
+    Supports propagation modes: auto | manual
+    """
 
-    with st.popover("ℹ️ Uitleg"):
-        st.markdown(
-            """
-**AI-config** = *smalle* scope, rekenintensief, gericht op analyse.  
-**Catalog-config** = *brede* scope, inventariseert wat er is.
+    # Defaults (shown in detail text)
+    defaults = {
+        "temperature": 0.0,
+        "max_tokens": 2048,
+        "top_p": 1.0,
+        "frequency_penalty": 0.0,
+        "presence_penalty": 0.0,
+        "propagation_mode": "auto",  # recommended default
+    }
 
-**Waarom AI-configs?**  
-Ze bepalen **welke tabellen, schema’s of modellen** met AI-analyse worden doorgelicht.  
-Omdat AI compute-intensief is, is de scope **smal en specifiek** (bijv. één schema of subset van tabellen).
+    # Parameters (easy to extend later)
+    options = [
+        "Temperature",
+        "Max tokens",
+        "Top-p",
+        "Frequency penalty",
+        "Presence penalty",
+        "Propagation mode",
+        "Overwrite policy",
+    ]
 
-**Voorbeelden (per type):**
-- **DW**: analyseer alleen tabellen in schema `finance_*`.  
-- **PBI**: analyseer enkel model `Sales` met een subset van tabellen.  
-- **DL**: analyseer alleen bestanden onder `/bronze/customers/`.
+    # Stable key (persists selection across reruns)
+    sel_key = f"{state_prefix or 'ai_cfg'}_param_selector"
+    if sel_key not in st.session_state:
+        st.session_state[sel_key] = options[0]
 
-> Tip: Begin altijd met een catalog-config (brede scope). Voeg daarna AI-configs toe voor specifieke use-cases (profiling, lineage, beschrijvingen).
-            """
+    with st.expander("ℹ️ AI configuration field help", expanded=False):
+        choice = st.selectbox(
+            "Select a parameter",
+            options=options,
+            key=sel_key,
+            help="Pick a field to see meaning, guidelines, and defaults.",
         )
 
-    with st.expander("Wat is een goede strategie?"):
-        st.markdown(
-            """
-1. Gebruik een **catalog-config** om de volledige structuur in kaart te brengen.  
-2. Maak daarna één of meerdere **AI-configs** met **smalle filters** voor analyses.  
-3. Houd AI-configs klein: dat verlaagt kosten en versnelt resultaten.
-            """
-        )
+        # ---- Renderers ----
+        if choice == "Temperature":
+            st.info(
+                f"""**Temperature** controls randomness.
+
+- 0.0–0.3 → predictable, analytical  
+- 0.4–0.8 → more variety for descriptions/summaries  
+- >1.0 → very random, avoid for analytics  
+
+**Default:** **{defaults['temperature']}**"""
+            )
+
+        elif choice == "Max tokens":
+            st.info(
+                f"""**Max tokens** caps output length (≈ 1 token ~ 3–4 chars).
+
+- 512–1024 → short and fast  
+- 2048 → longer analysis/descriptions  
+- >4000 → only if necessary (slower & costlier)  
+
+**Default:** **{defaults['max_tokens']}**"""
+            )
+
+        elif choice == "Top-p":
+            st.info(
+                f"""**Top-p** (“nucleus sampling”) narrows choices to the most likely tokens.
+
+- 1.0 → safe default  
+- 0.8–0.9 → more focused outputs  
+- Avoid combining high top-p with high temperature  
+
+**Default:** **{defaults['top_p']}**"""
+            )
+
+        elif choice == "Frequency penalty":
+            st.info(
+                f"""**Frequency penalty** discourages repeating words/phrases. Range: −2.0 … 2.0.
+
+- 0.0 → default  
+- 0.5–1.0 → if outputs repeat themselves  
+
+**Default:** **{defaults['frequency_penalty']}**"""
+            )
+
+        elif choice == "Presence penalty":
+            st.info(
+                f"""**Presence penalty** encourages new topics. Range: −2.0 … 2.0.
+
+- 0.0 → default  
+- 0.5–1.0 → if outputs get stuck on one theme  
+- Too high may drift off-topic  
+
+**Default:** **{defaults['presence_penalty']}**"""
+            )
+
+        elif choice == "Propagation mode":
+            st.info(
+                f"""**Propagation mode** controls if results are written to descriptions immediately.
+
+- **auto** *(default)* → results are **written directly** to descriptions (obeying **Overwrite policy**). Each new/overwritten value is flagged as **unreviewed**; users can later mark as **reviewed** or **edited**.
+- **manual** → results are **stored only** in the analysis store. No automatic write. You can later **export → review → apply** (see *Manual propagate*).
+
+**Recommended default:** **{defaults['propagation_mode']}**"""
+            )
+
+            st.caption("Propagation × Overwrite matrix (what actually gets written):")
+            matrix = pd.DataFrame(
+                [
+                    ["auto", "fill_empty", "Writes only into empty fields; existing text untouched (status = unreviewed)."],
+                    ["auto", "overwrite_if_confident", "Overwrites when confidence ≥ threshold (status = unreviewed); otherwise leaves as-is."],
+                    ["auto", "never", "Never overwrites; only empty fields can be filled (status = unreviewed)."],
+                    ["manual", "any", "Writes nothing now; results remain in analysis store until you export/apply."],
+                ],
+                columns=["Propagation mode", "Overwrite policy", "Effect"],
+            )
+            st.dataframe(matrix, hide_index=True, use_container_width=True)
+
+        elif choice == "Overwrite policy":
+            st.info(
+                """**Overwrite policy** (applies when `propagation_mode = auto`):
+
+- **fill_empty** *(safe)* → write only if the target field is empty; existing text remains untouched.
+- **overwrite_if_confident** → replace existing text **only** if model confidence ≥ threshold (e.g., 0.8).
+- **never** → never replace existing text; only empty fields can be filled.
+
+**Note:** All values written in **auto** mode are flagged as **unreviewed**; a user can later mark them as reviewed/edited."""
+            )

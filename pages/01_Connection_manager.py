@@ -81,6 +81,8 @@ from data_catalog.ui_prompts import (
     render_deactivated_ai_configs,
     render_catalog_config_help,
     render_ai_config_help,
+    render_main_connection_help,
+    render_ai_config_field_help
     )
 
 # ---------------- Page config & styling ----------------
@@ -197,6 +199,7 @@ with tab_mc:
     # 1) Ophalen van niet-soft-deleted connections
     df = list_connections_df()  # bevat al alleen c.deleted_at IS NULL
 
+    
     # 2) Filteroptie: alleen actieve (optioneel)
     show_active_only = st.toggle("Only show active connections", value=False, key="conn_filter_active_only")
     if show_active_only and not df.empty:
@@ -243,6 +246,15 @@ with tab_mc:
 
     st.divider()
 
+    render_main_connection_help()
+
+    # render_connection_type_legend(
+    #     active_only=False,
+    #     enable_filters=True,
+    #     show_download=False,
+    #     height=340,
+    # )
+    st.divider()
 
     # ---------------- Basis (buiten de form, zodat type-wissel direct rerunt) ----------------
     st.markdown("## Main connection")
@@ -658,7 +670,9 @@ with tab_cc:
         st.error(f"Onbekende connection short_code: '{sc}'. Verwacht: dw, pbi of dl.")
         st.stop()
 
-    render_catalog_config_help(sc)
+    render_catalog_config_help(conn_row,sc)
+
+    st.divider()
     
     cfg = render_catalog_config_picker_with_edit(
         main_connection_id=conn_id,
@@ -735,7 +749,11 @@ with tab_ac:
 
     pre_key = f"ai_cfg_pre_{sc}_{conn_id}"
 
-    render_ai_config_help(sc)
+    render_ai_config_help(conn_row, sc)
+
+    st.divider()
+
+    render_ai_config_field_help(sc, state_prefix=pre_key)
 
     ai_cfg = render_ai_config_picker_with_edit(
         main_connection_id=conn_id,

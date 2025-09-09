@@ -868,3 +868,36 @@ def upsert_dl_details(connection_id: int
                                             , config.dl_connection_details.secret_ref)
              , updated_at          = CURRENT_TIMESTAMP
     """, {"id": connection_id, "st": st, "ep": ep, "boc": boc, "bp": bp, "am": am, "sref": secret_ref})
+
+def fetch_connection_type_registry(*, active_only: bool = True) -> List[Dict]:
+    """
+    Load the live registry of supported connection types from
+    config.connection_type_registry.
+    """
+    if active_only:
+        sql = """
+            SELECT connection_type,
+                   data_source_category,
+                   display_name,
+                   is_active,
+                   created_at,
+                   short_code
+            FROM   config.connection_type_registry
+            WHERE  is_active
+            ORDER  BY data_source_category, display_name
+        """
+        rows = q_all(sql)
+    else:
+        sql = """
+            SELECT connection_type,
+                   data_source_category,
+                   display_name,
+                   is_active,
+                   created_at,
+                   short_code
+            FROM   config.connection_type_registry
+            ORDER  BY data_source_category, display_name
+        """
+        rows = q_all(sql)
+
+    return [dict(r._mapping) for r in rows] if rows else []
