@@ -18,6 +18,16 @@ ANALYSIS_TYPES = {
         "max_tokens": 700,
         "allowed_table_types": ["BASE TABLE"]
     },
+    "view_definition_analysis": {
+        "label": "Analyse van view-definitie",
+        "prompt_builder": build_prompt_for_table,
+        "sample_data_function": None,  # views analyseren op definitie, geen sample nodig
+        "description_target": "table",
+        "default_model": "gpt-4o",
+        "temperature": 0.5,
+        "max_tokens": 1200,
+        "allowed_table_types": ["VIEW"]
+    },
     "column_classification": {
         "label": "Kolomclassificatie",
         "prompt_builder": build_prompt_for_table,
@@ -26,7 +36,18 @@ ANALYSIS_TYPES = {
         "default_model": "gpt-3.5-turbo",
         "temperature": 0.3,
         "max_tokens": 600,
-        "allowed_table_types": ["BASE TABLE"]
+        "allowed_table_types": ["BASE TABLE"]  # MVP: alleen echte tabellen
+    },
+    "column_description": {  # ✅ nieuw: beschrijving per kolom, los van classificatie
+        "label": "Kolombeschrijving",
+        "prompt_builder": build_prompt_for_table,
+        # Heb je nog geen aparte sampler? Hergebruik die van base_table, of maak later get_sample_data_for_column_description
+        "sample_data_function": get_sample_data_for_base_table_analysis,
+        "description_target": "column",
+        "default_model": "gpt-4",
+        "temperature": 0.3,
+        "max_tokens": 700,
+        "allowed_table_types": ["BASE TABLE", "VIEW"]  # mag ook alleen BASE TABLE als je dat wilt
     },
     "data_quality_check": {
         "label": "Datakwaliteit controleren",
@@ -47,16 +68,6 @@ ANALYSIS_TYPES = {
         "temperature": 0.5,
         "max_tokens": 1000,
         "allowed_table_types": ["BASE TABLE", "VIEW"]
-    },
-    "view_definition_analysis": {
-        "label": "Analyse van view-definitie",
-        "prompt_builder": build_prompt_for_table,
-        "sample_data_function": None,
-        "description_target": "table",
-        "default_model": "gpt-4o",
-        "temperature": 0.5,
-        "max_tokens": 1200,
-        "allowed_table_types": ["VIEW"]
     }
 }
 
@@ -80,6 +91,7 @@ SCHEMA_ANALYSIS_TYPES = {
         "max_tokens": 1500,
         "requires_graph": False,
         "requires_clusters": False,
+        "requires_centrality": False,
         "description_target": "schema"
     },
     "schema_table_overview": {
@@ -90,6 +102,7 @@ SCHEMA_ANALYSIS_TYPES = {
         "max_tokens": 2000,
         "requires_graph": True,
         "requires_clusters": True,
+        "requires_centrality": False,
         "description_target": "schema"
     },
     "naming_convention": {
@@ -100,17 +113,51 @@ SCHEMA_ANALYSIS_TYPES = {
         "max_tokens": 1000,
         "requires_graph": False,
         "requires_clusters": False,
+        "requires_centrality": False,
         "description_target": "schema"
     },
-    "all_in_one": {
-        "label": "Volledig oordeel over schema",
+    "relationship_mapping": {
+        "label": "Relatiebeschrijvingen (FK/joins) in natuurlijke taal",
         "prompt_builder": build_prompt_for_schema,
         "default_model": "gpt-4",
-        "temperature": 0.6,
-        "max_tokens": 2500,
+        "temperature": 0.4,
+        "max_tokens": 1800,
+        "requires_graph": True,
+        "requires_clusters": False,
+        "requires_centrality": False,
+        "description_target": "schema"
+    },
+    "cluster_labeling": {
+        "label": "Thema/label per cluster",
+        "prompt_builder": build_prompt_for_schema,
+        "default_model": "gpt-4",
+        "temperature": 0.5,
+        "max_tokens": 1200,
+        "requires_graph": True,
+        "requires_clusters": True,
+        "requires_centrality": False,
+        "description_target": "schema"
+    },
+    "central_table": {
+        "label": "Centrale tabel per cluster",
+        "prompt_builder": build_prompt_for_schema,
+        "default_model": "gpt-4",
+        "temperature": 0.4,
+        "max_tokens": 1200,
         "requires_graph": True,
         "requires_clusters": True,
         "requires_centrality": True,
+        "description_target": "schema"
+    },
+    "schema_pattern_detection": {
+        "label": "Patroondetectie (bijv. star/snowflake/hub-spoke)",
+        "prompt_builder": build_prompt_for_schema,
+        "default_model": "gpt-4",
+        "temperature": 0.5,
+        "max_tokens": 1800,
+        "requires_graph": True,
+        "requires_clusters": False,
+        "requires_centrality": False,
         "description_target": "schema"
     },
     "schema_recommendations": {
@@ -124,25 +171,15 @@ SCHEMA_ANALYSIS_TYPES = {
         "requires_centrality": True,
         "description_target": "schema"
     },
-    "schema_cluster_mapping": {
-        "label": "Thema's per cluster",
+    "schema_evaluation": {
+        "label": "Eindbeoordeling van het schema",
         "prompt_builder": build_prompt_for_schema,
         "default_model": "gpt-4",
-        "temperature": 0.5,
-        "max_tokens": 2000,
+        "temperature": 0.6,
+        "max_tokens": 2500,
         "requires_graph": True,
         "requires_clusters": True,
+        "requires_centrality": True,
         "description_target": "schema"
-    },
-    "schema_evaluation": {
-    "label": "Eindbeoordeling van het schema",
-    "prompt_builder": build_prompt_for_schema,
-    "default_model": "gpt-4",
-    "temperature": 0.6,
-    "max_tokens": 2500,
-    "requires_graph": True,
-    "requires_clusters": True,
-    "requires_centrality": True,
-    "description_target": "schema"
     }
 }

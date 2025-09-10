@@ -1,83 +1,138 @@
 # yaml-language-server: $schema=./analysis_config.schema.json
 
 table_analysis:
-  - name: column_classification
-    description: Classificeer kolommen op rol (PRIMARY_KEY, MEASURE, enz.)
-    method: openai
-    prompt: column_classification
-    output_table: catalog_ai_column_description
+  - name: column_profiler
+    description: Verzamel statistieken per kolom (row_count, null_count, unique_count, uniqueness_ratio, …)
+    method: sql
+    prompt: null
+    output_table: dw_column_profiles
     status: active
 
-  - name: table_description
-    description: Beschrijf wat de tabel representeert
-    method: openai
+  - name: column_occurrence
+    description: Tel hoe vaak kolomnamen voorkomen (globaal, per scope)
+    method: sql
+    prompt: null
+    output_table: dw_column_occurrence
+    status: optional
+
+  - name: base_table_analysis
+    description: Beschrijf wat de tabel representeert (alleen BASE TABLE)
+    method: ai
     prompt: table_description
-    output_table: catalog_ai_table_description
+    output_table: dw_ai_analysis_results -> dw_table_description
     status: active
 
   - name: view_definition_analysis
-    description: Analyse van SQL-viewdefinitie
-    method: openai
+    description: Analyse van SQL-viewdefinitie (alleen VIEW)
+    method: ai
     prompt: view_analysis
-    output_table: catalog_ai_table_description
+    output_table: dw_ai_analysis_results -> dw_table_description
+    status: active
+
+  - name: column_classification
+    description: Classificeer kolommen op rol (PRIMARY_KEY, MEASURE, enz.)
+    method: ai
+    prompt: column_classification
+    output_table: dw_ai_analysis_results -> dw_column_classifications
+    status: active
+
+  - name: column_description
+    description: Beschrijf de betekenis van kolommen in natuurlijke taal
+    method: ai
+    prompt: column_description
+    output_table: dw_ai_analysis_results -> dw_column_descriptions
     status: active
 
   - name: data_quality_check
     description: Controleer datakwaliteit (nulls, types, duplicaten)
-    method: openai
+    method: ai
     prompt: data_quality_check
-    output_table: catalog_ai_analysis_results
-    status: active
+    output_table: dw_ai_analysis_results
+    status: optional
+
+  - name: data_presence_analysis
+    description: Controleer databeschikbaarheid en actualiteit
+    method: ai
+    prompt: data_presence
+    output_table: dw_ai_analysis_results
+    status: optional
 
   - name: all_in_one
     description: Combineert classificatie, beschrijving en datakwaliteit
-    method: openai
+    method: ai
     prompt: mixed
-    output_table: multi
-    status: active
+    output_table: dw_ai_analysis_results -> multi
+    status: optional
 
 schema_analysis:
-  - name: schema_clustering
-    method: algorithmic
-    input: [foreign_key_graph]
-    output: [cluster_id]
-    notes: Uses undirected graph to detect schema clusters
+  # --- PREPROCESSORS (MVP: ACTIVE) ---
+  - name: foreign_key_graph_builder
+    description: Bouw een relationele graaf op basis van gedetecteerde foreign keys
+    method: sql
+    prompt: null
+    output_table: dw_schema_graph
+    status: active
 
   - name: centrality_analysis
-    method: algorithmic
-    input: [foreign_key_graph]
-    output: [in_degree, out_degree, pagerank, betweenness]
-    notes: Uses directed graph built from catalog FK metadata
+    description: Bereken centraliteitsmaten (in/out-degree, pagerank) op de schema-graaf
+    method: sql
+    prompt: null
+    output_table: dw_schema_centrality
+    status: active
 
-  - name: cluster_labeling
-    method: openai
-    prompt: cluster_label_prompt
-    input: [table_descriptions]
-    output: [cluster_label]
+  - name: schema_clustering
+    description: Cluster tabellen op basis van de graaf om thematische groepen te vinden
+    method: sql
+    prompt: null
+    output_table: dw_schema_clusters
+    status: active
 
-  - name: central_table
-    method: openai
-    input: [cluster_tables, centrality_scores]
-    output: [central_table_name]
+  # --- AI-ANALYSES (MVP: OPTIONAL) ---
+  - name: schema_summary
+    description: Beknopte samenvatting van de schema-structuur op basis van graaf- en clusterresultaten
+    method: ai
+    prompt: schema_summary
+    output_table: dw_ai_analysis_results -> dw_schema_summary
+    status: optional
 
-  - name: schema_role_refinement
-    method: openai
-    input: [cluster_context, existing_roles]
-    output: [refined_roles]
+  - name: schema_context
+    description: Contextoverzicht met kernclusters, centrale tabellen en relaties
+    method: ai
+    prompt: schema_context
+    output_table: dw_ai_analysis_results -> dw_schema_context
+    status: optional
 
-  - name: relationship_mapping
-    method: openai
-    input: [tables, foreign_keys]
-    output: [relationship_description]
+  - name: schema_table_overview
+    description: Overzicht per tabel inclusief cluster- en centraliteitscontext
+    method: ai
+    prompt: schema_table_overview
+    output_table: dw_ai_analysis_results -> dw_schema_table_overview
+    status: optional
 
-  - name: schema_pattern_detection
-    method: openai
-    input: [schema_graph]
-    output: [detected_patterns]
+  - name: naming_convention
+    description: Beoordeel consistentie van naamgeving (tabellen/kolommen) en doe verbetersuggesties
+    method: ai
+    prompt: naming_convention
+    output_table: dw_ai_analysis_results -> dw_schema_naming_audit
+    status: optional
 
-graph_building:
-  - name: foreign_key_graph_builder
-    method: algorithmic
-    input: [foreign_keys]
-    output: [graph_object]
-    provides_for: [centrality_analysis, schema_clustering, ai_context_generation]
+  - name: schema_recommendations
+    description: Adviezen voor verbeteringen (modellering, conformed dimensions, sleutelkeuzes)
+    method: ai
+    prompt: schema_recommendations
+    output_table: dw_ai_analysis_results -> dw_schema_recommendations
+    status: optional
+
+  - name: schema_cluster_mapping
+    description: Label clusters met thema’s en koppel tabellen aan deze thema’s
+    method: ai
+    prompt: schema_cluster_mapping
+    output_table: dw_ai_analysis_results -> dw_schema_cluster_mapping
+    status: optional
+
+  - name: schema_evaluation
+    description: Eindbeoordeling met sterke/zwakke punten en risico’s
+    method: ai
+    prompt: schema_evaluation
+    output_table: dw_ai_analysis_results -> dw_schema_evaluation
+    status: optional
