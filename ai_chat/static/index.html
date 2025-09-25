@@ -33,13 +33,13 @@
 
     * { box-sizing: border-box; }
 
-    /* ⬇️ Belangrijk voor scroll-layout */
+    /* Scroll-layout basis */
     html, body { height: 100%; }
     body {
       margin: 0;
       font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
       background: var(--bg); color: var(--fg);
-      display: flex; flex-direction: column; /* header + main */
+      display: flex; flex-direction: column;
     }
 
     a { color: var(--link); }
@@ -56,12 +56,11 @@
       background: var(--bg); color: var(--fg); cursor: pointer;
     }
 
-    /* ⬇️ main vult rest van viewport-hoogte */
     main.chat-wrap {
       flex: 1 1 auto;
       display: flex; flex-direction: column;
       padding: 16px 24px 0;
-      min-height: 0; /* noodzakelijk zodat kinderflex kan scrollen */
+      min-height: 0; /* laat binnenste flex kind scrollen */
     }
 
     .panel {
@@ -71,31 +70,52 @@
       box-shadow: 0 1px 2px rgba(0,0,0,.035);
     }
 
-    /* ⬇️ Panel zelf is flex: chat (scrolt) + composer (vast onder) */
+    /* Chat-panel: kolom (chatlijst scrolt, composer vast) */
     .chat-panel {
       flex: 1 1 auto;
       display: flex; flex-direction: column;
-      min-height: 0;  /* belangrijk: laat .chat scrollen */
-      overflow: hidden; /* geen dubbele scrollbars */
+      min-height: 0;            /* cruciaal voor scroll */
+      overflow: hidden;         /* geen dubbele scrollbars */
     }
 
-    /* ⬇️ De chatlijst zelf is de scrolbare container */
+    /* De scrolbare chat-lijst */
     .chat {
       flex: 1 1 auto;
-      min-height: 0;                /* nodig i.c.m. flex om te kunnen scrollen */
-      overflow-y: auto;             /* scrolbalk verschijnt automatisch */
+      min-height: 0;            /* cruciaal voor scroll in flex */
+      overflow-y: auto;         /* hier komt de scrolbalk */
+      scrollbar-gutter: stable;
+      overscroll-behavior: contain;
       padding: 16px 16px 0 16px;
       display: flex; flex-direction: column; gap: 12px;
     }
 
+    /* Bericht-rij (volle breedte), inner-card links/rechts */
     .bubble {
-      max-width: 900px; padding: 12px 14px; border-radius: 14px; line-height: 1.5;
-      border: 1px solid var(--border); box-shadow: 0 1px 2px rgba(0,0,0,.035); overflow: hidden;
+      width: 100%;
+      display: flex;            /* om inner links/rechts te duwen */
     }
-    .user { background: var(--user); align-self: flex-end; }
-    .assistant { background: var(--assistant); align-self: flex-start; }
-    .role { display:block; font-size: 12px; color: var(--muted); margin-bottom: 6px; }
+    .bubble .inner {
+      max-width: min(100%, 1100px);   /* ruime kaart, maar responsief */
+      width: fit-content;
+      padding: 12px 14px; border-radius: 14px; line-height: 1.5;
+      border: 1px solid var(--border); box-shadow: 0 1px 2px rgba(0,0,0,.035);
+      background: var(--assistant);
+      overflow: visible;        /* geen clipping van content */
+    }
+    .assistant .inner { margin-right: auto; } /* links */
+    .user .inner {
+      margin-left: auto;        /* rechts */
+      background: var(--user);
+    }
 
+    /* Role-label en content */
+    .role { display:block; font-size: 12px; color: var(--muted); margin-bottom: 6px; }
+    .content {
+      overflow-wrap: anywhere;  /* breek lange woorden/urls */
+      word-break: break-word;
+    }
+
+    /* Composer onderin */
     .composer {
       flex: 0 0 auto;
       border-top: 1px solid var(--border); padding: 16px; background: var(--assistant);
@@ -115,7 +135,7 @@
     .btn:disabled { opacity: .6; cursor: not-allowed; }
     .status { font-size: 12px; color: var(--muted); margin-left: auto; }
 
-    /* Markdown styling in assistant bubble */
+    /* Markdown styling in assistant content */
     .assistant .content :is(p,ul,ol,pre,blockquote,h1,h2,h3,h4,h5,h6,table){ margin: 0 0 0.7em; }
     .assistant .content code {
       background: var(--code-bg); border: 1px solid var(--code-border);
@@ -162,7 +182,7 @@
 
     .panel-wide { grid-column: 1 / -1; }
 
-    @media (max-width: 1200px) { .controls-grid { grid-template-columns: repeat(2, minmax(0,1fr)); } }
+    @media (max-width: 1200px) { .controls-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
     @media (max-width: 700px)  { .controls-grid { grid-template-columns: 1fr; } .composer-toolbar { gap: 6px; } }
   </style>
 </head>
@@ -295,20 +315,34 @@
     if (window.hljs) el.querySelectorAll('pre code').forEach(block => hljs.highlightElement(block));
   }
 
+  // Nieuwe bubble-structuur: .bubble (100% breed) > .inner (kaart) > .role + .content
   function addBubble(role, text) {
-    const wrap = document.createElement("div");
-    wrap.className = `bubble ${role}`;
+    const row = document.createElement("div");
+    row.className = `bubble ${role}`;
+
+    const inner = document.createElement("div");
+    inner.className = "inner";
+
     const who = document.createElement("span");
     who.className = "role";
     who.textContent = role === "user" ? "Jij" : "Mistral";
+
     const body = document.createElement("div");
     body.className = "content";
-    if (role === "assistant") renderMarkdown(body, text || ""); else body.textContent = text || "";
+
+    if (role === "assistant") renderMarkdown(body, text || "");
+    else body.textContent = text || "";
+
     const chat = $("chat");
-    chat.appendChild(wrap); wrap.appendChild(who); wrap.appendChild(body);
+    chat.appendChild(row);
+    row.appendChild(inner);
+    inner.appendChild(who);
+    inner.appendChild(body);
+
     chat.scrollTop = chat.scrollHeight;  /* autoscroll */
     return body;
   }
+
   function renderHistory() { $("chat").innerHTML = ""; for (const m of state.history) addBubble(m.role, m.content); }
 
   const stripSlash = (s) => (s || "").replace(/\/+$/, "");
@@ -486,8 +520,7 @@
       applyTheme(newMode);
     });
 
-    // state → UI
-    try { Object.assign(state, JSON.parse(localStorage.getItem(LS_KEY) || "{}")); } catch {}
+    loadState();
     if ($("backend")) $("backend").value = state.backend || "http://localhost:8000";
     if ($("token")) $("token").value = state.token || "";
     if ($("model")) $("model").value = state.model || "mistral:instruct";
@@ -498,7 +531,6 @@
 
     renderHistory();
 
-    // inputs ↔ state
     const mirror = () => {
       state.backend = $("backend")?.value || state.backend;
       state.token = $("token")?.value || state.token;
@@ -512,7 +544,6 @@
     ["backend","token","model","system","sessionId","numCtx"].forEach(id => { on(id, "input", mirror); on(id, "change", mirror); });
     ["useServerSession"].forEach(id => { on(id, "change", mirror); });
 
-    // knoppen
     on('btnHealth', 'click', healthHandler);
     on('btnModels', 'click', modelsHandler);
     on('btnResetSession', 'click', resetSessionHandler);
