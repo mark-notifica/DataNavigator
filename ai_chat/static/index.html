@@ -1,0 +1,532 @@
+<!doctype html>
+<html lang="nl">
+<head>
+  <meta charset="utf-8" />
+  <title>Local Mistral Chat (Ollama)</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <!-- Favicon (inline) -->
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='64' height='64'%3E%3Crect width='100%25' height='100%25' rx='12' ry='12' fill='%232563eb'/%3E%3Ctext x='50%25' y='55%25' font-size='36' text-anchor='middle' fill='white'%3EM%3C/text%3E%3C/svg%3E">
+
+  <!-- Markdown + Sanitizer -->
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/dompurify@3.1.6/dist/purify.min.js"></script>
+
+  <!-- highlight.js -->
+  <link id="hljs-light" rel="stylesheet"
+        href="https://cdn.jsdelivr.net/npm/highlight.js@11.9.0/styles/atom-one-light.min.css">
+  <link id="hljs-dark" rel="stylesheet" disabled
+        href="https://cdn.jsdelivr.net/npm/highlight.js@11.9.0/styles/atom-one-dark.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/highlight.js@11.9.0/highlight.min.js"></script>
+
+  <style>
+    :root {
+      --bg:#f7f7f8; --fg:#111; --muted:#666; --border:#e5e7eb;
+      --user:#e6f2ff; --assistant:#fff; --accent:#2563eb;
+      --code-bg:#f4f4f5; --code-border:#e4e4e7; --link:#2563eb;
+    }
+    body.dark {
+      --bg:#0b0c0f; --fg:#e7e7ea; --muted:#a3a3ad; --border:#1f2430;
+      --user:#0e3a5e; --assistant:#121318; --accent:#3b82f6;
+      --code-bg:#151824; --code-border:#1f2430; --link:#60a5fa;
+    }
+
+    * { box-sizing: border-box; }
+
+    /* ⬇️ Belangrijk voor scroll-layout */
+    html, body { height: 100%; }
+    body {
+      margin: 0;
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+      background: var(--bg); color: var(--fg);
+      display: flex; flex-direction: column; /* header + main */
+    }
+
+    a { color: var(--link); }
+
+    header {
+      flex: 0 0 auto;
+      padding: 12px 16px; border-bottom: 1px solid var(--border); background: var(--assistant);
+      position: sticky; top: 0; z-index: 10;
+    }
+    .topbar { display: flex; align-items: center; gap: 12px; }
+    .topbar h1 { margin: 0; font-size: 18px; flex: 1 1 auto; }
+    .topbar button {
+      padding: 8px 10px; border-radius: 10px; border: 1px solid var(--border);
+      background: var(--bg); color: var(--fg); cursor: pointer;
+    }
+
+    /* ⬇️ main vult rest van viewport-hoogte */
+    main.chat-wrap {
+      flex: 1 1 auto;
+      display: flex; flex-direction: column;
+      padding: 16px 24px 0;
+      min-height: 0; /* noodzakelijk zodat kinderflex kan scrollen */
+    }
+
+    .panel {
+      background: var(--assistant);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      box-shadow: 0 1px 2px rgba(0,0,0,.035);
+    }
+
+    /* ⬇️ Panel zelf is flex: chat (scrolt) + composer (vast onder) */
+    .chat-panel {
+      flex: 1 1 auto;
+      display: flex; flex-direction: column;
+      min-height: 0;  /* belangrijk: laat .chat scrollen */
+      overflow: hidden; /* geen dubbele scrollbars */
+    }
+
+    /* ⬇️ De chatlijst zelf is de scrolbare container */
+    .chat {
+      flex: 1 1 auto;
+      min-height: 0;                /* nodig i.c.m. flex om te kunnen scrollen */
+      overflow-y: auto;             /* scrolbalk verschijnt automatisch */
+      padding: 16px 16px 0 16px;
+      display: flex; flex-direction: column; gap: 12px;
+    }
+
+    .bubble {
+      max-width: 900px; padding: 12px 14px; border-radius: 14px; line-height: 1.5;
+      border: 1px solid var(--border); box-shadow: 0 1px 2px rgba(0,0,0,.035); overflow: hidden;
+    }
+    .user { background: var(--user); align-self: flex-end; }
+    .assistant { background: var(--assistant); align-self: flex-start; }
+    .role { display:block; font-size: 12px; color: var(--muted); margin-bottom: 6px; }
+
+    .composer {
+      flex: 0 0 auto;
+      border-top: 1px solid var(--border); padding: 16px; background: var(--assistant);
+      border-radius: 0 0 12px 12px;
+    }
+    textarea#input {
+      width: 100%; height: 110px; resize: vertical;
+      background: var(--assistant); color: var(--fg); border: 1px solid var(--border);
+      border-radius: 10px; padding: 10px; font-size: 14px;
+    }
+    .composer-toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 8px; }
+    .btn {
+      padding: 10px 12px; font-size: 14px; border-radius: 10px; border: none; cursor: pointer;
+      background: var(--accent); color: #fff;
+    }
+    .btn.secondary { background: #6b7280; }
+    .btn:disabled { opacity: .6; cursor: not-allowed; }
+    .status { font-size: 12px; color: var(--muted); margin-left: auto; }
+
+    /* Markdown styling in assistant bubble */
+    .assistant .content :is(p,ul,ol,pre,blockquote,h1,h2,h3,h4,h5,h6,table){ margin: 0 0 0.7em; }
+    .assistant .content code {
+      background: var(--code-bg); border: 1px solid var(--code-border);
+      padding: 2px 6px; border-radius: 6px; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    }
+    .assistant .content pre {
+      background: var(--code-bg); border: 1px solid var(--code-border);
+      padding: 10px; border-radius: 10px; overflow: auto;
+    }
+    .assistant .content pre code { background: transparent; border: none; padding: 0; }
+    .assistant .content blockquote { border-left: 3px solid var(--border); padding-left: 10px; color: var(--muted); }
+    .assistant .content table { border-collapse: collapse; width: 100%; }
+    .assistant .content table th, .assistant .content table td { border: 1px solid var(--code-border); padding: 6px 8px; }
+    .assistant .content a { color: var(--link); text-decoration: underline; }
+
+    /* Instellingen (onderaan) */
+    details.settings { margin: 16px 24px 24px; }
+    details.settings > summary {
+      list-style: none; cursor: pointer; user-select: none;
+      padding: 12px 16px; border: 1px solid var(--border); border-radius: 12px;
+      background: var(--assistant); color: var(--fg); font-weight: 600;
+      box-shadow: 0 1px 2px rgba(0,0,0,.035);
+    }
+    details.settings[open] > summary { border-bottom-left-radius: 0; border-bottom-right-radius: 0; }
+    .settings-content {
+      border: 1px solid var(--border); border-top: none; border-bottom-left-radius: 12px; border-bottom-right-radius: 12px;
+      background: var(--assistant); padding: 16px;
+    }
+
+    .controls-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
+    .panel-settings {
+      border: 1px solid var(--border); border-radius: 12px; padding: 16px; background: var(--assistant);
+      box-shadow: 0 1px 2px rgba(0,0,0,.035);
+    }
+    .panel-settings h2 {
+      margin: 0 0 12px; font-size: 13px; letter-spacing: .03em; color: var(--muted); text-transform: uppercase;
+    }
+    .field { display: flex; flex-direction: column; gap: 6px; margin-bottom: 10px; }
+    .field-row { display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 10px; }
+    .actions { display: flex; flex-wrap: wrap; gap: 8px; }
+    .panel-settings input, .panel-settings textarea { width: 100%; padding: 10px; font-size: 14px; border: 1px solid var(--border); border-radius: 10px; background:#fff; }
+    .panel-settings button { padding: 10px 12px; font-size: 14px; border-radius: 10px; border: none; background: var(--accent); color:#fff; cursor:pointer; }
+    .panel-settings button.secondary { background: #6b7280; }
+
+    .panel-wide { grid-column: 1 / -1; }
+
+    @media (max-width: 1200px) { .controls-grid { grid-template-columns: repeat(2, minmax(0,1fr)); } }
+    @media (max-width: 700px)  { .controls-grid { grid-template-columns: 1fr; } .composer-toolbar { gap: 6px; } }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="topbar">
+      <h1>Local Mistral Chat</h1>
+      <button id="themeToggle" type="button" title="Schakel licht/donker">🌙 Donker</button>
+    </div>
+  </header>
+
+  <main class="chat-wrap">
+    <section class="panel chat-panel">
+      <div id="chat" class="chat" aria-live="polite"></div>
+      <div class="composer">
+        <label for="input">Bericht</label>
+        <textarea id="input" placeholder="Stel je vraag… (Enter = stuur, Shift+Enter = nieuwe regel)"></textarea>
+        <div class="composer-toolbar">
+          <div style="display:flex; gap:8px; flex-wrap:wrap;">
+            <button id="send" type="button" class="btn">Stuur</button>
+            <button id="clear" type="button" class="btn secondary">Leeg chat</button>
+            <button id="exportChat" type="button" class="btn secondary">Export chat</button>
+            <button id="importChat" type="button" class="btn secondary">Import chat</button>
+            <input id="importFile" type="file" accept="application/json" style="display:none" />
+          </div>
+          <span id="status" class="status"></span>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- UITKLAPBARE INSTELLINGEN -->
+  <details class="settings">
+    <summary>⚙️ Instellingen (backend, auth, model, sessie & system prompt)</summary>
+    <div class="settings-content">
+      <div class="controls-grid">
+        <div class="panel-settings">
+          <h2>Verbinding</h2>
+          <div class="field">
+            <label for="backend">Backend</label>
+            <input id="backend" value="http://localhost:8000" placeholder="http://10.3.152.3:8000" />
+          </div>
+          <div class="field">
+            <label for="token">Auth token (optioneel)</label>
+            <input id="token" placeholder="Bearer token of leeg laten" />
+          </div>
+          <div class="actions">
+            <button id="btnHealth" type="button">Health</button>
+            <button id="btnModels" type="button">Models</button>
+          </div>
+        </div>
+
+        <div class="panel-settings">
+          <h2>Model & Context</h2>
+          <div class="field">
+            <label for="model">Model</label>
+            <input id="model" value="mistral:instruct" />
+          </div>
+          <div class="field-row">
+            <div class="field" style="max-width: 220px;">
+              <label for="numCtx">Max context tokens</label>
+              <input id="numCtx" type="number" min="1024" step="512" value="4096" />
+            </div>
+          </div>
+        </div>
+
+        <div class="panel-settings">
+          <h2>Sessie</h2>
+          <div class="field">
+            <label for="sessionId">Session ID</label>
+            <input id="sessionId" placeholder="bv. team-demo-1" />
+          </div>
+          <div class="field-row">
+            <label class="inline"><input type="checkbox" id="useServerSession" /> Use server session</label>
+            <button id="btnResetSession" type="button" class="secondary">Reset server session</button>
+          </div>
+        </div>
+
+        <div class="panel-settings panel-wide">
+          <h2>System prompt (optioneel)</h2>
+          <div class="field" style="margin:0">
+            <textarea id="system" rows="3" placeholder="Je bent een behulpzame assistent die in het Nederlands antwoordt."></textarea>
+          </div>
+        </div>
+      </div>
+    </div>
+  </details>
+
+  <script>
+  const $ = (id) => document.getElementById(id);
+  const on = (id, evt, handler) => { const el = $(id); if (el) el.addEventListener(evt, handler); };
+
+  const THEME_KEY = "mistralChatTheme";
+  function applyTheme(mode) {
+    const dark = (mode === "dark");
+    document.body.classList.toggle("dark", dark);
+    const l = document.getElementById("hljs-light");
+    const d = document.getElementById("hljs-dark");
+    if (l && d) { l.disabled = dark; d.disabled = !dark; }
+    const btn = $("themeToggle");
+    if (btn) btn.textContent = dark ? "☀️ Licht" : "🌙 Donker";
+  }
+  function initTheme() {
+    const saved = localStorage.getItem(THEME_KEY);
+    if (saved === "light" || saved === "dark") { applyTheme(saved); return; }
+    const prefersDark = window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches;
+    applyTheme(prefersDark ? "dark" : "light");
+  }
+
+  const LS_KEY = "mistralChatState";
+  const state = {
+    backend: "http://localhost:8000",
+    token: "",
+    model: "mistral:instruct",
+    system: "",
+    systemApplied: false,
+    history: [],
+    sessionId: "",
+    useServerSession: false,
+    numCtx: 4096
+  };
+  function loadState() { try { Object.assign(state, JSON.parse(localStorage.getItem(LS_KEY) || "{}")); } catch {} }
+  function saveStateDebounced() { clearTimeout(saveStateDebounced._t); saveStateDebounced._t = setTimeout(() => localStorage.setItem(LS_KEY, JSON.stringify(state)), 150); }
+
+  function renderMarkdown(el, text) {
+    if (window.marked && window.DOMPurify) {
+      marked.setOptions({ breaks: true, gfm: true });
+      el.innerHTML = DOMPurify.sanitize(marked.parse(text || ""));
+    } else { el.textContent = text || ""; }
+    if (window.hljs) el.querySelectorAll('pre code').forEach(block => hljs.highlightElement(block));
+  }
+
+  function addBubble(role, text) {
+    const wrap = document.createElement("div");
+    wrap.className = `bubble ${role}`;
+    const who = document.createElement("span");
+    who.className = "role";
+    who.textContent = role === "user" ? "Jij" : "Mistral";
+    const body = document.createElement("div");
+    body.className = "content";
+    if (role === "assistant") renderMarkdown(body, text || ""); else body.textContent = text || "";
+    const chat = $("chat");
+    chat.appendChild(wrap); wrap.appendChild(who); wrap.appendChild(body);
+    chat.scrollTop = chat.scrollHeight;  /* autoscroll */
+    return body;
+  }
+  function renderHistory() { $("chat").innerHTML = ""; for (const m of state.history) addBubble(m.role, m.content); }
+
+  const stripSlash = (s) => (s || "").replace(/\/+$/, "");
+  function getAuthHeader() {
+    const raw = ($("token")?.value || "").trim();
+    if (!raw) return null;
+    return raw.toLowerCase().startsWith("bearer ") ? raw : `Bearer ${raw}`;
+  }
+  function buildHeaders(json = true) {
+    const h = {}; if (json) h["Content-Type"] = "application/json";
+    const auth = getAuthHeader(); if (auth) h["Authorization"] = auth; return h;
+  }
+  function lockUI(lock) {
+    ["send","btnHealth","btnModels","input","btnResetSession","exportChat","importChat"].forEach(id => {
+      const el = $(id); if (el) el.disabled = lock;
+    });
+  }
+  const setStatus = (t) => { const el=$("status"); if (el) el.textContent = t || ""; };
+
+  async function healthHandler() {
+    const u = `${stripSlash($("backend").value)}/api/health`;
+    const r = await fetch(u, { headers: buildHeaders(false) });
+    addBubble("assistant", "```json\n" + (await r.text()) + "\n```");
+  }
+  async function modelsHandler() {
+    const u = `${stripSlash($("backend").value)}/api/models`;
+    const r = await fetch(u, { headers: buildHeaders(false) });
+    addBubble("assistant", "```json\n" + (await r.text()) + "\n```");
+  }
+  async function resetSessionHandler() {
+    const sid = ($("sessionId").value || "").trim();
+    if (!sid) { setStatus("⚠️ Geen Session ID."); return; }
+    try {
+      const r = await fetch(`${stripSlash($("backend").value)}/api/session/reset`, {
+        method: "POST", headers: buildHeaders(true),
+        body: JSON.stringify({ session_id: sid })
+      });
+      addBubble("assistant", `Reset session **${sid}**:\n\n\`\`\`json\n${await r.text()}\n\`\`\``);
+    } catch (e) { addBubble("assistant", `⚠️ Reset session mislukt: ${e?.message || e}`); }
+  }
+  function clearChatHandler() {
+    if (!confirm("Weet je zeker dat je de chat wilt legen?")) return;
+    state.history = []; state.systemApplied = false;
+    $("chat").innerHTML = ""; setStatus(""); $("input").value = ""; $("input").focus();
+    saveStateDebounced();
+  }
+  function exportChatHandler() {
+    const payload = {
+      exported_at: new Date().toISOString(),
+      backend: state.backend, model: state.model, num_ctx: state.numCtx,
+      server_session: state.useServerSession ? state.sessionId : null,
+      history: state.history
+    };
+    const blob = new Blob([JSON.stringify(payload, null, 2)], {type: "application/json"});
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob); a.download = "mistral_chat_export.json";
+    document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(a.href);
+  }
+  function importChatClickHandler() { $("importFile").click(); }
+  async function importChatChangeHandler(e) {
+    const file = e.target.files?.[0]; if (!file) return;
+    try {
+      const text = await file.text();
+      const data = JSON.parse(text);
+      if (!Array.isArray(data.history)) throw new Error("Geen geldige export (history ontbreekt)");
+      if (!confirm("Deze import vervangt de huidige chatgeschiedenis. Doorgaan?")) return;
+      state.history = data.history; renderHistory(); saveStateDebounced();
+    } catch (err) { addBubble("assistant", "⚠️ Import mislukt: " + (err?.message || err)); }
+    finally { e.target.value = ""; }
+  }
+
+  async function sendHandler() {
+    const backend = stripSlash($("backend").value);
+    const model = ($("model").value || "").trim() || "mistral:instruct";
+    const userText = ($("input").value || "").trim();
+    const sysPrompt = ($("system").value || "").trim();
+    const sessionId = ($("sessionId").value || "").trim();
+    const useServerSession = $("useServerSession").checked;
+    const numCtx = parseInt(($("numCtx").value || "").trim(), 10);
+
+    if (!backend) { setStatus("⚠️ Backend ontbreekt."); return; }
+    if (!model) { setStatus("⚠️ Model ontbreekt."); return; }
+    if (!userText) { setStatus("⚠️ Geen bericht ingevoerd."); $("input").focus(); return; }
+
+    addBubble("user", userText);
+    state.history.push({ role: "user", content: userText });
+    $("input").value = ""; $("input").focus(); saveStateDebounced();
+
+    const options = {}; if (!isNaN(numCtx) && numCtx > 0) options.num_ctx = numCtx;
+    let messages = [];
+    if (useServerSession) {
+      if (sysPrompt && !state.systemApplied) messages.push({ role: "system", content: sysPrompt });
+      messages.push({ role: "user", content: userText });
+    } else {
+      if (sysPrompt && !state.systemApplied) messages.push({ role: "system", content: sysPrompt });
+      for (const m of state.history) messages.push({ role: m.role, content: m.content });
+    }
+    const payload = {
+      model, messages, options,
+      session_id: sessionId || undefined,
+      server_session: useServerSession || undefined,
+      reset_session: false
+    };
+
+    const assistantEl = addBubble("assistant", "");
+    lockUI(true); setStatus("Bezig…");
+    try {
+      await doStreamWithFallback(backend, payload, assistantEl);
+      if (sysPrompt) state.systemApplied = true;
+      setStatus("Klaar");
+    } catch (err) {
+      console.error("Fout:", err);
+      assistantEl.textContent = "⚠️ Fout bij versturen. Zie console voor details.";
+      setStatus("Fout");
+    } finally {
+      lockUI(false); saveStateDebounced();
+    }
+  }
+
+  async function doStreamWithFallback(backend, payload, assistantEl) {
+    let res = await fetch(`${backend}/api/chat/stream`, { method: "POST", headers: buildHeaders(true), body: JSON.stringify(payload) });
+    if (!res.ok && res.status === 404) {
+      res = await fetch(`${backend}/api/chat/stream_async`, { method: "POST", headers: buildHeaders(true), body: JSON.stringify(payload) });
+    }
+    if (!res.ok || !res.body) { await doNonStream(`${backend}/api/chat`, payload, assistantEl); return; }
+    await consumeSSE(res, assistantEl);
+  }
+
+  async function consumeSSE(res, assistantEl) {
+    const reader = res.body.getReader(); const decoder = new TextDecoder();
+    let buf = "", acc = "";
+    while (true) {
+      const { value, done } = await reader.read(); if (done) break;
+      buf += decoder.decode(value, { stream: true });
+      const parts = buf.split("\n\n"); buf = parts.pop() || "";
+      for (const part of parts) {
+        for (const line of part.split("\n")) {
+          if (!line.startsWith("data: ")) continue;
+          const json = line.slice(6);
+          try {
+            const chunk = JSON.parse(json);
+            const delta = (chunk.message && chunk.message.content) || "";
+            if (delta) {
+              acc += delta;
+              renderMarkdown(assistantEl, acc);
+              const chat = $("chat"); chat.scrollTop = chat.scrollHeight; /* autoscroll */
+            }
+            if (chunk.done) { state.history.push({ role: "assistant", content: acc }); return; }
+          } catch (e) { console.error("Kon JSON chunk niet parsen:", json, e); }
+        }
+      }
+    }
+  }
+
+  async function doNonStream(url, payload, assistantEl) {
+    const r = await fetch(url, { method: "POST", headers: buildHeaders(true), body: JSON.stringify(payload) });
+    if (!r.ok) {
+      const t = await r.text();
+      renderMarkdown(assistantEl, `❌ **HTTP ${r.status}**\n\n\`\`\`txt\n${t}\n\`\`\``);
+      const chat = $("chat"); chat.scrollTop = chat.scrollHeight; return;
+    }
+    const data = await r.json();
+    const text = (data?.message?.content) || JSON.stringify(data, null, 2);
+    renderMarkdown(assistantEl, text);
+    const chat = $("chat"); chat.scrollTop = chat.scrollHeight;
+    state.history.push({ role: "assistant", content: text });
+  }
+
+  // Init
+  window.addEventListener('DOMContentLoaded', () => {
+    initTheme();
+    on('themeToggle','click', () => {
+      const newMode = document.body.classList.contains('dark') ? 'light' : 'dark';
+      localStorage.setItem(THEME_KEY, newMode);
+      applyTheme(newMode);
+    });
+
+    // state → UI
+    try { Object.assign(state, JSON.parse(localStorage.getItem(LS_KEY) || "{}")); } catch {}
+    if ($("backend")) $("backend").value = state.backend || "http://localhost:8000";
+    if ($("token")) $("token").value = state.token || "";
+    if ($("model")) $("model").value = state.model || "mistral:instruct";
+    if ($("system")) $("system").value = state.system || "";
+    if ($("sessionId")) $("sessionId").value = state.sessionId || "";
+    if ($("useServerSession")) $("useServerSession").checked = !!state.useServerSession;
+    if ($("numCtx")) $("numCtx").value = state.numCtx || 4096;
+
+    renderHistory();
+
+    // inputs ↔ state
+    const mirror = () => {
+      state.backend = $("backend")?.value || state.backend;
+      state.token = $("token")?.value || state.token;
+      state.model = $("model")?.value || state.model;
+      state.system = $("system")?.value || state.system;
+      state.sessionId = $("sessionId")?.value || state.sessionId;
+      state.useServerSession = $("useServerSession")?.checked ?? state.useServerSession;
+      const nc = parseInt(($("numCtx")?.value || "0"), 10); if (!isNaN(nc) && nc>0) state.numCtx = nc;
+      saveStateDebounced();
+    };
+    ["backend","token","model","system","sessionId","numCtx"].forEach(id => { on(id, "input", mirror); on(id, "change", mirror); });
+    ["useServerSession"].forEach(id => { on(id, "change", mirror); });
+
+    // knoppen
+    on('btnHealth', 'click', healthHandler);
+    on('btnModels', 'click', modelsHandler);
+    on('btnResetSession', 'click', resetSessionHandler);
+    on('clear', 'click', clearChatHandler);
+    on('exportChat', 'click', exportChatHandler);
+    on('importChat', 'click', importChatClickHandler);
+    on('importFile', 'change', importChatChangeHandler);
+    on('send', 'click', sendHandler);
+
+    // Enter = stuur
+    on('input', 'keydown', (e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendHandler(); } });
+
+    $("input")?.focus();
+  });
+  </script>
+</body>
+</html>

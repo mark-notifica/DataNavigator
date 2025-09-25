@@ -1141,9 +1141,45 @@ def render_deactivated_ai_configs(
 #         )
 
 
+# def render_catalog_config_help(conn_or_sc=None, short_code: str | None = None):
+#     """
+#     One compact popover with everything users need.
+#     Accepts either (conn_row, sc) or just sc ('dw'|'pbi'|'dl').
+#     """
+#     # Normalize inputs
+#     if isinstance(conn_or_sc, dict):
+#         conn_row = conn_or_sc
+#         sc = (short_code or conn_row.get("short_code") or "").strip().lower()
+#         dcat = (conn_row.get("data_source_category") or "").upper()
+#     else:
+#         conn_row = None
+#         sc = (conn_or_sc or short_code or "").strip().lower()
+#         dcat = ""
+
+#     with st.popover("ℹ️ What is a Catalog configuration?"):
+#         st.markdown(
+#             """
+# A **Catalog configuration** defines a **broad discovery scope** (what exists in the source).
+# You typically start **broad** here, then add **AI configurations** with a **narrow** scope for targeted analysis.
+#             """
+#         )
+
+#         st.markdown(
+#             """
+# **Strategy**
+# 1. Create a **broad** catalog config to discover structure.
+# 2. Validate coverage (schemas, models, paths).
+# 3. Add **AI configs** with **narrow** filters per use case.
+#             """
+#         )
+
+#         st.caption("You need **at least one** active catalog config to build a catalog.")
+
 def render_catalog_config_help(conn_or_sc=None, short_code: str | None = None):
     """
-    One compact popover with everything users need.
+    One compact popover with everything users need about Catalog configuration
+    and how its scope interacts with preprocessors and AI scope.
+
     Accepts either (conn_row, sc) or just sc ('dw'|'pbi'|'dl').
     """
     # Normalize inputs
@@ -1159,25 +1195,142 @@ def render_catalog_config_help(conn_or_sc=None, short_code: str | None = None):
     with st.popover("ℹ️ What is a Catalog configuration?"):
         st.markdown(
             """
-A **Catalog configuration** defines a **broad discovery scope** (what exists in the source).
-You typically start **broad** here, then add **AI configurations** with a **narrow** scope for targeted analysis.
+A **Catalog configuration** defines your **catalog scope** — the broad discovery range of objects
+(schemas, tables, models, paths) the platform inventories and stores.
+
+**Pipeline:** `Catalog (catalog scope)` → `Preprocessors (catalog scope, optionally with AI scope)` → `AI analyses (AI scope)`.
             """
         )
 
         st.markdown(
             """
-**Strategy**
-1. Create a **broad** catalog config to discover structure.
-2. Validate coverage (schemas, models, paths).
-3. Add **AI configs** with **narrow** filters per use case.
+### Scope: catalog vs AI
+- **Catalog scope** = default scope for **inventory** of data objects and **preprocessors**.
+- **AI scope** = a **narrow, task-specific** scope for AI analyses.
+- When preprocessors are launched from an AI run, their **effective scope** becomes
+  **`catalog scope ∩ AI scope`** (intersection).
+
+**Tip:** Keep **catalog scope broad** to inventory the landscape; use **AI scope** later to focus costs and effort.
             """
         )
 
-        st.caption("You need **at least one** active catalog config to build a catalog.")
+        st.markdown(
+            """
+### Strategy
+1. Create a **broad** catalog config to discover structure and keep it fresh.
+2. Validate coverage (databases/schemas/models/paths).
+3. Add **AI configs** with **narrow scope** per use case (domain, cluster, project).
+            """
+        )
+
+        st.caption("You need **at least one** active catalog configuration to build and refresh your catalog.")
+
+        # Type-aware quick fields & examples
+        if dcat == "DATABASE_DATAWAREHOUSE" or sc == "dw":
+            st.markdown(
+                """
+**Common catalog scope fields (DW)**
+- `database_filter` (e.g., `sales_*`)
+- `schema_filter` (e.g., `*`)
+- `table_filter` (e.g., `fact_*`)
+
+**Preprocessors (DW)**
+- Run with **catalog scope** by default (profiling, graph building, centrality, clustering).
+- If triggered from AI: use **catalog ∩ AI scope**.
+
+**Observability**
+- Each run stores a **scope JSON** and a **scope hash** so you can audit exactly what was in scope.
+                """
+            )
+        elif dcat == "POWERBI" or sc == "pbi":
+            st.markdown(
+                """
+**Common catalog scope fields (Power BI)**
+- `workspace_filter` (one or more workspaces)
+- `model_filter` (PBIP/TMDL/BIM models)
+- `table_filter` (tables within a model)
+
+**Preprocessors (PBI)**
+- Default: catalog scope; from AI: **catalog ∩ AI scope**.
+                """
+            )
+        elif dcat == "DATA_LAKE" or sc == "dl":
+            st.markdown(
+                """
+**Common catalog scope fields (Data Lake)**
+- `path_filter` (e.g., `/bronze/customers/`)
+- `format_whitelist` (e.g., `parquet,csv`)
+- `partition_filter` (include/exclude)
+
+**Preprocessors (DL)**
+- Default: catalog scope; from AI: **catalog ∩ AI scope**.
+                """
+            )
+
+# def render_ai_config_help(conn_or_sc=None, short_code: str | None = None):
+#     """
+#     One compact popover with all AI guidance (+ model parameters).
+#     Accepts either (conn_row, sc) or just sc ('dw'|'pbi'|'dl').
+#     """
+#     # Normalize inputs
+#     if isinstance(conn_or_sc, dict):
+#         conn_row = conn_or_sc
+#         sc = (short_code or conn_row.get("short_code") or "").strip().lower()
+#         dcat = (conn_row.get("data_source_category") or "").upper()
+#     else:
+#         conn_row = None
+#         sc = (conn_or_sc or short_code or "").strip().lower()
+#         dcat = ""
+
+#     with st.popover("ℹ️ What is an AI configuration?"):
+#         st.markdown(
+#             """
+# An **AI configuration** runs **targeted** analyses **on top of** your catalog.
+# AI can be compute-intensive — keep scopes **small and specific**.
+#             """
+#         )
+
+#         # Type-aware examples
+#         if dcat == "DATABASE_DATAWAREHOUSE" or sc == "dw":
+#             st.markdown(
+#                 """
+# **Examples (Database/Data Warehouse)**
+# - Analyze only schemas like `finance_*`
+# - Focus on a handful of tables (e.g., `fact_*`)
+# - Limit to a single database for cost control
+#                 """
+#             )
+#         elif dcat == "POWERBI" or sc == "pbi":
+#             st.markdown(
+#                 """
+# **Examples (Power BI)**
+# - Analyze a single workspace
+# - Target one model (e.g., `Sales`)
+# - Limit to 2–3 tables for a quick run
+#                 """
+#             )
+#         elif dcat == "DATA_LAKE" or sc == "dl":
+#             st.markdown(
+#                 """
+# **Examples (Data Lake)**
+# - Scope to one directory (e.g., `/bronze/customers/`)
+# - Restrict to Parquet only
+# - Analyze one partition first
+#                 """
+#             )
+
+#         st.markdown(
+#             """
+# **Strategy**
+# - Use the **catalog** for breadth; **AI** for depth.
+# - Start with a tiny scope, then expand.
+# - Narrow scopes are faster and cheaper.
+#             """
+#         )
 
 def render_ai_config_help(conn_or_sc=None, short_code: str | None = None):
     """
-    One compact popover with all AI guidance (+ model parameters).
+    One compact popover with all AI guidance (scope, cost focus, and model parameters).
     Accepts either (conn_row, sc) or just sc ('dw'|'pbi'|'dl').
     """
     # Normalize inputs
@@ -1193,8 +1346,22 @@ def render_ai_config_help(conn_or_sc=None, short_code: str | None = None):
     with st.popover("ℹ️ What is an AI configuration?"):
         st.markdown(
             """
-An **AI configuration** runs **targeted** analyses **on top of** your catalog.
-AI can be compute-intensive — keep scopes **small and specific**.
+An **AI configuration** defines your **AI scope** and model settings to run **targeted** analyses
+on top of the catalog. Keep AI scopes **small and specific** for focus, speed and costs.
+            """
+        )
+
+        st.markdown(
+            """
+### Scope behavior
+- **AI scope** applies to AI analyses.
+- When allowed, preprocessors launched from an AI run will use **`catalog scope ∩ AI scope`**.
+- Scope is logged (JSON + **scope hash**) in run records to guarantee traceability.
+
+**Typical AI scope fields**
+- `include_schemas` / `exclude_schemas`
+- `include_tables` / `exclude_tables`
+- PBI: workspaces/models; DL: paths/partitions (type-aware)
             """
         )
 
@@ -1202,39 +1369,43 @@ AI can be compute-intensive — keep scopes **small and specific**.
         if dcat == "DATABASE_DATAWAREHOUSE" or sc == "dw":
             st.markdown(
                 """
-**Examples (Database/Data Warehouse)**
-- Analyze only schemas like `finance_*`
-- Focus on a handful of tables (e.g., `fact_*`)
-- Limit to a single database for cost control
+**Examples (DW)**
+- Focus on `finance_*` schemas
+- Limit to `fact_*` tables
+- Target a single database for a trial run
                 """
             )
         elif dcat == "POWERBI" or sc == "pbi":
             st.markdown(
                 """
 **Examples (Power BI)**
-- Analyze a single workspace
-- Target one model (e.g., `Sales`)
-- Limit to 2–3 tables for a quick run
+- One workspace, one model (e.g., `Sales`)
+- 2–3 tables for a quick iteration
                 """
             )
         elif dcat == "DATA_LAKE" or sc == "dl":
             st.markdown(
                 """
 **Examples (Data Lake)**
-- Scope to one directory (e.g., `/bronze/customers/`)
-- Restrict to Parquet only
-- Analyze one partition first
+- One directory (e.g., `/bronze/customers/`)
+- Parquet only
+- A single partition to start
                 """
             )
 
         st.markdown(
             """
-**Strategy**
-- Use the **catalog** for breadth; **AI** for depth.
-- Start with a tiny scope, then expand.
-- Narrow scopes are faster and cheaper.
+### Model settings (quick guidance)
+- **Temperature**: 0.0–0.3 analytical; 0.4–0.8 richer descriptions; >1.0 usually too random  
+- **Max tokens**: 512–1024 short; 2048 typical; >4000 only if necessary  
+- **Top-p**: 1.0 default; lower to narrow outputs; avoid high top-p + high temperature
+- **Propagation mode**:
+  - **auto**: write results directly to object descriptions (respecting **Overwrite policy**; mark as *unreviewed*)
+  - **manual**: keep results in the analysis store; write to object descriptions later
+- **Overwrite policy** (when auto): `fill_empty` | `overwrite_if_confident` | `never`
             """
         )
+
 
 #         st.markdown("---")
 #         st.markdown("#### Model parameters (quick reference)")
@@ -1283,32 +1454,71 @@ AI can be compute-intensive — keep scopes **small and specific**.
 
 
 
+# def render_main_connection_help():
+#     with st.popover("ℹ️ What is a main connection?"):
+#         st.markdown(
+#             """
+# A **main connection** is the base data source. Catalog and AI configurations are attached to it.
+
+# **What it defines**
+# - **Which system** we connect to (engine / platform)
+# - **How** we connect (credentials, endpoint, folder, workspace)
+
+# **Data source categories & examples**
+# - **DATABASE_DATAWAREHOUSE** — relational engines (e.g., Azure SQL Server (T-SQL), PostgreSQL)
+# - **POWERBI** — Power BI artifacts (Local PBIP/TMDL, Service workspaces)
+# - **DATA_LAKE** *(in development)* — file/object storage (e.g., ADLS, S3, GCS)
+
+# **Why this order?**
+# 1. Choose a **main connection** (the system)  
+# 2. Create a **catalog configuration** (broad scope) to discover what exists  
+# 3. Add **AI configurations** (narrow scope) for targeted, compute-heavier analyses
+
+# **Good practices**
+# - Create **one main connection per source** (e.g., one PostgreSQL database, one S3 bucket)
+# - Keep metadata tidy (display name, owner, notes)
+# - Use clear names so downstream configs are easy to find
+#             """
+#         )
+
 def render_main_connection_help():
     with st.popover("ℹ️ What is a main connection?"):
         st.markdown(
             """
-A **main connection** is the base data source. Catalog and AI configurations are attached to it.
+A **main connection** is the root data source your workspace attaches to.  
+**Catalog** and **AI** configurations hang off this connection and inherit its security and location.
 
-**What it defines**
-- **Which system** we connect to (engine / platform)
-- **How** we connect (credentials, endpoint, folder, workspace)
+### What it defines
+- **System / platform** (engine type, e.g., PostgreSQL, Azure SQL, Power BI, Data Lake)
+- **Connectivity** (endpoint, credentials, workspace/folder/bucket)
+- **Namespace** (short code like `dw`, `pbi`, `dl`) used for routing targets and logs
 
-**Data source categories & examples**
-- **DATABASE_DATAWAREHOUSE** — relational engines (e.g., Azure SQL Server (T-SQL), PostgreSQL)
-- **POWERBI** — Power BI artifacts (Local PBIP/TMDL, Service workspaces)
-- **DATA_LAKE** *(in development)* — file/object storage (e.g., ADLS, S3, GCS)
+### Data source categories & examples
+- **DATABASE_DATAWAREHOUSE (`dw`)** — relational engines (e.g., Azure SQL (T-SQL), PostgreSQL)
+- **POWERBI (`pbi`)** — PBIP/TMDL files or Service workspaces
+- **DATA_LAKE (`dl`)** *(in development)* — object/file storage (e.g., ADLS, S3, GCS)
 
-**Why this order?**
-1. Choose a **main connection** (the system)  
-2. Create a **catalog configuration** (broad scope) to discover what exists  
-3. Add **AI configurations** (narrow scope) for targeted, compute-heavier analyses
+### Scope & pipeline (how things fit together)
+- **Catalog scope** lives under the **catalog configuration** attached to this main connection (broad discovery).
+- **AI scope** lives under **AI configurations** (narrow, task-specific).
+- **Preprocessors** run under this main connection and use **catalog scope** by default;  
+  when launched from an AI run they use **`catalog scope ∩ AI scope`** (intersection).
 
-**Good practices**
-- Create **one main connection per source** (e.g., one PostgreSQL database, one S3 bucket)
-- Keep metadata tidy (display name, owner, notes)
-- Use clear names so downstream configs are easy to find
+**Pipeline (MVP):** `Main connection` → `Catalog (catalog scope)` → `Preprocessors (catalog scope, optionally ∩ AI scope)` → `AI analyses (AI scope)`
+
+### Why this order?
+1. Choose a **main connection** (system & credentials)  
+2. Create a **catalog configuration** (broad **catalog scope**) to discover what exists  
+3. Add **AI configurations** (narrow **AI scope**) for targeted, compute-heavier analyses
+
+### Good practices
+- One **main connection per source** (e.g., one Postgres database, one PBI workspace, one bucket)
+- Use clear **display name/owner/notes** so downstream configs are easy to find
+- Prefer **broad catalog scope** for inventory; use **AI scope** to focus cost and speed
+- Observe runs: each step logs **scope JSON** and a **scope hash** for traceability
             """
         )
+
 
 def describe_connection(conn_row: dict) -> str:
     """
