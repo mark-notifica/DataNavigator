@@ -11,7 +11,7 @@
   <link rel="icon" type="image/png" sizes="16x16" href="/static/favicon-16x16.png">
   <link rel="apple-touch-icon" sizes="180x180" href="/static/apple-touch-icon.png">
   <link rel="manifest" href="/static/site.webmanifest">
-
+  
   <!-- Markdown + Sanitizer -->
   <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/dompurify@3.1.6/dist/purify.min.js"></script>
@@ -57,16 +57,11 @@
       background: var(--bg); color: var(--fg); cursor: pointer;
     }
 
-    .banner {
-      margin-top: 8px; padding: 10px 12px; border: 1px solid #f59e0b; color: #8a5300; background: #fff7ed;
-      border-radius: 10px; font-size: 14px; display:none;
-    }
-
     main.chat-wrap {
       flex: 1 1 auto;
       display: flex; flex-direction: column;
       padding: 16px 24px 0;
-      min-height: 0;
+      min-height: 0; /* laat binnenste flex kind scrollen */
     }
 
     .panel {
@@ -76,7 +71,6 @@
       box-shadow: 0 1px 2px rgba(0,0,0,.035);
     }
 
-    /* Chat-panel (chatlijst scrolt, composer vast) */
     .chat-panel {
       flex: 1 1 auto;
       display: flex; flex-direction: column;
@@ -84,28 +78,29 @@
       overflow: hidden;
     }
 
-    /* Scrolbare chatlijst */
     .chat {
       flex: 1 1 auto;
       min-height: 0;
-      overflow-y: auto;
+      overflow-y: auto;      /* hier komt de scrolbalk */
       scrollbar-gutter: stable;
       overscroll-behavior: contain;
       padding: 16px 16px 0 16px;
       display: flex; flex-direction: column; gap: 12px;
     }
 
-    /* Brede, responsieve wolkjes */
     .bubble { width: 100%; display: flex; }
     .bubble .inner {
-      width: 100%;               /* vul de kaart volledig */
-      max-width: 100%;           /* nooit kleiner worden bij veel berichten */
-      padding: 12px 14px; border-radius: 14px; line-height: 1.55;
+      max-width: min(100%, 1100px);
+      width: fit-content;
+      padding: 12px 14px; border-radius: 14px; line-height: 1.5;
       border: 1px solid var(--border); box-shadow: 0 1px 2px rgba(0,0,0,.035);
       background: var(--assistant);
     }
     .assistant .inner { margin-right: auto; }
-    .user .inner { margin-left: auto; background: var(--user); }
+    .user .inner {
+      margin-left: auto;
+      background: var(--user);
+    }
 
     .role { display:block; font-size: 12px; color: var(--muted); margin-bottom: 6px; }
     .content { overflow-wrap: anywhere; word-break: break-word; }
@@ -129,7 +124,6 @@
     .btn:disabled { opacity: .6; cursor: not-allowed; }
     .status { font-size: 12px; color: var(--muted); margin-left: auto; }
 
-    /* Markdown styling */
     .assistant .content :is(p,ul,ol,pre,blockquote,h1,h2,h3,h4,h5,h6,table){ margin: 0 0 0.7em; }
     .assistant .content code {
       background: var(--code-bg); border: 1px solid var(--code-border);
@@ -145,7 +139,6 @@
     .assistant .content table th, .assistant .content table td { border: 1px solid var(--code-border); padding: 6px 8px; }
     .assistant .content a { color: var(--link); text-decoration: underline; }
 
-    /* Instellingen onderaan */
     details.settings { margin: 16px 24px 24px; }
     details.settings > summary {
       list-style: none; cursor: pointer; user-select: none;
@@ -158,18 +151,22 @@
       border: 1px solid var(--border); border-top: none; border-bottom-left-radius: 12px; border-bottom-right-radius: 12px;
       background: var(--assistant); padding: 16px;
     }
+
     .controls-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
     .panel-settings {
       border: 1px solid var(--border); border-radius: 12px; padding: 16px; background: var(--assistant);
       box-shadow: 0 1px 2px rgba(0,0,0,.035);
     }
-    .panel-settings h2 { margin: 0 0 12px; font-size: 13px; letter-spacing: .03em; color: var(--muted); text-transform: uppercase; }
+    .panel-settings h2 {
+      margin: 0 0 12px; font-size: 13px; letter-spacing: .03em; color: var(--muted); text-transform: uppercase;
+    }
     .field { display: flex; flex-direction: column; gap: 6px; margin-bottom: 10px; }
     .field-row { display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 10px; }
     .actions { display: flex; flex-wrap: wrap; gap: 8px; }
     .panel-settings input, .panel-settings textarea { width: 100%; padding: 10px; font-size: 14px; border: 1px solid var(--border); border-radius: 10px; background:#fff; }
     .panel-settings button { padding: 10px 12px; font-size: 14px; border-radius: 10px; border: none; background: var(--accent); color:#fff; cursor:pointer; }
     .panel-settings button.secondary { background: #6b7280; }
+
     .panel-wide { grid-column: 1 / -1; }
 
     @media (max-width: 1200px) { .controls-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
@@ -182,7 +179,6 @@
       <h1>Notifica AI Chat</h1>
       <button id="themeToggle" type="button" title="Schakel licht/donker">🌙 Donker</button>
     </div>
-    <div id="banner" class="banner"></div>
   </header>
 
   <main class="chat-wrap">
@@ -195,8 +191,8 @@
           <div style="display:flex; gap:8px; flex-wrap:wrap;">
             <button id="send" type="button" class="btn">Stuur</button>
             <button id="clear" type="button" class="btn secondary">Leeg chat</button>
-            <button id="exportChat" type="button" class="btn secondary">Export</button>
-            <button id="importChat" type="button" class="btn secondary">Import</button>
+            <button id="exportChat" type="button" class="btn secondary">Export chat</button>
+            <button id="importChat" type="button" class="btn secondary">Import chat</button>
             <input id="importFile" type="file" accept="application/json" style="display:none" />
           </div>
           <span id="status" class="status"></span>
@@ -207,14 +203,14 @@
 
   <!-- UITKLAPBARE INSTELLINGEN -->
   <details class="settings">
-    <summary>⚙️ Instellingen (backend, auth, model, context & sessie)</summary>
+    <summary>⚙️ Instellingen (backend, auth, model, sessie & system prompt)</summary>
     <div class="settings-content">
       <div class="controls-grid">
         <div class="panel-settings">
           <h2>Verbinding</h2>
           <div class="field">
             <label for="backend">Backend</label>
-            <input id="backend" placeholder="https://jouw-host:8443" />
+            <input id="backend" value="http://localhost:8000" placeholder="http://10.3.152.3:8000" />
           </div>
           <div class="field">
             <label for="token">Auth token (optioneel)</label>
@@ -247,8 +243,8 @@
             <input id="sessionId" placeholder="bv. team-demo-1" />
           </div>
           <div class="field-row">
-            <label class="inline"><input type="checkbox" id="useServerSession" /> Gebruik server sessie</label>
-            <button id="btnResetSession" type="button" class="secondary">Reset server sessie</button>
+            <label class="inline"><input type="checkbox" id="useServerSession" /> Use server session</label>
+            <button id="btnResetSession" type="button" class="secondary">Reset server session</button>
           </div>
         </div>
 
@@ -266,8 +262,7 @@
   const $ = (id) => document.getElementById(id);
   const on = (id, evt, handler) => { const el = $(id); if (el) el.addEventListener(evt, handler); };
 
-  // THEME
-  const THEME_KEY = "notificaChatTheme";
+  const THEME_KEY = "mistralChatTheme";
   function applyTheme(mode) {
     const dark = (mode === "dark");
     document.body.classList.toggle("dark", dark);
@@ -284,10 +279,9 @@
     applyTheme(prefersDark ? "dark" : "light");
   }
 
-  // STATE
-  const LS_KEY = "notificaChatState";
+  const LS_KEY = "mistralChatState";
   const state = {
-    backend: window.location.origin,   // auto-origin voorkomt mixed content
+    backend: "http://localhost:8000",
     token: "",
     model: "mistral:instruct",
     system: "",
@@ -300,7 +294,6 @@
   function loadState() { try { Object.assign(state, JSON.parse(localStorage.getItem(LS_KEY) || "{}")); } catch {} }
   function saveStateDebounced() { clearTimeout(saveStateDebounced._t); saveStateDebounced._t = setTimeout(() => localStorage.setItem(LS_KEY, JSON.stringify(state)), 150); }
 
-  // RENDER
   function renderMarkdown(el, text) {
     if (window.marked && window.DOMPurify) {
       marked.setOptions({ breaks: true, gfm: true });
@@ -308,28 +301,37 @@
     } else { el.textContent = text || ""; }
     if (window.hljs) el.querySelectorAll('pre code').forEach(block => hljs.highlightElement(block));
   }
+
   function addBubble(role, text) {
     const row = document.createElement("div");
     row.className = `bubble ${role}`;
+
     const inner = document.createElement("div");
     inner.className = "inner";
+
     const who = document.createElement("span");
     who.className = "role";
     who.textContent = role === "user" ? "Jij" : "Mistral";
+
     const body = document.createElement("div");
     body.className = "content";
+
     if (role === "assistant") renderMarkdown(body, text || "");
     else body.textContent = text || "";
+
     const chat = $("chat");
-    chat.appendChild(row); row.appendChild(inner); inner.appendChild(who); inner.appendChild(body);
-    chat.scrollTop = chat.scrollHeight;
+    chat.appendChild(row);
+    row.appendChild(inner);
+    inner.appendChild(who);
+    inner.appendChild(body);
+
+    chat.scrollTop = chat.scrollHeight;  /* autoscroll */
     return body;
   }
+
   function renderHistory() { $("chat").innerHTML = ""; for (const m of state.history) addBubble(m.role, m.content); }
 
-  // HELPERS
   const stripSlash = (s) => (s || "").replace(/\/+$/, "");
-  const setStatus = (t) => { const el=$("status"); if (el) el.textContent = t || ""; };
   function getAuthHeader() {
     const raw = ($("token")?.value || "").trim();
     if (!raw) return null;
@@ -344,8 +346,8 @@
       const el = $(id); if (el) el.disabled = lock;
     });
   }
+  const setStatus = (t) => { const el=$("status"); if (el) el.textContent = t || ""; };
 
-  // KNOPPEN
   async function healthHandler() {
     const u = `${stripSlash($("backend").value)}/api/health`;
     const r = await fetch(u, { headers: buildHeaders(false) });
@@ -398,7 +400,6 @@
     finally { e.target.value = ""; }
   }
 
-  // VERZENDEN (stream altijd aan, met fallback)
   async function sendHandler() {
     const backend = stripSlash($("backend").value);
     const model = ($("model").value || "").trim() || "mistral:instruct";
@@ -448,21 +449,30 @@
   }
 
   async function doStreamWithFallback(backend, payload, assistantEl) {
+    // Probeer stream
     let res;
     try {
-      res = await fetch(`${backend}/api/chat/stream`, { method: "POST", headers: buildHeaders(true), body: JSON.stringify(payload) });
-    } catch (e) {
-      // bv. cert niet vertrouwd in iOS → recht naar non-stream
-    }
-    if (!res || (!res.ok && res.status === 404)) {
+      res = await fetch(`${backend}/api/chat/stream`, {
+        method: "POST", headers: buildHeaders(true), body: JSON.stringify(payload)
+      });
+      if (!res.ok || !res.body) throw new Error(`stream HTTP ${res.status}`);
+      await consumeSSE(res, assistantEl);
+      return;
+    } catch (e1) {
+      // Probeer alternatieve stream endpoint
       try {
-        res = await fetch(`${backend}/api/chat/stream_async`, { method: "POST", headers: buildHeaders(true), body: JSON.stringify(payload) });
-      } catch (e) {}
+        res = await fetch(`${backend}/api/chat/stream_async`, {
+          method: "POST", headers: buildHeaders(true), body: JSON.stringify(payload)
+        });
+        if (!res.ok || !res.body) throw new Error(`stream_async HTTP ${res.status}`);
+        await consumeSSE(res, assistantEl);
+        return;
+      } catch (e2) {
+        // Fallback: non-stream
+        console.warn("Stream faalde, fallback naar non-stream:", e1, e2);
+        await doNonStream(`${backend}/api/chat`, payload, assistantEl);
+      }
     }
-    if (!res || !res.ok || !res.body) {
-      await doNonStream(`${backend}/api/chat`, payload, assistantEl); return;
-    }
-    await consumeSSE(res, assistantEl);
   }
 
   async function consumeSSE(res, assistantEl) {
@@ -492,24 +502,20 @@
   }
 
   async function doNonStream(url, payload, assistantEl) {
-    try {
-      const r = await fetch(url, { method: "POST", headers: buildHeaders(true), body: JSON.stringify(payload) });
-      if (!r.ok) {
-        const t = await r.text();
-        renderMarkdown(assistantEl, `❌ **HTTP ${r.status}**\n\n\`\`\`txt\n${t}\n\`\`\``);
-        const chat = $("chat"); chat.scrollTop = chat.scrollHeight; return;
-      }
-      const data = await r.json();
-      const text = (data?.message?.content) || JSON.stringify(data, null, 2);
-      renderMarkdown(assistantEl, text);
-      const chat = $("chat"); chat.scrollTop = chat.scrollHeight;
-      state.history.push({ role: "assistant", content: text });
-    } catch (e) {
-      renderMarkdown(assistantEl, `⚠️ **Netwerkfout**. Mogelijk zelf-ondertekend certificaat niet vertrouwd.\n\n- Vertrouw de mkcert root-CA op dit device.\n- Of test tijdelijk via HTTP.\n`);
+    const r = await fetch(url, { method: "POST", headers: buildHeaders(true), body: JSON.stringify(payload) });
+    if (!r.ok) {
+      const t = await r.text();
+      renderMarkdown(assistantEl, `❌ **HTTP ${r.status}**\n\n\`\`\`txt\n${t}\n\`\`\``);
+      const chat = $("chat"); chat.scrollTop = chat.scrollHeight; return;
     }
+    const data = await r.json();
+    const text = (data?.message?.content) || JSON.stringify(data, null, 2);
+    renderMarkdown(assistantEl, text);
+    const chat = $("chat"); chat.scrollTop = chat.scrollHeight;
+    state.history.push({ role: "assistant", content: text });
   }
 
-  // INIT
+  // Init
   window.addEventListener('DOMContentLoaded', () => {
     initTheme();
     on('themeToggle','click', () => {
@@ -519,17 +525,7 @@
     });
 
     loadState();
-
-    // Mixed-content guard: als de pagina HTTPS is en backend HTTP → forceer huidige origin
-    const pageIsHttps = window.location.protocol === "https:";
-    if (pageIsHttps && state.backend.toLowerCase().startsWith("http://")) {
-      state.backend = window.location.origin;
-      const b = $("banner");
-      if (b) { b.style.display = "block"; b.textContent = "HTTPS actief: backend automatisch aangepast naar deze origin om mixed content te voorkomen."; }
-    }
-
-    // veldjes vullen
-    if ($("backend")) $("backend").value = state.backend || window.location.origin;
+    if ($("backend")) $("backend").value = state.backend || "http://localhost:8000";
     if ($("token")) $("token").value = state.token || "";
     if ($("model")) $("model").value = state.model || "mistral:instruct";
     if ($("system")) $("system").value = state.system || "";
@@ -539,7 +535,6 @@
 
     renderHistory();
 
-    // mirror naar state + persist
     const mirror = () => {
       state.backend = $("backend")?.value || state.backend;
       state.token = $("token")?.value || state.token;
@@ -553,7 +548,6 @@
     ["backend","token","model","system","sessionId","numCtx"].forEach(id => { on(id, "input", mirror); on(id, "change", mirror); });
     ["useServerSession"].forEach(id => { on(id, "change", mirror); });
 
-    // knoppen
     on('btnHealth', 'click', healthHandler);
     on('btnModels', 'click', modelsHandler);
     on('btnResetSession', 'click', resetSessionHandler);
@@ -563,7 +557,7 @@
     on('importFile', 'change', importChatChangeHandler);
     on('send', 'click', sendHandler);
 
-    // Enter = stuur
+    // Enter = stuur (Shift+Enter = nieuwe regel)
     on('input', 'keydown', (e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendHandler(); } });
 
     $("input")?.focus();

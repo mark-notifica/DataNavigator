@@ -3,30 +3,60 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse, JSONResponse, FileResponse, PlainTextResponse
 from fastapi.staticfiles import StaticFiles
 from typing import Any, Dict, List, AsyncGenerator, Optional
-from ollama import Client
+# from ollama import Client
 from pathlib import Path
 from collections import defaultdict
 from threading import Lock
-import os, json, time
+import os, json, time, httpx
 from dotenv import load_dotenv
 import time, logging
 import asyncio
 import threading
 import anyio
+from functools import lru_cache
+from ollama import Client as OllamaClient
 
 
 logger = logging.getLogger("uvicorn.access")
+BASE_DIR = Path(__file__).parent
+ROOT_DIR = BASE_DIR.parent
+
+# Optioneel: kies expliciet een env-file (vb. via Start-NotificaAIChat.ps1)
+explicit = os.getenv("ENV_FILE")
+
+candidates = [
+    Path(explicit) if explicit else None,
+    BASE_DIR / ".env.local",
+    BASE_DIR / ".env",
+    ROOT_DIR / ".env.local",
+    ROOT_DIR / ".env",
+]
+dotenv_file = next((p for p in candidates if p and p.exists()), None)
+
+# In Docker/prod zijn env-vars leidend; overschrijf die niet
+if dotenv_file and not os.getenv("DISABLE_DOTENV"):
+    load_dotenv(dotenv_path=dotenv_file, override=False)
+    print(f"[dotenv] loaded: {dotenv_file}")
 
 
-load_dotenv()
+
+# === Vars met nette fallbacks/cleanup ===
+OLLAMA_HOST   = os.getenv("OLLAMA_HOST", "http://127.0.0.1:11434").strip()
+DEFAULT_MODEL = os.getenv("DEFAULT_MODEL", "mistral:instruct").strip()
+
+# Support zowel API_AUTH_TOKEN (chat) als AUTH_TOKEN (oude naam in root .env)
+_api = os.getenv("API_AUTH_TOKEN", "").strip()
+_alt = os.getenv("AUTH_TOKEN", "").strip()
+API_AUTH_TOKEN = _api or _alt
+
+raw_cors = os.getenv("CORS_ORIGINS", "*").strip()
+CORS_ORIGINS = ["*"] if raw_cors == "*" else [x.strip() for x in raw_cors.split(",") if x.strip()]
+CORS_ALLOW_CREDENTIALS = os.getenv("CORS_ALLOW_CREDENTIALS", "false").lower() == "true"
 
 # Config
-OLLAMA_HOST   = os.getenv("OLLAMA_HOST", "http://10.3.152.8:11434")
-DEFAULT_MODEL = os.getenv("DEFAULT_MODEL", "mistral:instruct")
-API_AUTH_TOKEN = os.getenv("API_AUTH_TOKEN", "").strip() 
+CATALOG_BASE_URL = os.getenv("CATALOG_BASE_URL", "http://catalog-api:7000")
 
-# Eén herbruikbare client
-client = Client(host=OLLAMA_HOST)
+print(f"[auth] token active? {'yes' if API_AUTH_TOKEN else 'no'}")
 
 # In-memory sessies (server-side)
 _sessions: Dict[str, List[dict]] = defaultdict(list)
@@ -47,20 +77,13 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# bearer auth
-def require_auth(authorization: str | None = Header(default=None)) -> None:
-    """
-    - Als API_AUTH_TOKEN leeg/niet gezet is  -> GEEN auth vereist.
-    - Als gezet -> verwacht 'Authorization: Bearer <token>'.
-    """
-    if not API_AUTH_TOKEN:
-        return  # auth uitgeschakeld
 
+def require_auth(authorization: Optional[str] = Header(default=None)) -> None:
+    if not API_AUTH_TOKEN:
+        return
     if not authorization or not authorization.lower().startswith("bearer "):
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Missing Bearer token")
-
-    token = authorization[7:].strip()  # na 'Bearer '
-    if token != API_AUTH_TOKEN:
+    if authorization[7:].strip() != API_AUTH_TOKEN:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Invalid token")
 
 def _normalize_options(options: dict) -> dict:
@@ -88,17 +111,21 @@ def _validate_messages(messages):
         if m["role"] not in ("system", "user", "assistant"):
             raise HTTPException(status_code=400, detail="role must be one of system|user|assistant")
 
-
+@lru_cache(maxsize=1)
+def get_ollama() -> OllamaClient:
+    if not OLLAMA_HOST.startswith("http"):
+        raise RuntimeError(f"Invalid OLLAMA_HOST: {OLLAMA_HOST!r}")
+    return OllamaClient(host=OLLAMA_HOST)
 
 # --- API routes ---
 @app.get("/api/health")
-def health(_: None = Depends(require_auth)):
+def health():
     return {"status": "ok", "ollama_host": OLLAMA_HOST}
 
 @app.get("/api/models")
 def list_models(_: None = Depends(require_auth)):
     try:
-        return client.list()
+        return get_ollama().list()
     except Exception as e:
         return JSONResponse(status_code=500, content={"error": str(e)})
 
@@ -156,7 +183,7 @@ def chat(
         else:
             eff_messages = messages
 
-        resp = client.chat(model=model, messages=eff_messages, options=options)
+        resp = get_ollama().chat(model=model, messages=eff_messages, options=options)
         assistant_text = ((resp or {}).get("message") or {}).get("content", "")
         if server_session and session_id and assistant_text:
             _append_assistant_to_session(session_id, assistant_text)
@@ -218,7 +245,7 @@ def chat_stream(
         def worker():
             # Draait in thread → blocking call hier is oké
             try:
-                for chunk in client.chat(model=model, messages=eff_messages, options=options, stream=True):
+                for chunk in get_ollama().chat(model=model, messages=eff_messages, options=options, stream=True):
                     # serialiseer in de thread (minder werk op event loop)
                     msg = (chunk.get("message") or {})
                     delta = msg.get("content") or ""
@@ -307,7 +334,7 @@ def chat_stream_async(
 
         def worker(loop_: asyncio.AbstractEventLoop, q: asyncio.Queue):
             try:
-                for chunk in client.chat(model=model, messages=eff_messages, options=options, stream=True):
+                for chunk in get_ollama().chat(model=model, messages=eff_messages, options=options, stream=True):
                     msg = (chunk.get("message") or {})
                     delta = msg.get("content") or ""
                     json_str = json.dumps(to_jsonable(chunk), ensure_ascii=False)
@@ -380,16 +407,48 @@ def whereami(request: Request, _: None = Depends(require_auth)):
     }
 
 
+@app.get("/api/catalog/search")
+async def proxy_catalog_search(q: str, _: None = Depends(require_auth)):
+    try:
+        async with httpx.AsyncClient(timeout=10) as client:
+            r = await client.get(f"{CATALOG_BASE_URL}/api/catalog/search", params={"q": q})
+        return JSONResponse(status_code=r.status_code, content=r.json() if r.headers.get("content-type","").startswith("application/json") else {"raw": r.text})
+    except Exception as e:
+        return JSONResponse(status_code=500, content={"error": str(e)})
+
+
 # --- Static & root met absolute paden ---
 BASE_DIR = Path(__file__).resolve().parent
-STATIC_DIR = BASE_DIR / "static"
+# Absolute pad naar ./static naast app.py
+STATIC_DIR = (Path(__file__).parent / "static").resolve()
 
-if STATIC_DIR.is_dir():
-    app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
+# Mount alle assets onder /static
+app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
 
-    @app.get("/")
-    def root():
-        index_file = STATIC_DIR / "index.html"
-        if not index_file.exists():
-            return PlainTextResponse("static/index.html not found", status_code=404)
-        return FileResponse(str(index_file))
+# Root serve: / -> index.html
+@app.get("/", include_in_schema=False)
+def root():
+    index_file = STATIC_DIR / "index.html"
+    if not index_file.exists():
+        return PlainTextResponse("static/index.html not found", status_code=404)
+    return FileResponse(str(index_file))
+
+def _to_jsonable(o):
+    if o is None or isinstance(o, (str, int, float, bool)):
+        return o
+    if isinstance(o, dict):
+        return {k: _to_jsonable(v) for k, v in o.items()}
+    if isinstance(o, (list, tuple)):
+        return [_to_jsonable(x) for x in o]
+    d = getattr(o, "__dict__", None)
+    return _to_jsonable(d) if d is not None else str(o)
+
+def _normalize_options(opts: Dict[str, Any]) -> Dict[str, Any]:
+    # voorbeeld: nummerieke strings → int
+    out = {}
+    for k, v in opts.items():
+        if isinstance(v, str) and v.isdigit():
+            out[k] = int(v)
+        else:
+            out[k] = v
+    return out

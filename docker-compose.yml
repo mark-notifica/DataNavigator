@@ -1,0 +1,118 @@
+name: notifica-data-navigator
+
+services:
+  notifica-ai-chat:
+    container_name: notifica-ai-chat
+    build:
+      context: ./services/chat
+      dockerfile: Dockerfile
+    env_file: .env
+    environment:
+      # Waar de chat z'n LLM vindt
+      OLLAMA_HOST: ${OLLAMA_HOST}
+      DEFAULT_MODEL: ${DEFAULT_MODEL}
+      # Interne koppeling naar de catalogus
+      CATALOG_BASE_URL: http://catalog-api:7000
+      # Optioneel bearer protectie
+      API_AUTH_TOKEN: ${API_AUTH_TOKEN}
+      FASTAPI_HOST: 0.0.0.0
+      FASTAPI_PORT: 8000
+      CORS_ORIGINS: ${CORS_ORIGINS}
+    depends_on:
+      - catalog-api
+    ports:
+      - "8000:8000"       # eventueel "10.3.152.3:8000:8000"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "- <<PY\nimport urllib.request, json, sys\nu='http://localhost:8000/api/health'\ntry:\n d=json.loads(urllib.request.urlopen(u, timeout=4).read().decode());\n sys.exit(0 if d.get('status')=='ok' else 1)\nexcept Exception:\n sys.exit(1)\nPY"]
+      interval: 30s
+      timeout: 5s
+      start_period: 10s
+      retries: 3
+
+
+  vectordb:
+    image: pgvector/pgvector:pg16
+    container_name: vectordb
+    environment:
+      POSTGRES_DB: vectordb
+      POSTGRES_USER: vector_user
+      POSTGRES_PASSWORD: <sterk_wachtwoord>
+    ports:
+      - "5433:5432"
+    volumes:
+      - ./vector_init:/docker-entrypoint-initdb.d
+    restart: unless-stopped
+
+  catalog-api:
+    container_name: catalog-api
+    build:
+      context: ./services/catalog_api
+      dockerfile: Dockerfile
+    env_file: .env
+    environment:
+      NAV_DB_HOST: ${NAV_DB_HOST}
+      NAV_DB_PORT: ${NAV_DB_PORT}
+      NAV_DB_NAME: ${NAV_DB_NAME}
+      NAV_DB_USER: ${NAV_DB_USER}
+      NAV_DB_PASSWORD: ${NAV_DB_PASSWORD}
+      API_AUTH_TOKEN: ${API_AUTH_TOKEN_CATALOG}   # optioneel apart token
+      FASTAPI_HOST: 0.0.0.0
+      FASTAPI_PORT: 7000
+      CORS_ORIGINS: ${CORS_ORIGINS}
+    depends_on:
+      - db
+    ports:
+      - "7000:7000"   # alleen nodig als je direct wilt testen; anders weghalen
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "- <<PY\nimport urllib.request, json, sys\nu='http://localhost:7000/health'\ntry:\n d=json.loads(urllib.request.urlopen(u, timeout=4).read().decode());\n sys.exit(0 if d.get('status')=='ok' else 1)\nexcept Exception:\n sys.exit(1)\nPY"]
+      interval: 30s
+      timeout: 5s
+      start_period: 10s
+      retries: 3
+
+  analyzer:
+    container_name: catalog-analyzer
+    build:
+      context: ./services/analyzer
+      dockerfile: Dockerfile
+    env_file: .env
+    environment:
+      NAV_DB_HOST: ${NAV_DB_HOST}
+      NAV_DB_PORT: ${NAV_DB_PORT}
+      NAV_DB_NAME: ${NAV_DB_NAME}
+      NAV_DB_USER: ${NAV_DB_USER}
+      NAV_DB_PASSWORD: ${NAV_DB_PASSWORD}
+      CATALOG_BASE_URL: http://catalog-api:7000
+      OLLAMA_HOST: ${OLLAMA_HOST}
+      DEFAULT_MODEL: ${DEFAULT_MODEL}
+    depends_on:
+      - catalog-api
+      - db
+    restart: unless-stopped
+    # Voorbeeld: start als daemon en draai periodiek taken
+    command: ["python","/app/worker.py"]
+
+  # Laat deze weg als je al een Postgres hebt.
+  db:
+    image: postgres:16
+    container_name: notifica-postgres
+    environment:
+      POSTGRES_DB: ${NAV_DB_NAME}
+      POSTGRES_USER: ${NAV_DB_USER}
+      POSTGRES_PASSWORD: ${NAV_DB_PASSWORD}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"   # alleen nodig voor externe tooling; anders weghalen
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${NAV_DB_USER} -d ${NAV_DB_NAME}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+
+volumes:
+  pgdata:
