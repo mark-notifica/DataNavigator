@@ -89,6 +89,15 @@ def run_batch_tables_by_config(ai_config_id: int, analysis_type: str, author: st
     model_used, temperature, max_tokens, model_config_source = get_model_config(analysis_type, ai_config)
     logging.info(f"[CONFIG] model={model_used}, temp={temperature}, max_tokens={max_tokens} voor analysis_type={analysis_type} (bron: {model_config_source})")
 
+    # Ensure analysis configuration is loaded BEFORE we use it to populate the run entry.
+    enabled_analyses = get_enabled_table_analysis_types()
+    if analysis_type not in enabled_analyses:
+        logging.error(f"[ABORT] Analyse '{analysis_type}' is niet ingeschakeld in de YAML-configuratie.")
+        # No run created — abort early.
+        return
+
+    analysis_config = enabled_analyses[analysis_type]
+
     run_id = create_analysis_run_entry(
         server=connection["host"],
         database=ai_config["ai_database_filter"],
@@ -99,9 +108,9 @@ def run_batch_tables_by_config(ai_config_id: int, analysis_type: str, author: st
         is_dry_run=dry_run,
         connection_id=connection["id"],
         ai_config_id=ai_config_id,
-        model_used=analysis_config.get("default_model", model_used),
-        temperature=analysis_config.get("temperature", temperature),
-        max_tokens=analysis_config.get("max_tokens", max_tokens),
+        model_used=analysis_config.get("default_model") or model_used,
+        temperature=analysis_config.get("temperature") or temperature,
+        max_tokens=analysis_config.get("max_tokens") or max_tokens,
         model_config_source=model_config_source
     )
 
@@ -148,13 +157,6 @@ def run_batch_tables_by_config(ai_config_id: int, analysis_type: str, author: st
         logging.info(f"[CONFIG] model={model_used}, temp={temperature}, max_tokens={max_tokens} via {model_config_source}")
         logging.info(f"[RUN] Start batch-analyse voor {len(tables)} tabellen (run_id={run_id})")
 
-        enabled_analyses = get_enabled_table_analysis_types()
-        if analysis_type not in enabled_analyses:
-            logging.error(f"[ABORT] Analyse '{analysis_type}' is niet ingeschakeld in de YAML-configuratie.")
-            mark_analysis_run_aborted(run_id, f"Analyse '{analysis_type}' niet geactiveerd")
-            return
-
-        analysis_config = enabled_analyses[analysis_type]
         allowed_types = analysis_config.get("allowed_table_types")
         if allowed_types:
             before_count = len(tables)
