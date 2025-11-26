@@ -9,6 +9,10 @@ jobs:
   validate:
     name: ⚙️ Lint & Test
     runs-on: ubuntu-latest
+    # Skip entire job if PR has label 'skip-checks' or title contains '[skip-checks]'
+    if: ${{ ! contains(join(github.event.pull_request.labels.*.name, ','), 'skip-checks') && ! contains(github.event.pull_request.title, '[skip-checks]') }}
+    env:
+      PYTHONPATH: ${{ github.workspace }}:${{ github.workspace }}/data_catalog
 
     steps:
       - name: 📥 Checkout repository

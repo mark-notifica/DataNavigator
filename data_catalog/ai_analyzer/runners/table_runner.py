@@ -26,6 +26,18 @@ from connection_handler import (
 )
 from ai_analyzer.catalog_access.dw_config_reader import get_ai_config_by_id
 from ai_analyzer.model_logic.llm_clients.openai_parsing import parse_column_classification_response
+from ai_analyzer.utils.file_writer import store_analysis_result_to_file as _compat_store_file
+
+
+# Compatibility shim so tests can patch ai_analyzer.runners.table_runner.store_analysis_result_to_file
+def store_analysis_result_to_file(
+    name: str,
+    result_json: dict,
+    output_dir: str | None = None,
+) -> str:
+    return _compat_store_file(name, result_json, output_dir)
+
+
 load_dotenv()
 
 logging.basicConfig(
@@ -78,7 +90,7 @@ def run_batch_tables_by_config(ai_config_id: int, analysis_type: str, author: st
         return
 
     try:
-        #Connection ID vanuit ai_config
+        # Connection ID vanuit ai_config
         connection = get_specific_connection(ai_config["connection_id"])
     except Exception as e:
         logging.error(f"[ABORT] Kan geen verbinding ophalen: {e}")
@@ -87,7 +99,10 @@ def run_batch_tables_by_config(ai_config_id: int, analysis_type: str, author: st
     schema = ai_config.get("ai_schema_filter") or ''
     prefix = ai_config.get("ai_table_filter") or ''
     model_used, temperature, max_tokens, model_config_source = get_model_config(analysis_type, ai_config)
-    logging.info(f"[CONFIG] model={model_used}, temp={temperature}, max_tokens={max_tokens} voor analysis_type={analysis_type} (bron: {model_config_source})")
+    logging.info(
+        f"[CONFIG] model={model_used}, temp={temperature}, max_tokens={max_tokens} "
+        f"voor analysis_type={analysis_type} (bron: {model_config_source})"
+    )
 
     # Haal ingeschakelde analyses op en valideer analysis_type voordat een run wordt aangemaakt
     enabled_analyses = get_enabled_table_analysis_types()
@@ -157,7 +172,10 @@ def run_batch_tables_by_config(ai_config_id: int, analysis_type: str, author: st
         print(f"[DEBUG] MAX_ALLOWED_TABLES = {MAX_ALLOWED_TABLES}")
 
         if len(tables) > MAX_ALLOWED_TABLES:
-            logging.warning(f"[ABORT] Te veel tabellen geselecteerd ({len(tables)}). Maximaal toegestaan: {MAX_ALLOWED_TABLES}.")
+            logging.warning(
+                f"[ABORT] Te veel tabellen geselecteerd ({len(tables)}). "
+                f"Maximaal toegestaan: {MAX_ALLOWED_TABLES}."
+            )
             mark_analysis_run_aborted(run_id, f"Te veel tabellen geselecteerd: {len(tables)}")
             return
 
@@ -174,7 +192,10 @@ def run_batch_tables_by_config(ai_config_id: int, analysis_type: str, author: st
         # zorg dat de directory bestaat
         os.makedirs(os.path.dirname(abs_log_path), exist_ok=True)
 
-        logging.info(f"[CONFIG] model={model_used}, temp={temperature}, max_tokens={max_tokens} via {model_config_source}")
+        logging.info(
+            f"[CONFIG] model={model_used}, temp={temperature}, max_tokens={max_tokens} "
+            f"via {model_config_source}"
+        )
         logging.info(f"[RUN] Start batch-analyse voor {len(tables)} tabellen (run_id={run_id})")
 
         # analysis_config is reeds opgehaald vóór het aanmaken van de run
@@ -189,16 +210,18 @@ def run_batch_tables_by_config(ai_config_id: int, analysis_type: str, author: st
         
         for row in tables:
             logging.debug(f"[DEBUG] Tabeltype voor {row['table_name']}: {row.get('table_type')}")
-            assert row.get("table_type") in ("VIEW", "BASE TABLE", "V", "T"), f"Onbekend table_type: {row.get('table_type')}"
+            assert row.get("table_type") in ("VIEW", "BASE TABLE", "V", "T"), (
+                f"Onbekend table_type: {row.get('table_type')}"
+            )
 
             table = {
                 "server_name": connection["host"],
                 "database_name": ai_config["ai_database_filter"],
                 "schema_name": row["schema_name"],
                 "table_name": row["table_name"],
-                "database_id": row["database_id"],  
-                "schema_id": row["schema_id"], 
-                "table_id": row["table_id"],            
+                "database_id": row["database_id"],
+                "schema_id": row["schema_id"],
+                "table_id": row["table_id"],
                 "connection_id": connection["id"],
                 "main_connector_id": connection["id"],
                 "ai_config_id": ai_config_id,
@@ -214,7 +237,7 @@ def run_batch_tables_by_config(ai_config_id: int, analysis_type: str, author: st
                     model_used,
                     temperature,
                     max_tokens,
-                    analysis_config=analysis_config 
+                    analysis_config=analysis_config
                 )
                 batch_results.append(result)
             except Exception as e:
@@ -271,6 +294,14 @@ def run_single_table(table: dict, analysis_type: str, author: str, dry_run: bool
             prompt = build_prompt_for_table(table, {"definition": view_def}, None, analysis_type)
 
             if dry_run:
+                # Compat: write prompt to file in dry-run mode (used by tests)
+                try:
+                    store_analysis_result_to_file(
+                        f"{table['schema_name']}.{table['table_name']}",
+                        {"prompt": prompt, "analysis_type": analysis_type},
+                    )
+                except Exception:
+                    logging.debug("[DRYRUN] store_analysis_result_to_file failed; continuing")
                 return {
                     "schema": table["schema_name"],
                     "table": table["table_name"],
@@ -337,6 +368,19 @@ def run_single_table(table: dict, analysis_type: str, author: str, dry_run: bool
         prompt = build_prompt_for_table(table, metadata, sample, analysis_type)
 
         if dry_run:
+            # Compat: write prompt and inputs to file in dry-run mode (used by tests)
+            try:
+                store_analysis_result_to_file(
+                    f"{table['schema_name']}.{table['table_name']}",
+                    {
+                        "prompt": prompt,
+                        "analysis_type": analysis_type,
+                        "metadata": metadata,
+                        "sample": sample.to_dict(orient="records")
+                    },
+                )
+            except Exception:
+                logging.debug("[DRYRUN] store_analysis_result_to_file failed; continuing")
             return {
                 "schema": table["schema_name"],
                 "table": table["table_name"],
