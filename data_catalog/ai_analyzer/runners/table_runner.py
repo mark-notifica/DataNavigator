@@ -108,9 +108,9 @@ def run_batch_tables_by_config(ai_config_id: int, analysis_type: str, author: st
         is_dry_run=dry_run,
         connection_id=connection["id"],
         ai_config_id=ai_config_id,
-        model_used=analysis_config.get("default_model") or model_used,
-        temperature=analysis_config.get("temperature") or temperature,
-        max_tokens=analysis_config.get("max_tokens") or max_tokens,
+        model_used=analysis_config.get("default_model") if analysis_config.get("default_model") is not None else model_used,
+        temperature=analysis_config.get("temperature") if analysis_config.get("temperature") is not None else temperature,
+        max_tokens=analysis_config.get("max_tokens") if analysis_config.get("max_tokens") is not None else max_tokens,
         model_config_source=model_config_source
     )
 
