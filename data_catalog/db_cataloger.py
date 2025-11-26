@@ -114,26 +114,38 @@ def fail_catalog_run(catalog_conn, run_id: int, message: str):
 
 # Node upserts --------------------------------------------------------
 
-def upsert_node(cur, node_type: str, name: str, qualified_name: str, run_id: int, props: Optional[Dict]=None) -> int:
+def upsert_node(cur, node_type: str, name: str, qualified_name: str, run_id: int, props: Optional[Dict] = None) -> int:
     cur.execute(
         """
         INSERT INTO catalog.nodes
-            (node_type, name, qualified_name, props, is_current, created_in_run_id, last_seen_run_id)
+            (node_type
+            , name
+            , qualified_name
+            , props
+            , created_in_run_id
+            , last_seen_run_id
+            )
         VALUES
-            (%s, %s, %s, %s, TRUE, %s, %s)
+            (%s
+            , %s
+            , %s
+            , %s
+            , %s
+            , %s
+            )
         ON CONFLICT (node_type, qualified_name) DO UPDATE
-           SET name = EXCLUDED.name
-             , props = COALESCE(EXCLUDED.props, catalog.nodes.props)
-             , is_current = TRUE
+           SET name             = EXCLUDED.name
+             , props            = COALESCE(EXCLUDED.props, catalog.nodes.props)
              , last_seen_run_id = EXCLUDED.last_seen_run_id
-             , updated_at = NOW()
+             , updated_at       = NOW()
              , deleted_in_run_id = NULL
-             , deleted_at = NULL
+             , deleted_at        = NULL
         RETURNING node_id
         """,
         (node_type, name, qualified_name, json.dumps(props or {}), run_id, run_id)
     )
     return cur.fetchone()[0]
+
 
 
 def upsert_database(cur, host: str, database: str, run_id: int) -> int:
