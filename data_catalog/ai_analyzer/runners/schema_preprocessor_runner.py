@@ -1,5 +1,4 @@
-
-# from ai_analyzer.preprocessor.graph_builder import main_graph_build
+from data_catalog.ai_analyzer.preprocessor.schema.graph_builder import main_graph_build
 from ai_analyzer.model_logic.dw_ai_config_utils import resolve_ai_config_and_connection
 
 def run_schema_preprocessor_by_config(ai_config_id: int, author: str = "system"):
