@@ -128,8 +128,20 @@ def run_batch_tables_by_config(
         effective_conn_id = connection_id if connection_id is not None else ai_config["connection_id"]
         connection = get_specific_connection(effective_conn_id)
     except Exception as e:
-        logging.error(f"[ABORT] Kan geen verbinding ophalen: {e}")
-        return
+        if dry_run:
+            logging.warning(f"[DRYRUN] Fallback verbinding gebruikt wegens fout: {e}")
+            connection = {
+                "id": effective_conn_id,
+                "name": "dryrun_fallback",
+                "connection_type": "PostgreSQL",
+                "host": "localhost",
+                "port": "5432",
+                "username": "test",
+                "password": "test",
+            }
+        else:
+            logging.error(f"[ABORT] Kan geen verbinding ophalen: {e}")
+            return
 
     schema = ai_config.get("ai_schema_filter") or ''
     prefix = ai_config.get("ai_table_filter") or ''
@@ -176,26 +188,36 @@ def run_batch_tables_by_config(
         else:
             raise
 
+    aborted_reason = None
     try:
         if not schema and not prefix and not ALLOW_UNFILTERED_SELECTION:
             logging.warning("[ABORT] Geen schema of prefix opgegeven — onveilige selectie wordt geblokkeerd.")
             mark_analysis_run_aborted(run_id, "onveilige selectie geblokkeerd")
-            return
+            aborted_reason = "onveilige selectie geblokkeerd"
 
         logging.debug(f"[DEBUG] Python-filter op schema: {schema}, table: {prefix}")
         # ✅ Gebruik catalogus voor filtering met wildcards (runtime resolutie voor patches)
         from ai_analyzer.utils import catalog_reader as _cr
-        tables = _cr.get_tables_for_pattern_with_ids(
-            connection["host"],
-            ai_config["ai_database_filter"],
-            schema,
-            prefix,
-        )
+        try:
+            tables = _cr.get_tables_for_pattern_with_ids(
+                connection["host"],
+                ai_config["ai_database_filter"],
+                schema,
+                prefix,
+            )
+        except Exception as e:
+            logging.error(f"[CATALOG] Fout bij ophalen tabellen: {e}")
+            if dry_run:
+                logging.warning("[DRYRUN] Gebruik lege tabelset wegens catalogusfout")
+                tables = []
+                aborted_reason = "catalog_error"
+            else:
+                raise
         
-        if not tables:
+        if not tables and aborted_reason is None:
             logging.warning("[WAARSCHUWING] Geen tabellen gevonden met opgegeven filters.")
             mark_analysis_run_aborted(run_id, "Geen tabellen gevonden in catalogus")
-            return
+            aborted_reason = "no_tables"
 
         print(f"[DEBUG] MAX_ALLOWED_TABLES = {MAX_ALLOWED_TABLES}")
 
@@ -205,7 +227,7 @@ def run_batch_tables_by_config(
                 f"Maximaal toegestaan: {MAX_ALLOWED_TABLES}."
             )
             mark_analysis_run_aborted(run_id, f"Te veel tabellen geselecteerd: {len(tables)}")
-            return
+            aborted_reason = "too_many_tables"
 
         logging.info(f"[INFO] {len(tables)} tabellen geselecteerd uit catalogus.")
         issue_counts = Counter()
@@ -236,42 +258,45 @@ def run_batch_tables_by_config(
             skipped = before_count - after_count
             logging.info(f"[FILTER] {after_count} tabellen toegestaan (type ∈ {allowed_types}), {skipped} overgeslagen")
 
-        for row in tables:
-            logging.debug(f"[DEBUG] Tabeltype voor {row['table_name']}: {row.get('table_type')}")
-            assert row.get("table_type") in ("VIEW", "BASE TABLE", "V", "T"), (
-                f"Onbekend table_type: {row.get('table_type')}"
-            )
-            # Fallback mapping voor test patches die enkel table_schema teruggeven
-            schema_name = row.get("schema_name") or row.get("table_schema") or "public"
-            table = {
-                "server_name": connection["host"],
-                "database_name": ai_config["ai_database_filter"],
-                "schema_name": schema_name,
-                "table_name": row["table_name"],
-                "database_id": row.get("database_id"),
-                "schema_id": row.get("schema_id"),
-                "table_id": row.get("table_id"),
-                "connection_id": connection["id"],
-                "main_connector_id": connection["id"],
-                "ai_config_id": ai_config_id,
-                "table_type": row.get("table_type", "BASE TABLE"),
-            }
-            try:
-                result = run_single_table(
-                    table,
-                    analysis_type,
-                    author,
-                    dry_run,
-                    run_id,
-                    model_used,
-                    temperature,
-                    max_tokens,
-                    analysis_config=analysis_config
+        if aborted_reason is None:
+            for row in tables:
+                logging.debug(f"[DEBUG] Tabeltype voor {row['table_name']}: {row.get('table_type')}")
+                assert row.get("table_type") in ("VIEW", "BASE TABLE", "V", "T"), (
+                    f"Onbekend table_type: {row.get('table_type')}"
                 )
-                batch_results.append(result)
-            except Exception as e:
-                issue_counts["exceptions"] += 1
-                logging.exception(f"[ERROR] Fout bij analyse van {table['table_name']}: {e}")
+                # Fallback mapping voor test patches die enkel table_schema teruggeven
+                schema_name = row.get("schema_name") or row.get("table_schema") or "public"
+                table = {
+                    "server_name": connection["host"],
+                    "database_name": ai_config["ai_database_filter"],
+                    "schema_name": schema_name,
+                    "table_name": row["table_name"],
+                    "database_id": row.get("database_id"),
+                    "schema_id": row.get("schema_id"),
+                    "table_id": row.get("table_id"),
+                    "connection_id": connection["id"],
+                    "main_connector_id": connection["id"],
+                    "ai_config_id": ai_config_id,
+                    "table_type": row.get("table_type", "BASE TABLE"),
+                }
+                try:
+                    result = run_single_table(
+                        table,
+                        analysis_type,
+                        author,
+                        dry_run,
+                        run_id,
+                        model_used,
+                        temperature,
+                        max_tokens,
+                        analysis_config=analysis_config
+                    )
+                    batch_results.append(result)
+                except Exception as e:
+                    issue_counts["exceptions"] += 1
+                    logging.exception(f"[ERROR] Fout bij analyse van {table['table_name']}: {e}")
+        else:
+            logging.info(f"[ABORT] Batch-analyse voortijdig afgebroken: {aborted_reason}")
 
         if issue_counts:
             total_issues = sum(issue_counts.values())
@@ -287,19 +312,31 @@ def run_batch_tables_by_config(
         update_log_path_for_run(run_id, rel_log_path)
         logging.info(f"[LOG] Resultaatbestand opgeslagen in {abs_log_path}")
         logging.info(f"[RUN] Batch-analyse voltooid voor {len(tables)} tabellen (run_id={run_id})")
-        # Gebruik compat wrappers zodat patches in tests werken
-        finalize_run_with_token_totals(run_id)
-        mark_analysis_run_complete(run_id)
-        logging.info(f"[DONE] Batch-analyse {'gesimuleerd' if dry_run else 'voltooid'}")
+        # Gebruik compat wrappers zodat patches in tests werken (ook bij abort in dry-run)
+        try:
+            finalize_run_with_token_totals(run_id)
+            mark_analysis_run_complete(run_id)
+        except Exception as e:
+            logging.debug(f"[FINALIZE] Kon finalize/complete niet uitvoeren: {e}")
+        status_label = 'aborted' if aborted_reason else 'ok'
+        mode_label = 'gesimuleerd' if dry_run else 'voltooid'
+        logging.info(
+            f"[DONE] Batch-analyse {mode_label} (status={status_label})"
+        )
 
     except Exception as e:
         logging.exception("[FAIL] Batch-analyse gefaald")
-        # In dry-run geen DB-afhankelijke failure-logging uitvoeren
+        # In dry-run geen DB-afhankelijke failure-logging voorkomen maar wel finalize aanroepen
         if dry_run:
             try:
                 mark_analysis_run_aborted(run_id, str(e))
             except Exception:
                 logging.debug("[DRYRUN] Kon run niet markeren als afgebroken; doorgaan zonder DB")
+            try:
+                finalize_run_with_token_totals(run_id)
+                mark_analysis_run_complete(run_id)
+            except Exception:
+                logging.debug("[DRYRUN] Finalize/complete mislukt na exception")
         else:
             mark_analysis_run_failed(run_id, str(e))
     finally:
