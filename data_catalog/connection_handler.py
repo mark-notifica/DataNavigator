@@ -45,6 +45,21 @@ def get_catalog_connection():
         logger.error(f"Fout bij verbinden met catalogus: {e}")
         raise
 
+# ------------------------------------------------------------------
+# Compatibility shim: expose get_specific_connection via connection_handler
+# Actual implementation resides in data_catalog.dw_cataloger
+# ------------------------------------------------------------------
+def get_specific_connection(connection_id: int):
+    try:
+        from data_catalog.dw_cataloger import get_specific_connection as _real
+    except ImportError as e:
+        raise ImportError("dw_cataloger.get_specific_connection niet beschikbaar") from e
+    result = _real(connection_id)
+    # dw_cataloger returns a list of one RealDict; normalize to dict
+    if isinstance(result, list) and result:
+        return dict(result[0])
+    return result
+
 # ---------------------------------------
 # Low-level helpers: fetch uit config.connections
 # ---------------------------------------
@@ -138,6 +153,19 @@ def _build_sqlalchemy_url(conn_info: Dict[str, Any], database_name: Optional[str
         return sa.engine.URL.create(drivername="mssql+pyodbc", query={"odbc_connect": odbc})
 
     raise ValueError(f"Onbekend connection_type: {driver}")
+
+
+def build_sqlalchemy_engine(conn_info: Dict[str, Any], database_name: Optional[str] = None):
+    """
+    Compat helper: bouw een SQLAlchemy Engine op basis van conn_info.
+    Wordt gebruikt door tests en older call-sites in samples.
+
+    Parameters:
+        conn_info: dictionary met o.a. connection_type, host, port, username, password
+        database_name: optionele override voor database
+    """
+    url = _build_sqlalchemy_url(conn_info, database_name=database_name)
+    return create_engine(url, pool_pre_ping=True, future=True)
 
 @lru_cache(maxsize=128)
 def get_engine_for_connection(conn_id: int, database_name: Optional[str] = None):

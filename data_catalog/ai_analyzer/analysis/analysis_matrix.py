@@ -71,6 +71,13 @@ ANALYSIS_TYPES = {
     }
 }
 
+# Backwards-compatibility aliases used by legacy tests/configs
+# table_description → base_table_analysis
+# column_profiler   → column_classification
+ANALYSIS_TYPES["table_description"] = ANALYSIS_TYPES["base_table_analysis"]
+ANALYSIS_TYPES["column_profiler"] = ANALYSIS_TYPES["column_classification"]
+
+
 SCHEMA_ANALYSIS_TYPES = {
     "schema_context": {
         "label": "Overzicht van het schema",
