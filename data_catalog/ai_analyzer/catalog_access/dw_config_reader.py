@@ -1,6 +1,14 @@
 from data_catalog.connection_handler import get_catalog_connection
 import psycopg2.extras
 
+
+def get_ai_config_by_id(config_id: int) -> dict | None:
+    """Compat alias voor tests die get_ai_config_by_id verwachten.
+
+    Intern hergebruik van get_dw_ai_config_by_id (AI-specifieke configs).
+    """
+    return get_dw_ai_config_by_id(config_id)
+
 def get_dw_ai_config_by_id(config_id: int) -> dict | None:
     """
     Haalt 1 record op uit config.dw_connection_config voor AI-doeleinden.

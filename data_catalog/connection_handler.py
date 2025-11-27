@@ -901,3 +901,18 @@ def fetch_connection_type_registry(*, active_only: bool = True) -> List[Dict]:
         rows = q_all(sql)
 
     return [dict(r._mapping) for r in rows] if rows else []
+
+
+# ------------------------------------------------------------------
+# Compatibility shim for legacy imports in tests expecting
+# data_catalog.connection_handler.get_ai_config_by_id
+# Actual implementation lives in ai_analyzer.catalog_access.dw_config_reader
+# ------------------------------------------------------------------
+def get_ai_config_by_id(ai_config_id: int):  # noqa: D401
+    """Proxy naar dw_config_reader.get_ai_config_by_id (compat for tests)."""
+    try:
+        from ai_analyzer.catalog_access.dw_config_reader import get_ai_config_by_id as _real
+    except ImportError as e:  # pragma: no cover
+        raise ImportError("dw_config_reader module niet gevonden voor get_ai_config_by_id") from e
+    return _real(ai_config_id)
+
