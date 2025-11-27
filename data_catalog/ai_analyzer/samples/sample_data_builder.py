@@ -81,6 +81,14 @@ def get_sample_data_for_base_table_analysis(table: dict) -> pd.DataFrame:
     return fetch_sample_data(table, analysis_type="base_table_analysis")
 
 
+def get_sample_data_for_table_description(table: dict) -> pd.DataFrame:
+    """Alias voor legacy tests.
+
+    Table description gebruikt dezelfde sampler als base table analysis.
+    """
+    return get_sample_data_for_base_table_analysis(table)
+
+
 def get_sample_data_for_column_classification(table: dict) -> pd.DataFrame:
     return fetch_sample_data(table, analysis_type="column_classification")
 

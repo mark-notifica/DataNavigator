@@ -1,0 +1,19 @@
+{
+  "prompt": "📊 Doel: Beoordeel of de tabel `fact_sales` nog in gebruik is.\n- Is er voldoende actuele data aanwezig?\n- Zijn er tijdstempels of kolommen met wijzigingsdata?\n- Is er spreiding in de datums, of lijkt alles oud of statisch?\n\nVoorbeelddata:\n\n{'id': 1}",
+  "analysis_type": "data_presence_analysis",
+  "metadata": [
+    {
+      "column_name": "id",
+      "data_type": "int"
+    },
+    {
+      "column_name": "naam",
+      "data_type": "text"
+    }
+  ],
+  "sample": [
+    {
+      "id": 1
+    }
+  ]
+}

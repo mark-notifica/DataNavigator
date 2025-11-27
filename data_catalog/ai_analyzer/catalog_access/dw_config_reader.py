@@ -1,6 +1,7 @@
 import os
-from data_catalog.connection_handler import get_catalog_connection
+import psycopg2
 import psycopg2.extras
+from data_catalog.connection_handler import get_catalog_connection
 
 
 def get_ai_config_by_id(config_id: int) -> dict | None:
@@ -10,6 +11,7 @@ def get_ai_config_by_id(config_id: int) -> dict | None:
     """
     return get_dw_ai_config_by_id(config_id)
 
+ 
 def get_dw_ai_config_by_id(config_id: int) -> dict | None:
     """
     Haalt 1 record op uit config.dw_connection_config voor AI-doeleinden.
@@ -31,10 +33,9 @@ def get_dw_ai_config_by_id(config_id: int) -> dict | None:
                 return None
             except Exception as e:
                 # Fallback wanneer tabel niet bestaat (UndefinedTable) of DB niet bereikbaar
-                import psycopg2
                 if isinstance(e, psycopg2.errors.UndefinedTable):
                     return _fallback_ai_config(config_id)
-                # Voor andere fouten: log en geef fallback
+                # Voor andere fouten: geef fallback
                 return _fallback_ai_config(config_id)
     finally:
         conn.close()

@@ -1,0 +1,10 @@
+[
+  {
+    "schema": "public",
+    "table": "mock_table",
+    "type": "table",
+    "status": "skipped",
+    "reason": "no_sample_data",
+    "prompt": null
+  }
+]
