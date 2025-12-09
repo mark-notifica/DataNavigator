@@ -1,6 +1,7 @@
 from ai_analyzer.prompts.prompt_builder import build_prompt_for_table,  build_prompt_for_schema
 from ai_analyzer.samples.sample_data_builder import (
     get_sample_data_for_base_table_analysis,
+    get_sample_data_for_table_description,
     get_sample_data_for_column_classification,
     get_sample_data_for_data_quality,
     get_sample_data_for_data_presence
@@ -41,7 +42,8 @@ ANALYSIS_TYPES = {
     "column_description": {  # ✅ nieuw: beschrijving per kolom, los van classificatie
         "label": "Kolombeschrijving",
         "prompt_builder": build_prompt_for_table,
-        # Heb je nog geen aparte sampler? Hergebruik die van base_table, of maak later get_sample_data_for_column_description
+        # Heb je nog geen aparte sampler? Hergebruik die van base_table,
+        # of maak later get_sample_data_for_column_description
         "sample_data_function": get_sample_data_for_base_table_analysis,
         "description_target": "column",
         "default_model": "gpt-4",
@@ -70,6 +72,14 @@ ANALYSIS_TYPES = {
         "allowed_table_types": ["BASE TABLE", "VIEW"]
     }
 }
+
+# Backwards-compatibility aliases used by legacy tests/configs
+# table_description → base_table_analysis
+# column_profiler   → column_classification
+ANALYSIS_TYPES["table_description"] = ANALYSIS_TYPES["base_table_analysis"].copy()
+ANALYSIS_TYPES["table_description"]["sample_data_function"] = get_sample_data_for_table_description
+ANALYSIS_TYPES["column_profiler"] = ANALYSIS_TYPES["column_classification"]
+
 
 SCHEMA_ANALYSIS_TYPES = {
     "schema_context": {

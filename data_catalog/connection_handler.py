@@ -2,15 +2,13 @@ import os
 import logging
 from functools import lru_cache
 from typing import Optional, Dict, Any, Tuple, List
-
 import psycopg2
 import psycopg2.extras
 import pyodbc
 import sqlalchemy as sa
 from dotenv import load_dotenv
-from data_catalog.db import q_all,q_one,exec_tx
+from data_catalog.db import q_all, q_one, exec_tx
 from sqlalchemy import create_engine
-from typing import Optional
 import pandas as pd
 
 
@@ -30,6 +28,8 @@ CATALOG_DB_CONFIG = {
     "user": os.getenv("NAV_DB_USER"),
     "password": os.getenv("NAV_DB_PASSWORD"),
 }
+
+
 def get_catalog_connection():
     """
     PostgreSQL connectie naar de catalogusdatabase (DataNavigator).
@@ -38,17 +38,34 @@ def get_catalog_connection():
     try:
         conn = psycopg2.connect(**CATALOG_DB_CONFIG)
         logger.debug(
-            f"Verbonden met catalogus: {CATALOG_DB_CONFIG['host']}:{CATALOG_DB_CONFIG['port']}/{CATALOG_DB_CONFIG['database']}"
+            f"Verbonden met catalogus: {CATALOG_DB_CONFIG['host']}:"
+            f"{CATALOG_DB_CONFIG['port']}/{CATALOG_DB_CONFIG['database']}"
         )
         return conn
     except Exception as e:
         logger.error(f"Fout bij verbinden met catalogus: {e}")
         raise
 
+
+# ------------------------------------------------------------------
+# Compatibility shim: expose get_specific_connection via connection_handler
+# Actual implementation resides in data_catalog.dw_cataloger
+# ------------------------------------------------------------------
+def get_specific_connection(connection_id: int):
+    try:
+        from data_catalog.dw_cataloger import get_specific_connection as _real
+    except ImportError as e:
+        raise ImportError("dw_cataloger.get_specific_connection niet beschikbaar") from e
+    result = _real(connection_id)
+    # dw_cataloger returns a list of one RealDict; normalize to dict
+    if isinstance(result, list) and result:
+        return dict(result[0])
+    return result
+
+
 # ---------------------------------------
 # Low-level helpers: fetch uit config.connections
 # ---------------------------------------
-
 def get_all_main_connectors() -> list[dict]:
     rows = q_all("""
         SELECT *
@@ -78,6 +95,7 @@ def get_main_connector_by_name(name: str) -> Dict[str, Any]:
             return row
     finally:
         conn.close()
+
 
 def get_main_connector_by_id(connection_id: int) -> Dict[str, Any]:
     """Haalt één actieve hoofdconnectie op o.b.v. ID."""
@@ -139,6 +157,20 @@ def _build_sqlalchemy_url(conn_info: Dict[str, Any], database_name: Optional[str
 
     raise ValueError(f"Onbekend connection_type: {driver}")
 
+
+def build_sqlalchemy_engine(conn_info: Dict[str, Any], database_name: Optional[str] = None):
+    """
+    Compat helper: bouw een SQLAlchemy Engine op basis van conn_info.
+    Wordt gebruikt door tests en older call-sites in samples.
+
+    Parameters:
+        conn_info: dictionary met o.a. connection_type, host, port, username, password
+        database_name: optionele override voor database
+    """
+    url = _build_sqlalchemy_url(conn_info, database_name=database_name)
+    return create_engine(url, pool_pre_ping=True, future=True)
+
+
 @lru_cache(maxsize=128)
 def get_engine_for_connection(conn_id: int, database_name: Optional[str] = None):
     """
@@ -147,6 +179,7 @@ def get_engine_for_connection(conn_id: int, database_name: Optional[str] = None)
     conn_info = get_main_connector_by_id(conn_id)
     url = _build_sqlalchemy_url(conn_info, database_name=database_name)
     return create_engine(url, pool_pre_ping=True, future=True)
+
 
 def dispose_engine(conn_id: int, database_name: Optional[str] = None):
     """Dispose & cache clear (na cred-wijzigingen)."""
@@ -206,6 +239,7 @@ def connect_to_source_database(conn_info: Dict[str, Any], database_name: Optiona
 # Discovery
 # ---------------------------------------
 
+
 def get_databases_on_server(connection_info: Dict[str, Any]) -> List[str]:
     """
     Haal lijst met databases op voor een server (alleen user DBs).
@@ -254,6 +288,7 @@ def get_databases_on_server(connection_info: Dict[str, Any]) -> List[str]:
 # Test helpers – koppelen aan config_handler (catalog-varianten)
 # ---------------------------------------
 
+
 def _ping_db(conn_id: int) -> Tuple[bool, str]:
     """Uitvoeren van een simpele SELECT 1 via SQLAlchemy."""
     try:
@@ -263,6 +298,7 @@ def _ping_db(conn_id: int) -> Tuple[bool, str]:
         return True, "OK"
     except Exception as ex:
         return False, f"{type(ex).__name__}: {ex}"
+
 
 def test_dw_catalog_with_config(cfg_id: int, conn_id: int, set_status: bool = True) -> Tuple[bool, str]:
     """
@@ -274,6 +310,7 @@ def test_dw_catalog_with_config(cfg_id: int, conn_id: int, set_status: bool = Tr
         set_dw_catalog_last_test_result(cfg_id, "OK" if ok else "ERROR", msg)
     return ok, msg
 
+
 def test_pbi_catalog_with_config(cfg_id: int, conn_id: int, set_status: bool = True) -> Tuple[bool, str]:
     """
     Test de hoofdverbinding en schrijf (optioneel) last_test_* naar config.pbi_catalog_config.
@@ -283,6 +320,7 @@ def test_pbi_catalog_with_config(cfg_id: int, conn_id: int, set_status: bool = T
         from .config_crud import set_pbi_catalog_last_test_result
         set_pbi_catalog_last_test_result(cfg_id, "OK" if ok else "ERROR", msg)
     return ok, msg
+
 
 def test_dl_catalog_with_config(cfg_id: int, conn_id: int, set_status: bool = True) -> Tuple[bool, str]:
     """
@@ -298,8 +336,10 @@ def test_dl_catalog_with_config(cfg_id: int, conn_id: int, set_status: bool = Tr
 # Backwards compatibility wrappers
 # ---------------------------------------
 
+
 def get_connection_by_name(name: str) -> Dict[str, Any]:
     return get_main_connector_by_name(name)
+
 
 # Historische naamgeving behouden:
 def get_catalog_config_by_name(name: str):
@@ -308,6 +348,7 @@ def get_catalog_config_by_name(name: str):
     Wrapper blijft bestaan voor oude call-sites (haalt alleen hoofdconnectie op).
     """
     return get_main_connector_by_name(name)
+
 
 def get_ai_config_by_name(name: str):
     """
@@ -332,6 +373,7 @@ def load_mapping_df() -> pd.DataFrame:
         ORDER  BY display_name
     """)
     return pd.DataFrame([dict(r._mapping) for r in rows])
+
 
 def list_connections_df(include_orphans: bool = False) -> pd.DataFrame:
     if include_orphans:
@@ -375,6 +417,7 @@ def list_connections_df(include_orphans: bool = False) -> pd.DataFrame:
             ORDER  BY c.id DESC
         """)
     return pd.DataFrame([dict(r._mapping) for r in rows])
+
 
 def upsert_connection_row(conn_id: Optional[int], connection_name: str, connection_type: str) -> int:
     exists = q_one("""
@@ -420,6 +463,7 @@ def upsert_connection_row(conn_id: Optional[int], connection_name: str, connecti
         """, {"n": connection_name.strip(), "t": connection_type})
     return int(row[0])
 
+
 def set_connection_last_test_result(conn_id: int, status: Optional[str], notes: Optional[str]) -> None:
     exec_tx("""
         UPDATE config.connections
@@ -430,6 +474,7 @@ def set_connection_last_test_result(conn_id: int, status: Optional[str], notes: 
          WHERE id = :id
            AND deleted_at IS NULL
     """, {"id": conn_id, "s": (status or "").strip() or None, "notes": (notes or "").strip() or None})
+
 
 def clear_connection_last_test_result(conn_id: int) -> None:
     exec_tx("""
@@ -442,6 +487,7 @@ def clear_connection_last_test_result(conn_id: int) -> None:
            AND deleted_at IS NULL
     """, {"id": conn_id})
 
+
 def deactivate_connection(conn_id: int) -> None:
     exec_tx("""
         UPDATE config.connections
@@ -450,6 +496,7 @@ def deactivate_connection(conn_id: int) -> None:
          WHERE id = :id
            AND deleted_at IS NULL
     """, {"id": conn_id})
+
 
 def reactivate_connection(conn_id: int) -> None:
     exec_tx("""
@@ -460,6 +507,7 @@ def reactivate_connection(conn_id: int) -> None:
            AND deleted_at IS NULL
     """, {"id": conn_id})
 
+
 def soft_delete_connection(conn_id: int) -> None:
     exec_tx("""
         UPDATE config.connections
@@ -468,6 +516,7 @@ def soft_delete_connection(conn_id: int) -> None:
          WHERE id = :id
            AND deleted_at IS NULL
     """, {"id": conn_id})
+
 
 def get_connection_row_by_id(conn_id: int) -> dict | None:
     row = q_one("""
@@ -487,6 +536,7 @@ def get_connection_row_by_id(conn_id: int) -> dict | None:
     """, {"id": conn_id})
     return dict(row._mapping) if row else None
 
+
 def restore_soft_deleted_connection(conn_id: int) -> None:
     exec_tx("""
         UPDATE config.connections
@@ -500,6 +550,8 @@ def restore_soft_deleted_connection(conn_id: int) -> None:
 # ---------------------------------------
 
 # ---------------- Secrets helpers ----------------
+
+
 def fetch_secret(ref_key: Optional[str]) -> Optional[str]:
     if not ref_key:
         return None
@@ -509,6 +561,7 @@ def fetch_secret(ref_key: Optional[str]) -> Optional[str]:
         WHERE  ref_key = :k
     """, {"k": ref_key})
     return (row and row[0]) or None
+
 
 def save_secret(ref_key: str, value: str):
     exec_tx("""
@@ -520,9 +573,11 @@ def save_secret(ref_key: str, value: str):
          ,  updated_at   = now()
     """, {"k": ref_key, "v": value})
 
+
 def _norm(s: Optional[str]) -> Optional[str]:
     s = (s or "").strip()
     return s or None
+
 
 def _details_exists(table: str, connection_id: int) -> bool:
     row = q_one(f"""
@@ -532,6 +587,7 @@ def _details_exists(table: str, connection_id: int) -> bool:
         LIMIT  1
     """, {"id": connection_id})
     return bool(row)
+
 
 def fetch_dw_details(connection_id: int, with_secret: bool = False) -> dict | None:
     print(f"[fetch_dw_details] called for {connection_id}")
@@ -571,20 +627,21 @@ def update_dw_details(*args, **kwargs) -> None:
         raise ValueError(f"dw_connection_details voor connection_id={connection_id} bestaat nog niet")
     upsert_dw_details(*args, **kwargs)
 
-def upsert_dw_details(connection_id: int
-                    , engine_type: str
-                    , host: Optional[str]
-                    , port: Optional[str | int]
-                    , default_database: Optional[str]
-                    , username: Optional[str]
-                    , ssl_mode: Optional[str]
-                    , password_plain: Optional[str]) -> None:
+
+def upsert_dw_details(connection_id: int,
+                      engine_type: str,
+                      host: Optional[str],
+                      port: Optional[str | int],
+                      default_database: Optional[str],
+                      username: Optional[str],
+                      ssl_mode: Optional[str],
+                      password_plain: Optional[str]) -> None:
     # Normalisatie
     et = _norm(engine_type)
-    h  = _norm(host)
+    h = _norm(host)
     db = _norm(default_database)
-    u  = _norm(username)
-    ssl= _norm(ssl_mode)
+    u = _norm(username)
+    ssl = _norm(ssl_mode)
 
     # Port cast
     if isinstance(port, str):
@@ -636,6 +693,7 @@ def upsert_dw_details(connection_id: int
                                           , config.dw_connection_details.secret_ref)
              , updated_at       = CURRENT_TIMESTAMP
     """, {"id": connection_id, "et": et, "h": h, "p": p, "db": db, "u": u, "ssl": ssl, "sref": secret_ref})
+
 
 def fetch_pbi_local_details(connection_id: int) -> dict | None:
     row = q_one("""
@@ -722,18 +780,18 @@ def upsert_pbi_local_details(connection_id: int, folder_path: str) -> None:
     """, {"id": connection_id, "fp": fp})
 
 
-def upsert_pbi_service_details(connection_id: int
-                             , tenant_id: Optional[str]
-                             , client_id: Optional[str]
-                             , auth_method: str
-                             , secret_value: Optional[str]
-                             , default_workspace_id: Optional[str]
-                             , default_workspace_name: Optional[str]) -> None:
-    tid  = _norm(tenant_id)
-    cid  = _norm(client_id)
+def upsert_pbi_service_details(connection_id: int,
+                               tenant_id: Optional[str],
+                               client_id: Optional[str],
+                               auth_method: str,
+                               secret_value: Optional[str],
+                               default_workspace_id: Optional[str],
+                               default_workspace_name: Optional[str]) -> None:
+    tid = _norm(tenant_id)
+    cid = _norm(client_id)
     auth = _norm(auth_method) or "DEVICE_CODE"
     dwid = _norm(default_workspace_id)
-    dwn  = _norm(default_workspace_name)
+    dwn = _norm(default_workspace_name)
 
     # (Optioneel) whitelist auth_method
     # allowed = {"DEVICE_CODE", "CLIENT_SECRET", "MSI"}
@@ -780,6 +838,7 @@ def upsert_pbi_service_details(connection_id: int
     """, {"id": connection_id, "tid": tid, "cid": cid, "auth": auth,
           "sref": secret_ref, "dwid": dwid, "dwn": dwn})
 
+
 def fetch_dl_details(connection_id: int, with_secret: bool = False) -> dict | None:
     row = q_one("""
         SELECT d.connection_id
@@ -815,18 +874,18 @@ def update_dl_details(*args, **kwargs) -> None:
     upsert_dl_details(*args, **kwargs)
 
 
-def upsert_dl_details(connection_id: int
-                    , storage_type: str
-                    , endpoint_url: Optional[str]
-                    , bucket_or_container: Optional[str]
-                    , base_path: Optional[str]
-                    , auth_method: Optional[str]
-                    , access_key_or_secret: Optional[str]) -> None:
-    st   = _norm(storage_type)
-    ep   = _norm(endpoint_url)
-    boc  = _norm(bucket_or_container)
-    bp   = _norm(base_path)
-    am   = _norm(auth_method)
+def upsert_dl_details(connection_id: int,
+                      storage_type: str,
+                      endpoint_url: Optional[str],
+                      bucket_or_container: Optional[str],
+                      base_path: Optional[str],
+                      auth_method: Optional[str],
+                      access_key_or_secret: Optional[str]) -> None:
+    st = _norm(storage_type)
+    ep = _norm(endpoint_url)
+    boc = _norm(bucket_or_container)
+    bp = _norm(base_path)
+    am = _norm(auth_method)
 
     # (Optioneel) whitelist storage_type/auth_method
     # st_allowed = {"S3", "AZURE_BLOB", "AZURE_DFS", "MINIO", "GCS"}
@@ -869,6 +928,7 @@ def upsert_dl_details(connection_id: int
              , updated_at          = CURRENT_TIMESTAMP
     """, {"id": connection_id, "st": st, "ep": ep, "boc": boc, "bp": bp, "am": am, "sref": secret_ref})
 
+
 def fetch_connection_type_registry(*, active_only: bool = True) -> List[Dict]:
     """
     Load the live registry of supported connection types from
@@ -901,3 +961,17 @@ def fetch_connection_type_registry(*, active_only: bool = True) -> List[Dict]:
         rows = q_all(sql)
 
     return [dict(r._mapping) for r in rows] if rows else []
+
+
+# ------------------------------------------------------------------
+# Compatibility shim for legacy imports in tests expecting
+# data_catalog.connection_handler.get_ai_config_by_id
+# Actual implementation lives in ai_analyzer.catalog_access.dw_config_reader
+# ------------------------------------------------------------------
+def get_ai_config_by_id(ai_config_id: int):  # noqa: D401
+    """Proxy naar dw_config_reader.get_ai_config_by_id (compat for tests)."""
+    try:
+        from ai_analyzer.catalog_access.dw_config_reader import get_ai_config_by_id as _real
+    except ImportError as e:  # pragma: no cover
+        raise ImportError("dw_config_reader module niet gevonden voor get_ai_config_by_id") from e
+    return _real(ai_config_id)

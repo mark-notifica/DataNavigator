@@ -2,18 +2,30 @@ import os
 import logging
 from dotenv import load_dotenv
 from openai import OpenAI
-from openai.types.chat import ChatCompletion
-from openai.types.chat.chat_completion import ChatCompletionMessage
-from openai.types.chat.chat_completion_message_param import ChatCompletionMessageParam
-from openai.types.chat.chat_completion_message_tool_call import ChatCompletionMessageToolCall
 
-# ⬇️ Laad .env
 load_dotenv()
 
-# ⬇️ Init OpenAI client
-client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+# Lazy client initialisatie zodat tests zonder OPENAI_API_KEY niet falen bij import.
+_client = None
+
+
+def _get_client():
+    global _client
+    if _client is not None:
+        return _client
+    api_key = os.getenv("OPENAI_API_KEY")
+    if not api_key:
+        return None  # geen key → simulate modus gebruiken in analyze_with_openai
+    try:
+        _client = OpenAI(api_key=api_key)
+    except Exception as e:
+        logging.warning(f"[OPENAI] Kan client niet initialiseren: {e}; fallback naar simulate mode")
+        _client = None
+    return _client
 
 # ⬇️ Tarieven per 1000 tokens
+
+
 COST_PER_1K = {
     "gpt-4": float(os.getenv("COST_GPT4", 0.09)),
     "gpt-4o": float(os.getenv("COST_GPT4O", 0.02)),
@@ -31,15 +43,26 @@ def analyze_with_openai(
     """
     Analyseert een prompt met het opgegeven OpenAI-model (v1.x).
     """
-    if dry_run:
-        logging.info(f"[DRY RUN] Simulatie — model={model}, temp={temperature}, max_tokens={max_tokens}")
+    client = _get_client()
+
+    if dry_run or client is None:
+        reason = "dry_run_enabled" if dry_run else "no_api_key"
+        logging.info(
+            f"[SIMULATE] Geen real call (reason={reason}) — model={model}, temp={temperature}, max_tokens={max_tokens}"
+        )
         return {
             "prompt": prompt,
             "result": "[simulatie]",
-            "issues": ["dry_run_enabled"],
+            "issues": [reason],
             "model_used": model,
             "temperature": temperature,
-            "max_tokens": max_tokens
+            "max_tokens": max_tokens,
+            "tokens": {
+                "prompt": 0,
+                "completion": 0,
+                "total": 0,
+                "estimated_cost_usd": 0.0,
+            },
         }
 
     try:

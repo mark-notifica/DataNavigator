@@ -1,4 +1,5 @@
 import os
+import pytest
 import glob
 import builtins
 import json
@@ -12,6 +13,15 @@ print = builtins.print
 # Laad .env om correcte output dir te gebruiken
 load_dotenv(dotenv_path=".env", override=True)
 
+RUN_REAL_DB_TESTS = os.getenv("RUN_REAL_DB_TESTS") == "1"
+NAV_DB_HOST = os.getenv("NAV_DB_HOST")
+NAV_DB_NAME = os.getenv("NAV_DB_NAME")
+
+
+@pytest.mark.skipif(
+    not RUN_REAL_DB_TESTS or not NAV_DB_HOST or not NAV_DB_NAME,
+    reason="Real DB tests uitgeschakeld of NAV_DB_* niet geconfigureerd"
+)
 def test_dryrun_real_config_column_classification():
     print("TEST START")
 
@@ -49,4 +59,3 @@ def test_dryrun_real_config_column_classification():
 
     print(f"[TEST] Laatste logfile geldig: {latest}")
     print("TEST END")
-
