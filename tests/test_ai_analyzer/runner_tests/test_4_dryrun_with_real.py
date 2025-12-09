@@ -1,12 +1,17 @@
+import os
 import pytest
-from ai_analyzer.runners.table_runner import run_batch_tables_by_config
+from data_catalog.ai_analyzer.runners.table_runner import run_batch_tables_by_config
+
+RUN_REAL_DB_TESTS = os.getenv("RUN_REAL_DB_TESTS") == "1"
+NAV_DB_HOST = os.getenv("NAV_DB_HOST")
+NAV_DB_NAME = os.getenv("NAV_DB_NAME")
 
 
+@pytest.mark.skipif(
+    not RUN_REAL_DB_TESTS or not NAV_DB_HOST or not NAV_DB_NAME,
+    reason="Real DB tests uitgeschakeld of NAV_DB_* niet geconfigureerd"
+)
 def test_3_dryrun_with_real_data():
-    """
-    🧪 TESTTYPE: Dry run met echte catalogus + brondatabase
-    🧪 DOEL: Verifieert dat echte metadata wordt opgehaald en prompts gegenereerd zonder OpenAI-call
-    """
     run_batch_tables_by_config(
         connection_id=6,
         ai_config_id=1,
