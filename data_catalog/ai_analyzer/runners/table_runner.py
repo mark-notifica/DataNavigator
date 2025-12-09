@@ -1,10 +1,9 @@
-import logging
 from collections import Counter
 import os
 import json
 from dotenv import load_dotenv
-import logging
 import sys
+import logging
 
 # Belangrijk: catalogusfuncties worden bij aanroep heropgehaald uit het modulepad
 # zodat unittest patches op ai_analyzer.utils.catalog_reader goed doorwerken.
@@ -84,8 +83,8 @@ try:
 except ValueError:
     MAX_ALLOWED_TABLES = 500
     logging.warning("[WAARSCHUWING] AI_MAX_ALLOWED_TABLES bevat geen geldige integer — fallback naar 500")
-    
-ALLOW_UNFILTERED_SELECTION = os.getenv("AI_ALLOW_UNFILTERED_SELECTION", "false").lower() == "true"
+
+ALLOW_UNFILTERED_SELECTION: bool = os.getenv("AI_ALLOW_UNFILTERED_SELECTION", "false").lower() == "true"
 
 
 def get_enabled_table_analysis_types() -> dict:
@@ -108,7 +107,7 @@ def get_enabled_table_analysis_types() -> dict:
     combined = merge_analysis_configs(yaml_config, matrix)
     return combined
 
- 
+
 def run_batch_tables_by_config(
     ai_config_id: int,
     analysis_type: str,
@@ -213,7 +212,7 @@ def run_batch_tables_by_config(
                 aborted_reason = "catalog_error"
             else:
                 raise
-        
+
         if not tables and aborted_reason is None:
             logging.warning("[WAARSCHUWING] Geen tabellen gevonden met opgegeven filters.")
             mark_analysis_run_aborted(run_id, "Geen tabellen gevonden in catalogus")
@@ -352,7 +351,7 @@ def run_batch_tables_by_config(
         except Exception:
             logging.debug("[FINALIZE] Bronverbinding niet gesloten (dry-run of fout) — doorgaan")
 
- 
+
 def run_single_table(
     table: dict,
     analysis_type: str,
@@ -629,4 +628,3 @@ def run_single_table(
             "status": "error",
             "message": str(e)
         }
-

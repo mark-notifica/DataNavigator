@@ -32,6 +32,7 @@ if __name__ == "__main__":
     log_dir = script_dir / 'logfiles' / 'database_server'
     log_dir.mkdir(parents=True, exist_ok=True)
 
+
 def load_connection_and_config(name_or_host):
     """
     Haalt de hoofdconnectie op en de bijbehorende catalog config (indien aanwezig).
@@ -40,6 +41,7 @@ def load_connection_and_config(name_or_host):
     main_conn_info = get_main_connector_by_name(name_or_host)
     catalog_config = get_catalog_config_by_main_connector_id(main_conn_info['id'])
     return main_conn_info, catalog_config
+
 
 def resolve_filters(main_conn_info, catalog_config):
     """
@@ -50,13 +52,13 @@ def resolve_filters(main_conn_info, catalog_config):
         db_filter = [db.strip() for db in catalog_config['catalog_database_filter'].split(',') if db.strip()]
     else:
         db_filter = None  # alles
-    
+
     # schema's
     if catalog_config and catalog_config.get('catalog_schema_filter'):
         schema_filter = [s.strip() for s in catalog_config['catalog_schema_filter'].split(',') if s.strip()]
     else:
         schema_filter = None
-    
+
     # tabellen
     if catalog_config and catalog_config.get('catalog_table_filter'):
         table_filter = [t.strip() for t in catalog_config['catalog_table_filter'].split(',') if t.strip()]
@@ -68,14 +70,22 @@ def resolve_filters(main_conn_info, catalog_config):
 
     return db_filter, schema_filter, table_filter, include_views, include_system_objects
 
+
 def get_summary_template():
     return {
-        'databases_added': 0, 'databases_updated': 0, 'databases_deleted': 0, 'databases_processed': 0, 'databases_unchanged': 0,
-        'schemas_added': 0, 'schemas_updated': 0, 'schemas_deleted': 0, 'schemas_processed': 0, 'schemas_unchanged': 0,
-        'tables_added': 0, 'tables_updated': 0, 'tables_deleted': 0, 'tables_processed': 0, 'tables_unchanged': 0,
-        'views_added': 0, 'views_updated': 0, 'views_deleted': 0, 'views_processed': 0, 'views_unchanged': 0,
-        'view_definitions_added': 0, 'view_definitions_updated': 0, 'view_definitions_deleted': 0, 'view_definitions_processed': 0, 'view_definitions_unchanged': 0,
-        'columns_added': 0, 'columns_updated': 0, 'columns_deleted': 0, 'columns_processed': 0, 'columns_unchanged': 0
+        'databases_added': 0, 'databases_updated': 0, 'databases_deleted': 0,
+        'databases_processed': 0, 'databases_unchanged': 0,
+        'schemas_added': 0, 'schemas_updated': 0, 'schemas_deleted': 0,
+        'schemas_processed': 0, 'schemas_unchanged': 0,
+        'tables_added': 0, 'tables_updated': 0, 'tables_deleted': 0,
+        'tables_processed': 0, 'tables_unchanged': 0,
+        'views_added': 0, 'views_updated': 0, 'views_deleted': 0,
+        'views_processed': 0, 'views_unchanged': 0,
+        'view_definitions_added': 0, 'view_definitions_updated': 0,
+        'view_definitions_deleted': 0, 'view_definitions_processed': 0,
+        'view_definitions_unchanged': 0,
+        'columns_added': 0, 'columns_updated': 0, 'columns_deleted': 0,
+        'columns_processed': 0, 'columns_unchanged': 0
     }
 
 
@@ -149,53 +159,58 @@ def catalog_multiple_databases(
 
     return summary
 
+
 def setup_logging_with_run_id(catalog_run_id=None):
     """Setup logging with optional run ID in filename"""
     # Clear any existing handlers first
     logger = logging.getLogger(__name__)
     for handler in logger.handlers[:]:
         logger.removeHandler(handler)
-    
+
     # Clear root logger handlers too
     for handler in logging.root.handlers[:]:
         logging.root.removeHandler(handler)
-    
+
     # Create logfiles directory structure
     script_dir = Path(__file__).parent  # data_catalog directory
     log_dir = script_dir / 'logfiles' / 'database_server'
     log_dir.mkdir(parents=True, exist_ok=True)
-    
+
     # Include run ID in log filename if available
     timestamp = datetime.datetime.now().strftime('%Y%m%d_%H%M%S')
     if catalog_run_id:
         log_filename = log_dir / f"catalog_extraction_{timestamp}_run_{catalog_run_id}.log"
     else:
         log_filename = log_dir / f"catalog_extraction_{timestamp}.log"
-    
+
     # Setup new handlers
     log_handler = RotatingFileHandler(str(log_filename), maxBytes=5*1024*1024, backupCount=5)
     console_handler = logging.StreamHandler()
-    
+
     logging.basicConfig(
         level=logging.DEBUG,
         format='%(asctime)s [%(levelname)s] %(message)s',
         handlers=[log_handler, console_handler],
         force=True  # Force reconfiguration
     )
-    
+
     # Return path relative to PROJECT ROOT (not data_catalog)
     # Go up one level from script_dir to get to project root
     project_root = script_dir.parent
     relative_path = log_filename.relative_to(project_root)
-    
+
     return str(relative_path)  # Returns: data_catalog/logfiles/database_server/catalog_extraction_xxx.log
+
 
 def main():
     """Main cataloging process, based on connection ID and catalog config ID."""
 
     parser = argparse.ArgumentParser(description='Catalog database metadata')
     parser.add_argument('--connection-id', type=int, required=True, help='ID van de hoofdconnectie om te gebruiken')
-    parser.add_argument('--catalog-config-id', type=int, required=True, help='ID van de catalogusconfiguratie met filters')
+    parser.add_argument(
+        '--catalog-config-id', type=int, required=True,
+        help='ID van de catalogusconfiguratie met filters'
+    )
     args = parser.parse_args()
 
     logger.info("Starting catalog extraction process")
@@ -221,8 +236,14 @@ def main():
         databases_to_catalog = get_databases_on_server(connection_info)
 
     # Schema- en table-filter hetzelfde
-    schema_filter = parse_comma_separated_values(catalog_config['catalog_schema_filter']) if catalog_config['catalog_schema_filter'] else None
-    table_filter = parse_comma_separated_values(catalog_config['catalog_table_filter']) if catalog_config['catalog_table_filter'] else None
+    schema_filter = (
+        parse_comma_separated_values(catalog_config['catalog_schema_filter'])
+        if catalog_config['catalog_schema_filter'] else None
+    )
+    table_filter = (
+        parse_comma_separated_values(catalog_config['catalog_table_filter'])
+        if catalog_config['catalog_table_filter'] else None
+    )
 
     # Call cataloging
     summary = catalog_multiple_databases(
@@ -234,12 +255,14 @@ def main():
         include_views=catalog_config.get('include_views', False),
         include_system_objects=catalog_config.get('include_system_objects', False)
     )
-    
+
     log_final_summary(summary, schema_filter, table_filter)
+
 
 def parse_comma_separated_values(value):
     """Parse comma-separated string to list, or None als leeg."""
     return [item.strip() for item in value.split(",") if item.strip()] if value else None
+
 
 def resolve_databases_to_catalog(connection_info, databases_to_catalog):
     """Resolve databases to catalog based on user input or connection config."""
@@ -252,10 +275,12 @@ def resolve_databases_to_catalog(connection_info, databases_to_catalog):
             logger.info(f"No databases specified, defaulting to all databases: {databases_to_catalog}")
     return databases_to_catalog
 
+
 def update_summary(summary, connection_summary):
     """Update the main summary with connection-specific summary."""
     for key in summary:
         summary[key] += connection_summary.get(key, 0)
+
 
 def log_final_summary(summary, schema_filter, table_filter):
     """Log the final summary and applied filters."""
@@ -265,14 +290,14 @@ def log_final_summary(summary, schema_filter, table_filter):
         logger.info(f"Schema filter applied: {schema_filter}")
     else:
         logger.info("No schema filter applied. Processing all schemas.")
-    
+
     if table_filter:
         logger.info(f"Table filter applied: {table_filter}")
     else:
         logger.info("No table filter applied. Processing all tables.")
-    
+
     logger.info("Final Summary:")
-    
+
     # Log schemas summary
     logger.info("------ Schemas ------")
     logger.info(f"schemas_processed: {summary['schemas_processed']}")
@@ -280,7 +305,7 @@ def log_final_summary(summary, schema_filter, table_filter):
     logger.info(f"schemas_updated: {summary['schemas_updated']}")
     logger.info(f"schemas_deleted: {summary['schemas_deleted']}")
     logger.info(f"schemas_unchanged: {summary['schemas_unchanged']}")
-    
+
     # Log tables summary
     logger.info("------ Tables ------")
     logger.info(f"tables_processed: {summary['tables_processed']}")
@@ -288,7 +313,7 @@ def log_final_summary(summary, schema_filter, table_filter):
     logger.info(f"tables_updated: {summary['tables_updated']}")
     logger.info(f"tables_deleted: {summary['tables_deleted']}")
     logger.info(f"tables_unchanged: {summary['tables_unchanged']}")
-    
+
     # Log views summary
     logger.info("------ Views ------")
     logger.info(f"views_processed: {summary['views_processed']}")
@@ -296,7 +321,7 @@ def log_final_summary(summary, schema_filter, table_filter):
     logger.info(f"views_updated: {summary['views_updated']}")
     logger.info(f"views_deleted: {summary['views_deleted']}")
     logger.info(f"views_unchanged: {summary['views_unchanged']}")
-    
+
     # Log view definitions summary
     logger.info("------ View Definitions ------")
     logger.info(f"view_definitions_processed: {summary['view_definitions_processed']}")
@@ -304,7 +329,7 @@ def log_final_summary(summary, schema_filter, table_filter):
     logger.info(f"view_definitions_updated: {summary['view_definitions_updated']}")
     logger.info(f"view_definitions_deleted: {summary['view_definitions_deleted']}")
     logger.info(f"view_definitions_unchanged: {summary['view_definitions_unchanged']}")
-    
+
     # Log columns summary
     logger.info("------ Columns ------")
     logger.info(f"columns_processed: {summary['columns_processed']}")
@@ -324,10 +349,10 @@ def start_catalog_run(catalog_conn, connection_info, databases_to_catalog=None, 
         else:
             databases_info = json.dumps(databases_to_catalog)  # Store as JSON array
             databases_count = len(databases_to_catalog)
-        
+
         cursor.execute("""
-            INSERT INTO catalog.dw_catalog_runs 
-            (connection_id, catalog_config_id, connection_name, connection_type, connection_host, connection_port, 
+            INSERT INTO catalog.dw_catalog_runs
+            (connection_id, catalog_config_id, connection_name, connection_type, connection_host, connection_port,
             databases_to_catalog, databases_count, run_started_at, run_status)
             VALUES (%s, %s, %s, %s, %s, %s, %s, %s, CURRENT_TIMESTAMP, 'running')
             RETURNING id
@@ -341,80 +366,85 @@ def start_catalog_run(catalog_conn, connection_info, databases_to_catalog=None, 
             databases_info,
             databases_count
         ))
-        
+
         run_id = cursor.fetchone()[0]
-        
+
         # Setup logging with run ID (returns relative path)
         relative_log_filename = setup_logging_with_run_id(run_id)
-        
+
         # Store relative log filename in database
         cursor.execute("""
-            UPDATE catalog.dw_catalog_runs 
+            UPDATE catalog.dw_catalog_runs
             SET log_filename = %s
             WHERE id = %s
         """, (relative_log_filename, run_id))
-        
+
         # If databases_to_catalog was "all", get the actual count now
         if databases_info == "all":
             try:
                 actual_databases = get_databases_on_server(connection_info)
                 actual_count = len(actual_databases)
                 cursor.execute("""
-                    UPDATE catalog.dw_catalog_runs 
+                    UPDATE catalog.dw_catalog_runs
                     SET databases_count = %s,
                         databases_to_catalog = %s
                     WHERE id = %s
                 """, (actual_count, json.dumps(actual_databases), run_id))
             except Exception as e:
                 logger.warning(f"Could not determine exact database count: {e}")
-        
+
         catalog_conn.commit()
-        
+
         logger.info(f"Started dw catalog run {run_id} for connection {connection_info['name']}")
         logger.info(f"Databases to catalog: {databases_info}")
         logger.info(f"Expected database count: {databases_count}")
         logger.info(f"Relative log file path: {relative_log_filename}")
         return run_id
 
+
 def complete_catalog_run(catalog_conn, run_id, summary):
     """Mark catalog run as completed with summary stats"""
     logger.info(f"Starting completion of catalog run {run_id}")
-    
+
     try:
         with catalog_conn.cursor() as cursor:
             # Mark as completed
             cursor.execute("""
-                UPDATE catalog.dw_catalog_runs 
+                UPDATE catalog.dw_catalog_runs
                 SET run_completed_at = CURRENT_TIMESTAMP,
                     run_status = 'completed'
                 WHERE id = %s
             """, (run_id,))
-            
+
             # Check if update was successful
             if cursor.rowcount == 0:
                 logger.warning(f"No catalog run found with id {run_id} to complete")
                 return
-            
+
             # Commit the transaction
             catalog_conn.commit()
             logger.info(f"Successfully committed completion status for catalog run {run_id}")
-            
+
             # Get final counts for logging only
             cursor.execute("""
                 SELECT databases_processed, schemas_processed, tables_processed, views_processed, columns_processed
-                FROM catalog.dw_catalog_runs 
+                FROM catalog.dw_catalog_runs
                 WHERE id = %s
             """, (run_id,))
-            
+
             result = cursor.fetchone()
             if result:
                 databases_processed, schemas_processed, tables_processed, views_processed, columns_processed = result
-                logger.info(f"Completed catalog run {run_id} - processed {databases_processed} database(s), {schemas_processed} schema(s), {tables_processed} tables, {views_processed} views, {columns_processed} columns")
+                logger.info(
+                    f"Completed catalog run {run_id} - processed {databases_processed} database(s), "
+                    f"{schemas_processed} schema(s), {tables_processed} tables, "
+                    f"{views_processed} views, {columns_processed} columns"
+                )
             else:
                 logger.info(f"Completed catalog run {run_id}")
-                
+
             # logger.info(f"Summary stats: {summary}")
-            
+
     except Exception as e:
         logger.error(f"Failed to complete catalog run {run_id}: {str(e)}")
         try:
@@ -424,11 +454,12 @@ def complete_catalog_run(catalog_conn, run_id, summary):
             logger.error(f"Failed to rollback transaction: {str(rollback_error)}")
         raise
 
+
 def fail_catalog_run(catalog_conn, run_id, error_message):
     """Mark catalog run as failed with error message"""
     with catalog_conn.cursor() as cursor:
         cursor.execute("""
-            UPDATE catalog.dw_catalog_runs 
+            UPDATE catalog.dw_catalog_runs
             SET run_completed_at = CURRENT_TIMESTAMP,
                 run_status = 'failed',
                 error_message = %s
@@ -436,70 +467,72 @@ def fail_catalog_run(catalog_conn, run_id, error_message):
         """, (str(error_message), run_id))
         logger.error(f"Failed catalog run {run_id}: {error_message}")
 
-def upsert_database_temporal(catalog_conn, connection_info, catalog_run_id,summary):
+
+def upsert_database_temporal(catalog_conn, connection_info, catalog_run_id, summary):
     """Insert or create new version of database with temporal versioning"""
     with catalog_conn.cursor() as cursor:
         # Check if current record exists
         cursor.execute("""
-            SELECT id, server_name FROM catalog.dw_databases 
-            WHERE database_name = %s AND server_name = %s 
+            SELECT id, server_name FROM catalog.dw_databases
+            WHERE database_name = %s AND server_name = %s
             AND date_deleted IS NULL AND is_current = true
         """, (connection_info.get('database_name', ''), connection_info['host']))
-        
+
         result = cursor.fetchone()
-        
+
         if result:
             current_id, current_server = result
-            
+
             # Check if anything actually changed
             if current_server != connection_info['host']:
                 # Something changed - create new version
-                
+
                 # 1. Mark current record as no longer current
                 cursor.execute("""
-                    UPDATE catalog.dw_databases 
+                    UPDATE catalog.dw_databases
                     SET is_current = false,
                         date_updated = CURRENT_TIMESTAMP
                     WHERE id = %s
                 """, (current_id,))
-                
+
                 # 2. Insert new current version
                 cursor.execute("""
-                    INSERT INTO catalog.dw_databases 
+                    INSERT INTO catalog.dw_databases
                     (database_name, server_name, date_created, is_current, catalog_run_id)
                     VALUES (%s, %s, CURRENT_TIMESTAMP, true, %s)
                     RETURNING id
                 """, (
-                    connection_info.get('database_name', connection_info['name']), 
+                    connection_info.get('database_name', connection_info['name']),
                     connection_info['host'],
                     catalog_run_id
                 ))
-                
+
                 database_id = cursor.fetchone()[0]
                 summary['databases_updated'] += 1
-                logger.debug(f"Created new version of database: {connection_info.get('database_name', connection_info['name'])}")
-                
+                db_name = connection_info.get('database_name', connection_info['name'])
+                logger.debug(f"Created new version of database: {db_name}")
+
             else:
                 # No changes - don't update anything
                 database_id = current_id
-                
+
         else:
             # Insert new database (first time seeing it)
             cursor.execute("""
-                INSERT INTO catalog.dw_databases 
+                INSERT INTO catalog.dw_databases
                 (database_name, server_name, date_created, is_current, catalog_run_id)
                 VALUES (%s, %s, CURRENT_TIMESTAMP, true, %s)
                 RETURNING id
             """, (
-                connection_info.get('database_name', connection_info['name']), 
+                connection_info.get('database_name', connection_info['name']),
                 connection_info['host'],
                 catalog_run_id
             ))
-            
+
             database_id = cursor.fetchone()[0]
             summary['databases_added'] += 1
             logger.debug(f"Added new database: {connection_info.get('database_name', connection_info['name'])}")
-        
+
         return database_id
 
 
@@ -572,7 +605,8 @@ def catalog_single_database(
             source_conn.close()
 
     return summary
-            
+
+
 def initialize_progress():
     """Initialize progress tracking dictionary."""
     return {
@@ -582,6 +616,7 @@ def initialize_progress():
         'views_processed': 0,
         'columns_processed': 0
     }
+
 
 def process_schema(
     catalog_conn,
@@ -620,12 +655,19 @@ def process_schema(
         return
     logger.info(f"Found {len(tables)} tables in schema {schema_name} matching the filter.")
 
-    process_tables_and_views(catalog_conn, source_conn, schema_id, tables, schema_name, catalog_run_id, progress, summary)
+    process_tables_and_views(
+        catalog_conn, source_conn, schema_id, tables, schema_name,
+        catalog_run_id, progress, summary
+    )
 
     # Update progress after processing the schema
     update_run_progress(catalog_conn, catalog_run_id, progress)
 
-def process_tables_and_views(catalog_conn, source_conn, schema_id, tables, schema_name, catalog_run_id, progress, summary):
+
+def process_tables_and_views(
+    catalog_conn, source_conn, schema_id, tables, schema_name,
+    catalog_run_id, progress, summary
+):
     """Process tables and views for a schema."""
     view_definitions_batch = []
     current_view_names = []
@@ -637,14 +679,20 @@ def process_tables_and_views(catalog_conn, source_conn, schema_id, tables, schem
         if table_type in ('VIEW', 'V'):
             current_view_names.append(table_info['table_name'])
 
-            process_columns(catalog_conn, source_conn, schema_name, table_info, table_id, catalog_run_id, progress, summary)
-            
+            process_columns(
+                catalog_conn, source_conn, schema_name, table_info, table_id,
+                catalog_run_id, progress, summary
+            )
+
             if table_info.get('view_definition'):
                 view_definitions_batch.append((table_id, table_info['view_definition']))
             else:
                 logger.warning(f"View {table_info['table_name']} has no definition")
         elif table_type in ('BASE TABLE', 'TABLE', 'U'):
-            process_columns(catalog_conn, source_conn, schema_name, table_info, table_id, catalog_run_id, progress, summary)
+            process_columns(
+                catalog_conn, source_conn, schema_name, table_info, table_id,
+                catalog_run_id, progress, summary
+            )
         else:
             logger.warning(f"Unknown table_type '{table_type}' for {schema_name}.{table_info['table_name']}")
 
@@ -653,8 +701,8 @@ def process_tables_and_views(catalog_conn, source_conn, schema_id, tables, schem
         process_view_definitions_batch(catalog_conn, view_definitions_batch, catalog_run_id, progress, summary)
 
     # Mark deleted view definitions
-    mark_deleted_view_definitions_batch(catalog_conn, schema_id, current_view_names, catalog_run_id,summary)
-    
+    mark_deleted_view_definitions_batch(catalog_conn, schema_id, current_view_names, catalog_run_id, summary)
+
     # Calculate views_unchanged
     summary['views_unchanged'] = (
         summary['views_processed']
@@ -665,14 +713,15 @@ def process_tables_and_views(catalog_conn, source_conn, schema_id, tables, schem
     # Update progress after processing tables and views
     update_run_progress(catalog_conn, catalog_run_id, progress)
 
+
 def process_view_definitions_batch(catalog_conn, view_definitions_batch, catalog_run_id, progress, summary):
     """Process a batch of view definitions."""
     try:
         logger.debug(f"Processing batch of {len(view_definitions_batch)} view definitions")
-        
+
         # Perform batch processing
-        upsert_view_definitions_batch(catalog_conn, view_definitions_batch, catalog_run_id,summary)
-        
+        upsert_view_definitions_batch(catalog_conn, view_definitions_batch, catalog_run_id, summary)
+
         # Update progress and summary
         progress['views_processed'] += len(view_definitions_batch)
         summary['views_processed'] += len(view_definitions_batch)
@@ -682,18 +731,19 @@ def process_view_definitions_batch(catalog_conn, view_definitions_batch, catalog
         logger.error(f"Failed to process batch of view definitions: {e}")
         catalog_conn.rollback()
 
+
 def process_columns(catalog_conn, source_conn, schema_name, table_info, table_id, catalog_run_id, progress, summary):
     """Process columns for a table."""
-    connection_type = table_info.get('connection_type', 'PostgreSQL')  # Default to PostgreSQL if missing
     columns = get_source_columns(source_conn, schema_name, table_info['table_name'])
     for column_info in columns:
-        upsert_column_temporal(catalog_conn, table_id, column_info, catalog_run_id,summary)
+        upsert_column_temporal(catalog_conn, table_id, column_info, catalog_run_id, summary)
         progress['columns_processed'] += 1
-        summary['columns_processed'] += 1 
+        summary['columns_processed'] += 1
 
-                # Check if column was unchanged
+        # Check if column was unchanged
         if summary['columns_added'] == 0 and summary['columns_updated'] == 0 and summary['columns_deleted'] == 0:
             summary['columns_unchanged'] += 1
+
 
 def get_specific_connection(connection_id):
     """Get a specific connection by ID. Raises ValueError if not exactly one found."""
@@ -702,7 +752,7 @@ def get_specific_connection(connection_id):
         with catalog_conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cursor:
             cursor.execute("""
                 SELECT id, name, connection_type, host, port, username, password
-                FROM config.connections 
+                FROM config.connections
                 WHERE id = %s AND connection_type IN ('PostgreSQL', 'Azure SQL Server')
             """, (connection_id,))
             connections = cursor.fetchall()
@@ -720,6 +770,7 @@ def get_specific_connection(connection_id):
     finally:
         catalog_conn.close()
 
+
 def upsert_schema_temporal(catalog_conn, database_id, schema_name, catalog_run_id, summary):
     """Insert or update schema with temporal versioning."""
     with catalog_conn.cursor() as cursor:
@@ -735,7 +786,8 @@ def upsert_schema_temporal(catalog_conn, database_id, schema_name, catalog_run_i
         else:
             # Insert new schema
             cursor.execute("""
-                INSERT INTO catalog.dw_schemas (database_id, schema_name, date_created, is_current, catalog_run_id)
+                INSERT INTO catalog.dw_schemas
+                (database_id, schema_name, date_created, is_current, catalog_run_id)
                 VALUES (%s, %s, CURRENT_TIMESTAMP, true, %s)
                 RETURNING id
             """, (database_id, schema_name, catalog_run_id))
@@ -745,60 +797,63 @@ def upsert_schema_temporal(catalog_conn, database_id, schema_name, catalog_run_i
 
         return schema_id
 
+
 def upsert_table_temporal(catalog_conn, schema_id, table_info, catalog_run_id, summary):
     """Insert or create new version of table with temporal versioning"""
     with catalog_conn.cursor() as cursor:
         # Check if current record exists
         cursor.execute("""
-            SELECT id, table_type FROM catalog.dw_tables 
-            WHERE schema_id = %s AND table_name = %s 
+            SELECT id, table_type FROM catalog.dw_tables
+            WHERE schema_id = %s AND table_name = %s
             AND date_deleted IS NULL AND is_current = true
         """, (schema_id, table_info['table_name']))
-        
+
         result = cursor.fetchone()
-        
+
         if result:
             current_id, current_table_type = result
-            
+
             # Check if table type changed
             if current_table_type != table_info.get('table_type'):
                 # Table type changed - create new version
-                
+
                 # 1. Mark current record as no longer current
                 cursor.execute("""
-                    UPDATE catalog.dw_tables 
+                    UPDATE catalog.dw_tables
                     SET is_current = false,
                         date_updated = CURRENT_TIMESTAMP
                     WHERE id = %s
                 """, (current_id,))
-                
+
                 # 2. Insert new current version
                 cursor.execute("""
-                    INSERT INTO catalog.dw_tables (schema_id, table_name, table_type, date_created, is_current, catalog_run_id)
+                    INSERT INTO catalog.dw_tables
+                    (schema_id, table_name, table_type, date_created, is_current, catalog_run_id)
                     VALUES (%s, %s, %s, CURRENT_TIMESTAMP, true, %s)
                     RETURNING id
                 """, (schema_id, table_info['table_name'], table_info.get('table_type'), catalog_run_id))
-                
+
                 table_id = cursor.fetchone()[0]
                 summary['tables_updated'] += 1
                 logger.debug(f"Created new version of table: {table_info['table_name']}")
-                
+
             else:
                 # No changes - don't update anything
                 table_id = current_id
-                
+
         else:
             # Insert new table (first time seeing it)
             cursor.execute("""
-                INSERT INTO catalog.dw_tables (schema_id, table_name, table_type, date_created, is_current, catalog_run_id)
+                INSERT INTO catalog.dw_tables
+                (schema_id, table_name, table_type, date_created, is_current, catalog_run_id)
                 VALUES (%s, %s, %s, CURRENT_TIMESTAMP, true, %s)
                 RETURNING id
             """, (schema_id, table_info['table_name'], table_info.get('table_type'), catalog_run_id))
-            
+
             table_id = cursor.fetchone()[0]
             summary['tables_added'] += 1
             logger.debug(f"Added new table: {table_info['table_name']}")
-        
+
         return table_id
 
 
@@ -811,6 +866,7 @@ def get_all_view_definitions(source_conn, schema_name):
             WHERE table_schema = %s
         """, (schema_name,))
         return cursor.fetchall()
+
 
 def upsert_view_definitions_batch(catalog_conn, table_id_definitions, catalog_run_id, summary):
     """Insert or update view definitions in batch with temporal versioning."""
@@ -835,15 +891,16 @@ def upsert_view_definitions_batch(catalog_conn, table_id_definitions, catalog_ru
         table_ids = [data[0] for data in batch_data]
         placeholders = ','.join(['%s'] * len(table_ids))
         cursor.execute(f"""
-            SELECT vd.table_id, vd.definition_hash, t.table_name 
+            SELECT vd.table_id, vd.definition_hash, t.table_name
             FROM catalog.dw_view_definitions vd
             JOIN catalog.dw_tables t ON vd.table_id = t.id
-            WHERE vd.table_id IN ({placeholders}) 
-            AND vd.date_deleted IS NULL 
+            WHERE vd.table_id IN ({placeholders})
+            AND vd.date_deleted IS NULL
             AND vd.is_current = true
         """, table_ids)
 
-        existing_definitions = {row[0]: (row[1], row[2]) for row in cursor.fetchall()}  # Map table_id -> (definition_hash, table_name)
+        # Map table_id -> (definition_hash, table_name)
+        existing_definitions = {row[0]: (row[1], row[2]) for row in cursor.fetchall()}
 
         # Prepare data for updates and inserts
         updates = []
@@ -856,94 +913,104 @@ def upsert_view_definitions_batch(catalog_conn, table_id_definitions, catalog_ru
                     # Prepare update data
                     updates.append((table_id, view_definition, definition_hash, catalog_run_id, table_id))
                     summary['view_definitions_updated'] += 1  # Update summary for updated views
-                    logger.debug(f"Updated view definition for table '{table_name}' (type: view) with table_id {table_id}")
+                    logger.debug(
+                        f"Updated view definition for table '{table_name}' (type: view) with table_id {table_id}"
+                    )
                 else:
                     summary['view_definitions_unchanged'] += 1  # Update summary for unchanged views
-                    logger.debug(f"No changes for view definition for table '{table_name}' (type: view) with table_id {table_id}")
+                    logger.debug(
+                        f"No changes for view definition for table '{table_name}' (type: view) "
+                        f"with table_id {table_id}"
+                    )
             else:
                 # Prepare insert data
                 inserts.append((table_id, view_definition, definition_hash, catalog_run_id))
                 summary['view_definitions_added'] += 1  # Update summary for added views
                 logger.debug(f"Added new view definition for table_id {table_id}")
-        
+
         # Update the total number of view definitions processed
         summary['view_definitions_processed'] += len(batch_data)
-        
+
         # Execute batch updates
         if updates:
             cursor.executemany("""
-                UPDATE catalog.dw_view_definitions 
-                SET view_definition = %s, definition_hash = %s, catalog_run_id = %s, is_current = true, date_updated = CURRENT_TIMESTAMP
+                UPDATE catalog.dw_view_definitions
+                SET view_definition = %s, definition_hash = %s, catalog_run_id = %s,
+                    is_current = true, date_updated = CURRENT_TIMESTAMP
                 WHERE table_id = %s
             """, updates)
 
         # Execute batch inserts
         if inserts:
             cursor.executemany("""
-                INSERT INTO catalog.dw_view_definitions 
+                INSERT INTO catalog.dw_view_definitions
                 (table_id, view_definition, definition_hash, catalog_run_id, is_current)
                 VALUES (%s, %s, %s, %s, true)
             """, inserts)
 
-def mark_deleted_view_definitions_batch(catalog_conn, schema_id, current_view_names, catalog_run_id,summary):
+
+def mark_deleted_view_definitions_batch(
+    catalog_conn, schema_id, current_view_names, catalog_run_id, summary
+):
     """Mark view definitions as deleted in batch if their views no longer exist."""
     with catalog_conn.cursor() as cursor:
         if current_view_names:
             placeholders = ','.join(['%s'] * len(current_view_names))
             cursor.execute(f"""
-                SELECT vd.id, t.table_name 
+                SELECT vd.id, t.table_name
                 FROM catalog.dw_view_definitions vd
                 JOIN catalog.dw_tables t ON vd.table_id = t.id
-                WHERE t.schema_id = %s 
+                WHERE t.schema_id = %s
                 AND t.table_type = 'VIEW'
                 AND t.table_name NOT IN ({placeholders})
-                AND vd.is_current = true 
+                AND vd.is_current = true
                 AND vd.date_deleted IS NULL
             """, [schema_id] + current_view_names)
         else:
             # No views found - mark all current view definitions as deleted
             cursor.execute("""
-                SELECT vd.id, t.table_name 
+                SELECT vd.id, t.table_name
                 FROM catalog.dw_view_definitions vd
                 JOIN catalog.dw_tables t ON vd.table_id = t.id
-                WHERE t.schema_id = %s 
+                WHERE t.schema_id = %s
                 AND t.table_type = 'VIEW'
-                AND vd.is_current = true 
+                AND vd.is_current = true
                 AND vd.date_deleted IS NULL
             """, (schema_id,))
-        
+
         deleted_definitions = cursor.fetchall()
-        
+
         # Update all deleted definitions in a batch
         for def_id, view_name in deleted_definitions:
             cursor.execute("""
-                UPDATE catalog.dw_view_definitions 
+                UPDATE catalog.dw_view_definitions
                 SET is_current = false,
                     date_deleted = CURRENT_TIMESTAMP,
                     deleted_by_catalog_run_id = %s
                 WHERE id = %s
             """, (catalog_run_id, def_id))
-            
+
             logger.debug(f"Marked view definition for {view_name} as deleted")
-        
+
         # Update summary with the total number of deleted definitions
         summary['view_definitions_deleted'] += len(deleted_definitions)
 
-def upsert_column_temporal(catalog_conn, table_id, column_info, catalog_run_id,summary):
+
+def upsert_column_temporal(catalog_conn, table_id, column_info, catalog_run_id, summary):
     """Insert or create new version of column with temporal versioning"""
     with catalog_conn.cursor() as cursor:
         # Check if current record exists
         cursor.execute("""
-            SELECT id, data_type, is_nullable, column_default, ordinal_position FROM catalog.dw_columns 
-            WHERE table_id = %s AND column_name = %s 
+            SELECT id, data_type, is_nullable, column_default, ordinal_position FROM catalog.dw_columns
+            WHERE table_id = %s AND column_name = %s
             AND date_deleted IS NULL AND is_current = true
         """, (table_id, column_info['column_name']))
-        
+
         result = cursor.fetchone()
-        
+
         if result:
             current_id, current_data_type, current_nullable, current_default, current_position = result
-            
+
             # Check if anything changed
             changed = (
                 current_data_type != column_info['data_type'] or
@@ -951,23 +1018,26 @@ def upsert_column_temporal(catalog_conn, table_id, column_info, catalog_run_id,s
                 current_default != column_info['column_default'] or
                 current_position != column_info['ordinal_position']
             )
-            
+
             if changed:
                 # Column definition changed - create new version
-                
+
                 # 1. Mark current record as no longer current
                 cursor.execute("""
-                    UPDATE catalog.dwg_columns 
+                    UPDATE catalog.dwg_columns
                     SET is_current = false,
                         date_updated = CURRENT_TIMESTAMP
                     WHERE id = %s
                 """, (current_id,))
-                
+
                 # 2. Insert new current version
                 cursor.execute("""
-                    INSERT INTO catalog.dw_columns 
-                    (table_id, column_name, data_type, is_nullable, column_default, ordinal_position, date_created, is_current, catalog_run_id)
-                    VALUES (%s, %s, %s, %s, %s, %s, CURRENT_TIMESTAMP, true, %s)
+                    INSERT INTO catalog.dw_columns
+                    (table_id, column_name, data_type, is_nullable, column_default,
+                     ordinal_position, date_created, is_current, catalog_run_id)
+                    VALUES (
+                        %s, %s, %s, %s, %s, %s, CURRENT_TIMESTAMP, true, %s
+                    )
                 """, (
                     table_id,
                     column_info['column_name'],
@@ -977,17 +1047,18 @@ def upsert_column_temporal(catalog_conn, table_id, column_info, catalog_run_id,s
                     column_info['ordinal_position'],
                     catalog_run_id
                 ))
-                
+
                 summary['columns_updated'] += 1
                 logger.debug(f"Created new version of column: {column_info['column_name']}")
-                
+
             # If no changes, do nothing
-                
+
         else:
             # Insert new column (first time seeing it)
             cursor.execute("""
-                INSERT INTO catalog.dw_columns 
-                (table_id, column_name, data_type, is_nullable, column_default, ordinal_position, date_created, is_current, catalog_run_id)
+                INSERT INTO catalog.dw_columns
+                (table_id, column_name, data_type, is_nullable, column_default,
+                 ordinal_position, date_created, is_current, catalog_run_id)
                 VALUES (%s, %s, %s, %s, %s, %s, CURRENT_TIMESTAMP, true, %s)
             """, (
                 table_id,
@@ -998,26 +1069,28 @@ def upsert_column_temporal(catalog_conn, table_id, column_info, catalog_run_id,s
                 column_info['ordinal_position'],
                 catalog_run_id
             ))
-            
+
             summary['columns_added'] += 1
             logger.debug(f"Added new column: {column_info['column_name']}")
+
 
 def update_table_row_count_temporal(catalog_conn, table_id, row_count, catalog_run_id):
     """Update table row count with catalog run tracking"""
     with catalog_conn.cursor() as cursor:
         # Update main table
         cursor.execute("""
-            UPDATE catalog.dw_tables 
-            SET row_count_estimated = %s, 
+            UPDATE catalog.dw_tables
+            SET row_count_estimated = %s,
                 row_count_updated = CURRENT_TIMESTAMP
             WHERE id = %s AND is_current = true
         """, (row_count, table_id))
-        
+
         # Log in rowcounts table with run reference
         cursor.execute("""
             INSERT INTO catalog.dw_table_rowcounts (table_id, row_count_estimated, collected_at, catalog_run_id)
             VALUES (%s, %s, CURRENT_TIMESTAMP, %s)
         """, (table_id, row_count, catalog_run_id))
+
 
 # Add helper functions to extract data from source databases
 def get_source_schemas(source_conn):
@@ -1027,9 +1100,14 @@ def get_source_schemas(source_conn):
         # Azure SQL Server using pyodbc
         with source_conn.cursor() as cursor:
             cursor.execute("""
-                SELECT schema_name 
-                FROM information_schema.schemata 
-                WHERE schema_name NOT IN ('information_schema', 'sys', 'db_owner', 'db_accessadmin', 'db_securityadmin', 'db_ddladmin', 'db_backupoperator', 'db_datareader', 'db_datawriter', 'db_denydatareader', 'db_denydatawriter')
+                SELECT schema_name
+                FROM information_schema.schemata
+                WHERE schema_name NOT IN (
+                    'information_schema', 'sys', 'db_owner', 'db_accessadmin',
+                    'db_securityadmin', 'db_ddladmin', 'db_backupoperator',
+                    'db_datareader', 'db_datawriter', 'db_denydatareader',
+                    'db_denydatawriter'
+                )
                 ORDER BY schema_name
             """)
             return [row[0] for row in cursor.fetchall()]
@@ -1037,12 +1115,13 @@ def get_source_schemas(source_conn):
         # PostgreSQL using psycopg2
         with source_conn.cursor() as cursor:
             cursor.execute("""
-                SELECT schema_name 
-                FROM information_schema.schemata 
+                SELECT schema_name
+                FROM information_schema.schemata
                 WHERE schema_name NOT IN ('information_schema', 'pg_catalog', 'pg_toast')
                 ORDER BY schema_name
             """)
             return [row[0] for row in cursor.fetchall()]
+
 
 def get_source_tables(
     source_conn,
@@ -1157,6 +1236,7 @@ def get_source_tables(
                 'connection_type': connection_type
             } for row in cursor.fetchall()]
 
+
 def get_source_columns(source_conn, schema_name, table_name):
     """Get list of columns from source table"""
     if hasattr(source_conn, 'cursor') and 'pyodbc' in str(type(source_conn)):
@@ -1164,7 +1244,7 @@ def get_source_columns(source_conn, schema_name, table_name):
         with source_conn.cursor() as cursor:
             cursor.execute("""
                 SELECT column_name, data_type, is_nullable, column_default, ordinal_position
-                FROM information_schema.columns 
+                FROM information_schema.columns
                 WHERE table_schema = ? AND table_name = ?
                 ORDER BY ordinal_position
             """, schema_name, table_name)
@@ -1183,7 +1263,7 @@ def get_source_columns(source_conn, schema_name, table_name):
         with source_conn.cursor() as cursor:
             cursor.execute("""
                 SELECT column_name, data_type, is_nullable, column_default, ordinal_position
-                FROM information_schema.columns 
+                FROM information_schema.columns
                 WHERE table_schema = %s AND table_name = %s
                 ORDER BY ordinal_position
             """, (schema_name, table_name))
@@ -1198,9 +1278,10 @@ def get_source_columns(source_conn, schema_name, table_name):
                 for row in cursor.fetchall()
             ]
 
+
 def get_table_row_count(source_conn, schema_name, table_name, connection_type):
     """Get estimated row count for table (database-specific implementation)"""
-    
+
     if connection_type == 'PostgreSQL':
         return get_table_row_count_postgresql(source_conn, schema_name, table_name)
     elif connection_type == 'Azure SQL Server':
@@ -1209,6 +1290,7 @@ def get_table_row_count(source_conn, schema_name, table_name, connection_type):
         logger.warning(f"Row count not implemented for connection type: {connection_type}")
         return None
 
+
 def get_table_row_count_postgresql(source_conn, schema_name, table_name):
     """Get estimated row count for PostgreSQL table"""
     try:
@@ -1216,14 +1298,14 @@ def get_table_row_count_postgresql(source_conn, schema_name, table_name):
             # First try pg_stat_user_tables (fast but requires ANALYZE)
             cursor.execute("""
                 SELECT n_tup_ins - n_tup_del as row_count
-                FROM pg_stat_user_tables 
+                FROM pg_stat_user_tables
                 WHERE schemaname = %s AND relname = %s
             """, (schema_name, table_name))
             result = cursor.fetchone()
-            
+
             if result and result[0] is not None:
                 return result[0]
-            
+
             # Fallback to pg_class (less accurate but doesn't require ANALYZE)
             cursor.execute("""
                 SELECT c.reltuples::bigint as row_count
@@ -1233,10 +1315,11 @@ def get_table_row_count_postgresql(source_conn, schema_name, table_name):
             """, (schema_name, table_name))
             result = cursor.fetchone()
             return result[0] if result and result[0] else 0
-            
+
     except Exception as e:
         logger.warning(f"Could not get row count for {schema_name}.{table_name}: {e}")
         return None
+
 
 def get_table_row_count_sqlserver(source_conn, schema_name, table_name):
     """Get estimated row count for SQL Server table"""
@@ -1247,7 +1330,7 @@ def get_table_row_count_sqlserver(source_conn, schema_name, table_name):
                 FROM sys.tables t
                 INNER JOIN sys.partitions p ON t.object_id = p.object_id
                 INNER JOIN sys.schemas s ON t.schema_id = s.schema_id
-                WHERE s.name = ? AND t.name = ? 
+                WHERE s.name = ? AND t.name = ?
                 AND p.index_id IN (0,1)
             """, schema_name, table_name)
             result = cursor.fetchone()
@@ -1256,12 +1339,13 @@ def get_table_row_count_sqlserver(source_conn, schema_name, table_name):
         logger.warning(f"Could not get row count for {schema_name}.{table_name}: {e}")
         return None
 
+
 def update_run_progress(catalog_conn, catalog_run_id, progress):
     """Update catalog run progress in real-time"""
     try:
         with catalog_conn.cursor() as cursor:
             cursor.execute("""
-                UPDATE catalog.dw_catalog_runs 
+                UPDATE catalog.dw_catalog_runs
                 SET databases_processed = %s,
                     schemas_processed = %s,
                     tables_processed = %s,
@@ -1270,15 +1354,16 @@ def update_run_progress(catalog_conn, catalog_run_id, progress):
                 WHERE id = %s
             """, (
                 progress['databases_processed'],
-                progress['schemas_processed'], 
-                progress['tables_processed'],      
-                progress['views_processed'],       
+                progress['schemas_processed'],
+                progress['tables_processed'],
+                progress['views_processed'],
                 progress['columns_processed'],
                 catalog_run_id
             ))
             catalog_conn.commit()
     except Exception as e:
         logger.warning(f"Failed to update progress: {e}")
+
 
 if __name__ == "__main__":
     main()
