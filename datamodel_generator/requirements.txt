@@ -1,6 +1,5 @@
 PyYAML
 Jinja2
 streamlit
-pyyaml
 psycopg2
 graphviz
