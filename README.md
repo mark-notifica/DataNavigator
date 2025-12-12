@@ -7,6 +7,18 @@ An AI-powered data catalog that transforms "pretty solid" answers into audit-rea
 [![Status](https://img.shields.io/badge/status-in%20development-yellow)](https://github.com/mark-notifica/DataNavigator)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
+## 🔌 Connection Manager
+
+Manage and test connections to PostgreSQL, Azure SQL Server or Power BI semantic models directly from the web interface. Connections can be added, edited and removed without manual configuration files.
+
+## ⚙️ Catalog Execution
+
+Execute cataloging jobs for configured connections. Each run stores a log file so historical executions can be viewed and analysed later from the interface.
+
+## 🤖 AI Analyzer
+
+Analyze catalogued tables using an AI service. The generated JSON results help to further enrich the catalog with summaries and suggestions.
+
 ---
 
 ## 🎯 The Problem
