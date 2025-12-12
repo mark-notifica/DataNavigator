@@ -12,6 +12,7 @@ logging.basicConfig(level=logging.DEBUG)
 # Laad .env zodat AI_ANALYZER_OUTPUT_DIR wordt ingesteld
 load_dotenv(dotenv_path=".env", override=True)
 
+
 def run_live_column_classification():
     print("LIVE RUN START")
 

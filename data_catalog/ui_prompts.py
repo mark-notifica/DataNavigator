@@ -1,8 +1,7 @@
 import streamlit as st
 import pandas as pd
 import json
-from typing import Callable, Optional
-import uuid
+from typing import Optional
 
 from data_catalog.config_crud import (
     update_dw_catalog_config,
@@ -13,18 +12,60 @@ from data_catalog.config_service import (
     list_deactivated_configs,
     soft_delete_config,
     format_catalog_cfg_label,
-    list_deactivated_configs, 
-    soft_delete_config, 
     format_ai_cfg_label,
 )
 
 from data_catalog.connection_handler import fetch_connection_type_registry
+
 
 def _none_if_blank(val: str | None) -> str | None:
     if val is None:
         return None
     s = str(val).strip()
     return s if s else None
+
+
+def render_catalog_config_field_help(sc: str):
+    """
+    Single popover with all catalog-config guidance, tailored per type (dw/pbi/dl).
+    Call inside your create/edit form, just under the title.
+    """
+    sc = (sc or "").strip().lower()
+    with st.popover("ℹ️ Catalog settings explained"):
+
+        if sc == "dw":
+            st.markdown(
+                """
+**Database / Data Warehouse**
+- `database_filter` — e.g., `sales_*`
+- `schema_filter` — e.g., `*`
+- `table_filter` — e.g., `fact_*`
+
+> Tip: Use `*` initially and refine later.
+                """
+            )
+        elif sc == "pbi":
+            st.markdown(
+                """
+**Power BI**
+- `workspace_filter` — one or more workspaces
+- `model_filter` — specific PBIP/TMDL/BIM models
+- `table_filter` — targeted tables within a model
+
+> Tip: Start wide to inventory all available content.
+                """
+            )
+        elif sc == "dl":
+            st.markdown(
+                """
+**Data Lake**
+- `path_filter` — e.g., `/bronze/customers/`
+- `format_whitelist` — e.g., `parquet,csv`
+- `partition_filter` — include/exclude partitions
+
+> Tip: Begin broad; refine if scans become too large.
+                """
+            )
 
 
 def build_settings_for_type(short_code: str, form_values: dict) -> dict:
@@ -65,6 +106,7 @@ def build_settings_for_type(short_code: str, form_values: dict) -> dict:
 
     raise ValueError(f"Unknown short_code: {short_code}")
 
+
 def prompt_new_catalog_config(main_connection_id: int, short_code: str):
     sc = (short_code or "").strip().lower()
     with st.form(f"new_cfg_form_{main_connection_id}_{sc}"):
@@ -74,34 +116,34 @@ def prompt_new_catalog_config(main_connection_id: int, short_code: str):
 
         if sc == "dw":
             database_filter = st.text_input("Database filter", value="")
-            schema_filter   = st.text_input("Schema filter",   value="")
-            table_filter    = st.text_input("Tabel filter",    value="")
-            include_views   = st.checkbox("Include views", value=False)
-            include_sysobj  = st.checkbox("Include system objects", value=False)
-            notes           = st.text_area("Opmerkingen", value="", height=80)
+            schema_filter = st.text_input("Schema filter", value="")
+            table_filter = st.text_input("Tabel filter", value="")
+            include_views = st.checkbox("Include views", value=False)
+            include_sysobj = st.checkbox("Include system objects", value=False)
+            notes = st.text_area("Opmerkingen", value="", height=80)
 
         elif sc == "pbi":
-            workspace_filter     = st.text_input("Workspace filter", value="")
-            model_filter         = st.text_input("Model filter",     value="")
-            table_filter         = st.text_input("Tabel filter",     value="")
-            include_tmdl         = st.checkbox("Include TMDL", value=True)
-            include_model_bim    = st.checkbox("Include model.bim", value=False)
+            workspace_filter = st.text_input("Workspace filter", value="")
+            model_filter = st.text_input("Model filter", value="")
+            table_filter = st.text_input("Tabel filter", value="")
+            include_tmdl = st.checkbox("Include TMDL", value=True)
+            include_model_bim = st.checkbox("Include model.bim", value=False)
             respect_perspectives = st.checkbox("Respect perspectives", value=True)
-            notes                = st.text_area("Opmerkingen", value="", height=80)
+            notes = st.text_area("Opmerkingen", value="", height=80)
 
         elif sc == "dl":
-            path_filter        = st.text_input("Path filter", value="")
-            format_whitelist   = st.text_input("Format whitelist (csv;parquet;json)", value="")
-            partition_filter   = st.text_input("Partition filter", value="")
-            include_hidden     = st.checkbox("Include hidden files", value=False)
-            infer_schema       = st.checkbox("Infer schema", value=True)
-            notes              = st.text_area("Opmerkingen", value="", height=80)
+            path_filter = st.text_input("Path filter", value="")
+            format_whitelist = st.text_input("Format whitelist (csv;parquet;json)", value="")
+            partition_filter = st.text_input("Partition filter", value="")
+            include_hidden = st.checkbox("Include hidden files", value=False)
+            infer_schema = st.checkbox("Infer schema", value=True)
+            notes = st.text_area("Opmerkingen", value="", height=80)
         else:
             st.error(f"Onbekende short_code: {short_code}")
             return None, None
 
         submitted = st.form_submit_button("Aanmaken")
-        
+
         if not submitted:
             return None, None
 
@@ -139,11 +181,14 @@ def prompt_edit_catalog_config(cfg: dict):
             schema_filter = st.text_input("Schema filter", value=cfg.get("schema_filter") or "*")
             table_filter = st.text_input("Tabel filter", value=cfg.get("table_filter") or "*")
             include_views = st.checkbox("Include views", value=bool(cfg.get("include_views")))
-            include_system_objects = st.checkbox("Include system objects", value=bool(cfg.get("include_system_objects")))
+            include_system_objects = st.checkbox(
+                "Include system objects", value=bool(cfg.get("include_system_objects"))
+            )
             notes = st.text_area("Opmerkingen", value=cfg.get("notes") or "", height=80)
 
             submitted = st.form_submit_button("Wijzigingen opslaan")
-            if not submitted: return None, None
+            if not submitted:
+                return None, None
             new_settings = build_settings_for_type("dw", {
                 "database_filter": database_filter,
                 "schema_filter": schema_filter,
@@ -159,11 +204,14 @@ def prompt_edit_catalog_config(cfg: dict):
             table_filter = st.text_input("Tabel filter", value=cfg.get("table_filter") or "*")
             include_tmdl = st.checkbox("Include TMDL", value=bool(cfg.get("include_tmdl", True)))
             include_model_bim = st.checkbox("Include model.bim", value=bool(cfg.get("include_model_bim", False)))
-            respect_perspectives = st.checkbox("Respect perspectives", value=bool(cfg.get("respect_perspectives", True)))
+            respect_perspectives = st.checkbox(
+                "Respect perspectives", value=bool(cfg.get("respect_perspectives", True))
+            )
             notes = st.text_area("Opmerkingen", value=cfg.get("notes") or "", height=80)
 
             submitted = st.form_submit_button("Wijzigingen opslaan")
-            if not submitted: return None, None
+            if not submitted:
+                return None, None
             new_settings = build_settings_for_type("pbi", {
                 "workspace_filter": workspace_filter,
                 "model_filter": model_filter,
@@ -176,14 +224,18 @@ def prompt_edit_catalog_config(cfg: dict):
 
         elif sc == "dl":
             path_filter = st.text_input("Path filter", value=cfg.get("path_filter") or "*")
-            format_whitelist = st.text_input("Format whitelist (csv;parquet;json)", value=cfg.get("format_whitelist") or "")
+            format_whitelist = st.text_input(
+                "Format whitelist (csv;parquet;json)",
+                value=cfg.get("format_whitelist") or ""
+            )
             partition_filter = st.text_input("Partition filter", value=cfg.get("partition_filter") or "")
             include_hidden_files = st.checkbox("Include hidden files", value=bool(cfg.get("include_hidden_files", False)))
             infer_schema = st.checkbox("Infer schema", value=bool(cfg.get("infer_schema", True)))
             notes = st.text_area("Opmerkingen", value=cfg.get("notes") or "", height=80)
 
             submitted = st.form_submit_button("Wijzigingen opslaan")
-            if not submitted: return None, None
+            if not submitted:
+                return None, None
             new_settings = build_settings_for_type("dl", {
                 "path_filter": path_filter,
                 "format_whitelist": format_whitelist,
@@ -192,7 +244,6 @@ def prompt_edit_catalog_config(cfg: dict):
                 "infer_schema": infer_schema,
                 "notes": notes,
             })
-
         else:
             st.error(f"Onbekende short_code: {sc}")
             return None, None
@@ -213,6 +264,7 @@ def save_test_status(short_code: str, conn_id: int, cfg_id: int, status: str, no
     else:
         update_dl_catalog_config(conn_id, cfg_id, patch)
 
+
 def clear_test_status(short_code: str, conn_id: int, cfg_id: int):
     patch = {"last_test_status": None, "last_test_notes": None}
     if short_code == "dw":
@@ -221,6 +273,7 @@ def clear_test_status(short_code: str, conn_id: int, cfg_id: int):
         update_pbi_catalog_config(conn_id, cfg_id, patch)
     else:
         update_dl_catalog_config(conn_id, cfg_id, patch)
+
 
 def render_catalog_config_details(cfg: dict, sc: str):
     """Toont details van een gekozen catalog-config, afhankelijk van short_code."""
@@ -240,8 +293,14 @@ def render_catalog_config_details(cfg: dict, sc: str):
             st.write("**Database filter:**", cfg.get("database_filter", "—"))
             st.write("**Schema filter:**", cfg.get("schema_filter", "—"))
             st.write("**Tabel filter:**", cfg.get("table_filter", "—"))
-            st.write("**Include views:**", "Ja" if cfg.get("include_views") else "Nee")
-            st.write("**Include system objects:**", "Ja" if cfg.get("include_system_objects") else "Nee")
+            st.write(
+                "**Include views:**",
+                "Ja" if cfg.get("include_views") else "Nee"
+            )
+            st.write(
+                "**Include system objects:**",
+                "Ja" if cfg.get("include_system_objects") else "Nee"
+            )
 
         elif sc == "pbi":
             st.write("**Workspace filter:**", cfg.get("workspace_filter", "—"))
@@ -319,7 +378,11 @@ def render_catalog_configs_overview(
             "is_active", "updated_at", "last_test_status", "last_tested_at", "notes"
         ]
 
-    cols = ["_label"] + [c for c in pref if c in df.columns] if include_label_column else [c for c in pref if c in df.columns]
+    cols = (
+        ["_label"] + [c for c in pref if c in df.columns]
+        if include_label_column
+        else [c for c in pref if c in df.columns]
+    )
     # Fallback als bijna niets matcht
     if not cols:
         cols = (["_label"] if include_label_column else []) + sorted(df.columns.tolist())
@@ -442,6 +505,7 @@ def render_catalog_config_actions(
             else:
                 st.info("Geen activate-functie geconfigureerd.")
 
+
 def render_catalog_config_actions_minimal(
     *,
     main_connection_id: int,
@@ -549,12 +613,23 @@ def render_ai_configs_overview(
     if sc == "dw":
         type_cols = ["database_filter", "schema_filter", "table_filter"]
     elif sc == "pbi":
-        type_cols = ["workspace_filter", "model_filter", "table_filter", "include_tmdl", "include_model_bim", "respect_perspectives"]
+        type_cols = [
+            "workspace_filter", "model_filter", "table_filter",
+            "include_tmdl", "include_model_bim",
+            "respect_perspectives"
+        ]
     else:
-        type_cols = ["path_filter", "format_whitelist", "partition_filter", "include_hidden_files", "infer_schema"]
+        type_cols = [
+            "path_filter", "format_whitelist", "partition_filter",
+            "include_hidden_files", "infer_schema"
+        ]
 
     pref = common + type_cols
-    cols = ["_label"] + [c for c in pref if c in df.columns] if include_label_column else [c for c in pref if c in df.columns]
+    cols = (
+        ["_label"] + [c for c in pref if c in df.columns]
+        if include_label_column
+        else [c for c in pref if c in df.columns]
+    )
     if not cols:
         cols = (["_label"] if include_label_column else []) + sorted(df.columns.tolist())
 
@@ -573,6 +648,7 @@ def render_ai_configs_overview(
             file_name=f"ai_configs_{sc}_conn{main_connection_id}.csv",
             mime="text/csv",
         )
+
 
 def render_ai_config_actions_minimal(
     *,
@@ -638,7 +714,6 @@ def render_ai_config_actions_minimal(
                 st.error(f"Activeren mislukt: {e}")
 
 
-
 def _json_text_to_dict(raw: str) -> dict:
     try:
         return json.loads(raw) if raw.strip() else {}
@@ -648,29 +723,29 @@ def _json_text_to_dict(raw: str) -> dict:
 
 # ------------------ AI create/edit prompts ------------------
 
+
 def prompt_new_ai_config(main_connection_id: int, short_code: str):
     sc = (short_code or "").strip().lower()
     with st.form(f"new_ai_cfg_form_{main_connection_id}_{sc}"):
         st.subheader(f"New AI-config ({sc.upper()})")
-        
- 
+
         # Kern (NOT NULL of belangrijk)
-        name            = st.text_input("Naam", placeholder="Bijv. 'Default AI profile'")
-        analysis_type   = st.text_input("Analysis type", placeholder="Bijv. 'lineage', 'profiling', 'summary'")
-        model_provider  = st.text_input("Model provider", value="openai")
-        model_name      = st.text_input("Model name", placeholder="Bijv. 'gpt-4o-mini'")
-        model_version   = st.text_input("Model version (optioneel)", value="")
+        name = st.text_input("Naam", placeholder="Bijv. 'Default AI profile'")
+        analysis_type = st.text_input("Analysis type", placeholder="Bijv. 'lineage', 'profiling', 'summary'")
+        model_provider = st.text_input("Model provider", value="openai")
+        model_name = st.text_input("Model name", placeholder="Bijv. 'gpt-4o-mini'")
+        model_version = st.text_input("Model version (optioneel)", value="")
 
         # GenAI parameters
         cols = st.columns(3)
         with cols[0]:
             temperature = st.number_input("temperature (0–2)", min_value=0.0, max_value=2.0, value=0.0, step=0.1)
-            top_p       = st.number_input("top_p (0–1]", min_value=0.0, max_value=1.0, value=1.0, step=0.05)
+            top_p = st.number_input("top_p (0–1]", min_value=0.0, max_value=1.0, value=1.0, step=0.05)
         with cols[1]:
-            max_tokens  = st.number_input("max_tokens", min_value=1, value=2048, step=64)
-            freq_pen    = st.number_input("frequency_penalty (-2..2)", min_value=-2.0, max_value=2.0, value=0.0, step=0.1)
+            max_tokens = st.number_input("max_tokens", min_value=1, value=2048, step=64)
+            freq_pen = st.number_input("frequency_penalty (-2..2)", min_value=-2.0, max_value=2.0, value=0.0, step=0.1)
         with cols[2]:
-            pres_pen    = st.number_input("presence_penalty (-2..2)", min_value=-2.0, max_value=2.0, value=0.0, step=0.1)
+            pres_pen = st.number_input("presence_penalty (-2..2)", min_value=-2.0, max_value=2.0, value=0.0, step=0.1)
 
         # Orchestratie
         colx = st.columns(3)
@@ -679,11 +754,21 @@ def prompt_new_ai_config(main_connection_id: int, short_code: str):
         with colx[1]:
             propagation_mode = st.selectbox("propagation_mode", ["auto", "manual"], index=0)
         with colx[2]:
-            overwrite_policy = st.selectbox("overwrite_policy", ["fill_empty", "overwrite_if_confident", "never"], index=0)
+            overwrite_policy = st.selectbox(
+                "overwrite_policy",
+                ["fill_empty", "overwrite_if_confident", "never"],
+                index=0
+            )
 
         coly = st.columns(3)
         with coly[0]:
-            confidence_threshold = st.number_input("confidence_threshold (0–1)", min_value=0.0, max_value=1.0, value=0.700, step=0.01)
+            confidence_threshold = st.number_input(
+                "confidence_threshold (0–1)",
+                min_value=0.0,
+                max_value=1.0,
+                value=0.700,
+                step=0.01
+            )
         with coly[1]:
             respect_human_locks = st.checkbox("respect_human_locks", value=True)
         with coly[2]:
@@ -693,28 +778,27 @@ def prompt_new_ai_config(main_connection_id: int, short_code: str):
         st.markdown("---")
         if sc == "dw":
             database_filter = st.text_input("Database filter", value="")
-            schema_filter   = st.text_input("Schema filter", value="")
-            table_filter    = st.text_input("Tabel filter", value="")
+            schema_filter = st.text_input("Schema filter", value="")
+            table_filter = st.text_input("Tabel filter", value="")
         elif sc == "pbi":
-            workspace_filter   = st.text_input("Workspace filter", value="")
-            model_filter       = st.text_input("Model filter", value="")
-            table_filter       = st.text_input("Tabel filter", value="")
-            include_tmdl       = st.checkbox("Include TMDL", value=True)
+            workspace_filter = st.text_input("Workspace filter", value="")
+            model_filter = st.text_input("Model filter", value="")
+            table_filter = st.text_input("Tabel filter", value="")
+            include_tmdl = st.checkbox("Include TMDL", value=True)
 
-            include_model_bim  = st.checkbox("Include model.bim", value=False)
-            respect_persp      = st.checkbox("Respect perspectives", value=True)
+            include_model_bim = st.checkbox("Include model.bim", value=False)
+            respect_persp = st.checkbox("Respect perspectives", value=True)
         else:  # dl
-            path_filter       = st.text_input("Path filter", value="")
-            format_whitelist  = st.text_input("Format whitelist", value="")
-            partition_filter  = st.text_input("Partition filter", value="")
-            include_hidden    = st.checkbox("Include hidden files", value=False)
-            infer_schema      = st.checkbox("Infer schema", value=True)
+            path_filter = st.text_input("Path filter", value="")
+            format_whitelist = st.text_input("Format whitelist", value="")
+            partition_filter = st.text_input("Partition filter", value="")
+            include_hidden = st.checkbox("Include hidden files", value=False)
+            infer_schema = st.checkbox("Infer schema", value=True)
 
         st.markdown("---")
         model_profile = st.text_input("Model profile (optioneel)", value="")
-        prompt_pack   = st.text_input("Prompt pack (optioneel)", value="")
-        notes         = st.text_area("Notities (optioneel)", value="", height=80)
-
+        prompt_pack = st.text_input("Prompt pack (optioneel)", value="")
+        notes = st.text_area("Notities (optioneel)", value="", height=80)
         submitted = st.form_submit_button("Aanmaken")
 
     if not submitted:
@@ -787,23 +871,25 @@ def prompt_edit_ai_config(cfg: dict, short_code: str):
 
     with st.form(f"edit_ai_cfg_form_{cfg.get('id')}"):
         st.subheader(f"Bewerk AI-config #{cfg.get('id')} ({sc.upper()})")
-        
 
-        name           = st.text_input("Naam", value=_g("name") or _g("config_name") or "")
-        analysis_type  = st.text_input("Analysis type", value=_g("analysis_type") or "")
-        model_provider = st.text_input("Model provider", value=_g("model_provider") or "openai")
-        model_name     = st.text_input("Model name", value=_g("model_name") or "")
-        model_version  = st.text_input("Model version (optioneel)", value=_g("model_version") or "")
+        name = st.text_input("Naam", value=_g("name") or _g("config_name") or "")
+        analysis_type = st.text_input("Analysis type", value=_g("analysis_type") or "")
+        model_provider = st.text_input(
+            "Model provider",
+            value=_g("model_provider") or "openai"
+        )
+        model_name = st.text_input("Model name", value=_g("model_name") or "")
+        model_version = st.text_input("Model version (optioneel)", value=_g("model_version") or "")
 
         cols = st.columns(3)
         with cols[0]:
             temperature = st.number_input("temperature (0–2)", min_value=0.0, max_value=2.0, value=float(_g("temperature") or 0.0), step=0.1)
-            top_p       = st.number_input("top_p (0–1]", min_value=0.0, max_value=1.0, value=float(_g("top_p") or 1.0), step=0.05)
+            top_p = st.number_input("top_p (0–1]", min_value=0.0, max_value=1.0, value=float(_g("top_p") or 1.0), step=0.05)
         with cols[1]:
-            max_tokens  = st.number_input("max_tokens", min_value=1, value=int(_g("max_tokens") or 2048), step=64)
-            freq_pen    = st.number_input("frequency_penalty (-2..2)", min_value=-2.0, max_value=2.0, value=float(_g("frequency_penalty") or 0.0), step=0.1)
+            max_tokens = st.number_input("max_tokens", min_value=1, value=int(_g("max_tokens") or 2048), step=64)
+            freq_pen = st.number_input("frequency_penalty (-2..2)", min_value=-2.0, max_value=2.0, value=float(_g("frequency_penalty") or 0.0), step=0.1)
         with cols[2]:
-            pres_pen    = st.number_input("presence_penalty (-2..2)", min_value=-2.0, max_value=2.0, value=float(_g("presence_penalty") or 0.0), step=0.1)
+            pres_pen = st.number_input("presence_penalty (-2..2)", min_value=-2.0, max_value=2.0, value=float(_g("presence_penalty") or 0.0), step=0.1)
 
         colx = st.columns(3)
         with colx[0]:
@@ -827,18 +913,18 @@ def prompt_edit_ai_config(cfg: dict, short_code: str):
             schema_filter   = st.text_input("Schema filter", value=_g("schema_filter") or "")
             table_filter    = st.text_input("Tabel filter", value=_g("table_filter") or "")
         elif sc == "pbi":
-            workspace_filter   = st.text_input("Workspace filter", value=_g("workspace_filter") or "")
-            model_filter       = st.text_input("Model filter", value=_g("model_filter") or "")
-            table_filter       = st.text_input("Tabel filter", value=_g("table_filter") or "")
-            include_tmdl       = st.checkbox("Include TMDL", value=bool(_g("include_tmdl", True)))
-            include_model_bim  = st.checkbox("Include model.bim", value=bool(_g("include_model_bim", False)))
-            respect_persp      = st.checkbox("Respect perspectives", value=bool(_g("respect_perspectives", True)))
+            workspace_filter = st.text_input("Workspace filter", value=_g("workspace_filter") or "")
+            model_filter = st.text_input("Model filter", value=_g("model_filter") or "")
+            table_filter = st.text_input("Tabel filter", value=_g("table_filter") or "")
+            include_tmdl = st.checkbox("Include TMDL", value=bool(_g("include_tmdl", True)))
+            include_model_bim = st.checkbox("Include model.bim", value=bool(_g("include_model_bim", False)))
+            respect_persp = st.checkbox("Respect perspectives", value=bool(_g("respect_perspectives", True)))
         else:
-            path_filter       = st.text_input("Path filter", value=_g("path_filter") or "")
-            format_whitelist  = st.text_input("Format whitelist", value=_g("format_whitelist") or "")
-            partition_filter  = st.text_input("Partition filter", value=_g("partition_filter") or "")
-            include_hidden    = st.checkbox("Include hidden files", value=bool(_g("include_hidden_files", False)))
-            infer_schema      = st.checkbox("Infer schema", value=bool(_g("infer_schema", True)))
+            path_filter = st.text_input("Path filter", value=_g("path_filter") or "")
+            format_whitelist = st.text_input("Format whitelist", value=_g("format_whitelist") or "")
+            partition_filter = st.text_input("Partition filter", value=_g("partition_filter") or "")
+            include_hidden = st.checkbox("Include hidden files", value=bool(_g("include_hidden_files", False)))
+            infer_schema = st.checkbox("Infer schema", value=bool(_g("infer_schema", True)))
 
         st.markdown("---")
         model_profile = st.text_input("Model profile (optioneel)", value=_g("model_profile") or "")
@@ -1055,27 +1141,27 @@ def render_deactivated_ai_configs(
 #         if dcat == "DATABASE_DATAWAREHOUSE" or sc == "dw":
 #             st.markdown(
 #                 """
-# **Typical filters (Database/Data Warehouse)**  
-# - `database_filter` — e.g., `sales_*`  
-# - `schema_filter` — e.g., `*`  
+# **Typical filters (Database/Data Warehouse)**
+# - `database_filter` — e.g., `sales_*`
+# - `schema_filter` — e.g., `*`
 # - `table_filter` — e.g., `fact_*`
 #                 """
 #             )
 #         elif dcat == "POWERBI" or sc == "pbi":
 #             st.markdown(
 #                 """
-# **Typical filters (Power BI)**  
-# - `workspace_filter` — target one or more workspaces  
-# - `model_filter` — select specific models  
+# **Typical filters (Power BI)**
+# - `workspace_filter` — target one or more workspaces
+# - `model_filter` — select specific models
 # - `table_filter` — narrow to targeted tables
 #                 """
 #             )
 #         elif dcat == "DATA_LAKE" or sc == "dl":
 #             st.markdown(
 #                 """
-# **Typical filters (Data Lake)**  
-# - `path_filter` — e.g., `/bronze/...`  
-# - `format_whitelist` — e.g., `parquet,csv`  
+# **Typical filters (Data Lake)**
+# - `path_filter` — e.g., `/bronze/...`
+# - `format_whitelist` — e.g., `parquet,csv`
 # - `partition_filter` — include/exclude partitions
 #                 """
 #             )
@@ -1083,8 +1169,8 @@ def render_deactivated_ai_configs(
 #     with st.expander("Strategy"):
 #         st.markdown(
 #             """
-# 1) Start broad with your catalog (wide filters) to discover structure.  
-# 2) Validate coverage (schemas, models, paths).  
+# 1) Start broad with your catalog (wide filters) to discover structure.
+# 2) Validate coverage (schemas, models, paths).
 # 3) Add **AI configs** with **narrow** filters for each analysis use case.
 #             """
 #         )
@@ -1106,27 +1192,27 @@ def render_deactivated_ai_configs(
 #         if dcat == "DATABASE_DATAWAREHOUSE" or sc == "dw":
 #             st.markdown(
 #                 """
-# **Examples (Database/Data Warehouse)**  
-# - Analyze only schemas like `finance_*`  
-# - Focus on tables with a specific prefix  
+# **Examples (Database/Data Warehouse)**
+# - Analyze only schemas like `finance_*`
+# - Focus on tables with a specific prefix
 # - Limit to a single database for cost control
 #                 """
 #             )
 #         elif dcat == "POWERBI" or sc == "pbi":
 #             st.markdown(
 #                 """
-# **Examples (Power BI)**  
-# - Analyze a single workspace  
-# - Target one model (e.g., `Sales`)  
+# **Examples (Power BI)**
+# - Analyze a single workspace
+# - Target one model (e.g., `Sales`)
 # - Limit to 2–3 model tables for a quick run
 #                 """
 #             )
 #         elif dcat == "DATA_LAKE" or sc == "dl":
 #             st.markdown(
 #                 """
-# **Examples (Data Lake)**  
-# - Scope to a single path (e.g., `/bronze/customers/`)  
-# - Restrict to Parquet only  
+# **Examples (Data Lake)**
+# - Scope to a single path (e.g., `/bronze/customers/`)
+# - Restrict to Parquet only
 # - Analyze one partition first
 #                 """
 #             )
@@ -1134,8 +1220,8 @@ def render_deactivated_ai_configs(
 #     with st.expander("Strategy"):
 #         st.markdown(
 #             """
-# - Use the catalog for **breadth**, and AI for **depth**.  
-# - Start small (one schema/path/model), then expand.  
+# - Use the catalog for **breadth**, and AI for **depth**.
+# - Start small (one schema/path/model), then expand.
 # - Narrow scopes keep runs fast and cost-effective.
 #             """
 #         )
@@ -1396,8 +1482,8 @@ on top of the catalog. Keep AI scopes **small and specific** for focus, speed an
         st.markdown(
             """
 ### Model settings (quick guidance)
-- **Temperature**: 0.0–0.3 analytical; 0.4–0.8 richer descriptions; >1.0 usually too random  
-- **Max tokens**: 512–1024 short; 2048 typical; >4000 only if necessary  
+- **Temperature**: 0.0–0.3 analytical; 0.4–0.8 richer descriptions; >1.0 usually too random
+- **Max tokens**: 512–1024 short; 2048 typical; >4000 only if necessary
 - **Top-p**: 1.0 default; lower to narrow outputs; avoid high top-p + high temperature
 - **Propagation mode**:
   - **auto**: write results directly to object descriptions (respecting **Overwrite policy**; mark as *unreviewed*)
@@ -1411,11 +1497,11 @@ on top of the catalog. Keep AI scopes **small and specific** for focus, speed an
 #         st.markdown("#### Model parameters (quick reference)")
 #         st.markdown(
 #             """
-# - **Temperature** — randomness. `0.0` = deterministic; `0.7` = more variety.  
-# - **Max tokens** — output length cap (more = longer, costlier).  
-# - **Top-p** — “nucleus” sampling; lower narrows choices.  
-# - **Frequency penalty** — reduces repetition (−2.0..2.0).  
-# - **Presence penalty** — encourages new topics (−2.0..2.0).  
+# - **Temperature** — randomness. `0.0` = deterministic; `0.7` = more variety.
+# - **Max tokens** — output length cap (more = longer, costlier).
+# - **Top-p** — “nucleus” sampling; lower narrows choices.
+# - **Frequency penalty** — reduces repetition (−2.0..2.0).
+# - **Presence penalty** — encourages new topics (−2.0..2.0).
 # - **Provider / model** — choose the model family/version suited to your task.
 #             """
 #         )
@@ -1437,8 +1523,8 @@ on top of the catalog. Keep AI scopes **small and specific** for focus, speed an
 # - **DATA_LAKE (IN DEVELOPMENT)** — file/object storage (e.g., ADLS, S3, GCS).
 
 # **Why this order?**
-# 1) Choose a main connection (the system).  
-# 2) Create a **catalog configuration** (broad scope) to discover what exists.  
+# 1) Choose a main connection (the system).
+# 2) Create a **catalog configuration** (broad scope) to discover what exists.
 # 3) Add **AI configurations** (narrow scope) for specific analyses that are more compute-intensive.
 #             """
 #         )
@@ -1470,8 +1556,8 @@ on top of the catalog. Keep AI scopes **small and specific** for focus, speed an
 # - **DATA_LAKE** *(in development)* — file/object storage (e.g., ADLS, S3, GCS)
 
 # **Why this order?**
-# 1. Choose a **main connection** (the system)  
-# 2. Create a **catalog configuration** (broad scope) to discover what exists  
+# 1. Choose a **main connection** (the system)
+# 2. Create a **catalog configuration** (broad scope) to discover what exists
 # 3. Add **AI configurations** (narrow scope) for targeted, compute-heavier analyses
 
 # **Good practices**
@@ -1485,7 +1571,7 @@ def render_main_connection_help():
     with st.popover("ℹ️ What is a main connection?"):
         st.markdown(
             """
-A **main connection** is the root data source your workspace attaches to.  
+A **main connection** is the root data source your workspace attaches to.
 **Catalog** and **AI** configurations hang off this connection and inherit its security and location.
 
 ### What it defines
@@ -1501,14 +1587,14 @@ A **main connection** is the root data source your workspace attaches to.
 ### Scope & pipeline (how things fit together)
 - **Catalog scope** lives under the **catalog configuration** attached to this main connection (broad discovery).
 - **AI scope** lives under **AI configurations** (narrow, task-specific).
-- **Preprocessors** run under this main connection and use **catalog scope** by default;  
+- **Preprocessors** run under this main connection and use **catalog scope** by default;
   when launched from an AI run they use **`catalog scope ∩ AI scope`** (intersection).
 
 **Pipeline (MVP):** `Main connection` → `Catalog (catalog scope)` → `Preprocessors (catalog scope, optionally ∩ AI scope)` → `AI analyses (AI scope)`
 
 ### Why this order?
-1. Choose a **main connection** (system & credentials)  
-2. Create a **catalog configuration** (broad **catalog scope**) to discover what exists  
+1. Choose a **main connection** (system & credentials)
+2. Create a **catalog configuration** (broad **catalog scope**) to discover what exists
 3. Add **AI configurations** (narrow **AI scope**) for targeted, compute-heavier analyses
 
 ### Good practices
@@ -1562,93 +1648,21 @@ def render_connection_type_legend(
     if enable_filters:
         cols = st.columns(3)
         with cols[0]:
-            cat_choices = sorted(df["data_source_category"].unique().tolist(), key=lambda c: _CATEGORY_ORDER.get(c, 999))
-            selected_cats = st.multiselect("Filter by category", options=cat_choices, default=cat_choices, key="ctr_filter_cat")
-        with cols[1]:
-            active_filter = st.selectbox("Active filter", options=["Active only", "All"], index=0 if active_only else 1, key="ctr_filter_active")
-        with cols[2]:
-            search = st.text_input("Search display name", key="ctr_filter_search", placeholder="Type to filter…")
+            cat_filter = st.multiselect(
+                "Filter by category",
+                options=df["data_source_category"].unique().tolist(),
+                default=df["data_source_category"].unique().tolist(),
+            )
+        df = df[df["data_source_category"].isin(cat_filter)] if cat_filter else df
 
-        # Apply filters
-        if selected_cats:
-            df = df[df["data_source_category"].isin(selected_cats)]
-        if active_filter == "Active only":
-            df = df[df["is_active"] == True]  # noqa: E712
-        if search.strip():
-            s = search.strip().lower()
-            df = df[df["display_name"].str.lower().str.contains(s)]
-
-    # Final column order
-    show_cols = [
-        "display_name",
-        "connection_type",
-        "data_source_category",
-        "short_code",
-        "is_active",
-        "created_at",
-    ]
-    show_cols = [c for c in show_cols if c in df.columns]
-
-    st.dataframe(
-        df[show_cols],
-        use_container_width=True,
-        hide_index=True,
-        height=height,
-    )
+    st.dataframe(df.drop(columns=["_cat_order"], errors="ignore"), use_container_width=True, hide_index=True, height=height)
 
     if show_download:
-        csv = df[show_cols].to_csv(index=False).encode("utf-8")
-        st.download_button(
-            "Download types (CSV)",
-            data=csv,
-            file_name="connection_type_registry.csv",
-            mime="text/csv",
-        )
+        csv = df.to_csv(index=False).encode("utf-8")
+        st.download_button("Download registry (CSV)", data=csv, file_name="connection_types.csv", mime="text/csv")
 
-def render_catalog_config_field_help(sc: str):
-    """
-    Single popover with all catalog-config guidance, tailored per type (dw/pbi/dl).
-    Call inside your create/edit form, just under the title.
-    """
-    sc = (sc or "").strip().lower()
-    with st.popover("ℹ️ Catalog settings explained"):
 
-        if sc == "dw":
-            st.markdown(
-                """
-**Database / Data Warehouse**
-- `database_filter` — e.g., `sales_*`  
-- `schema_filter` — e.g., `*`  
-- `table_filter` — e.g., `fact_*`
 
-> Tip: Use `*` initially and refine later.
-                """
-            )
-        elif sc == "pbi":
-            st.markdown(
-                """
-**Power BI**
-- `workspace_filter` — one or more workspaces  
-- `model_filter` — specific PBIP/TMDL/BIM models  
-- `table_filter` — targeted tables within a model
-
-> Tip: Start wide to inventory all available content.
-                """
-            )
-        elif sc == "dl":
-            st.markdown(
-                """
-**Data Lake**
-- `path_filter` — e.g., `/bronze/customers/`  
-- `format_whitelist` — e.g., `parquet,csv`  
-- `partition_filter` — include/exclude partitions
-
-> Tip: Begin broad; refine if scans become too large.
-                """
-            )
-
-import streamlit as st
-import pandas as pd
 
 def render_ai_config_field_help(
     sc: str,
@@ -1737,9 +1751,9 @@ def render_ai_config_field_help(
             st.info(
                 f"""**Temperature** controls randomness.
 
-- 0.0–0.3 → predictable, analytical  
-- 0.4–0.8 → more variety for descriptions/summaries  
-- >1.0 → very random, avoid for analytics  
+- 0.0–0.3 → predictable, analytical
+- 0.4–0.8 → more variety for descriptions/summaries
+- >1.0 → very random, avoid for analytics
 
 **Default:** **{defaults['temperature']}**"""
             )
@@ -1748,9 +1762,9 @@ def render_ai_config_field_help(
             st.info(
                 f"""**Max tokens** caps output length (≈ 1 token ~ 3–4 chars).
 
-- 512–1024 → short and fast  
-- 2048 → longer analysis/descriptions  
-- >4000 → only if necessary (slower & costlier)  
+- 512–1024 → short and fast
+- 2048 → longer analysis/descriptions
+- >4000 → only if necessary (slower & costlier)
 
 **Default:** **{defaults['max_tokens']}**"""
             )
@@ -1759,9 +1773,9 @@ def render_ai_config_field_help(
             st.info(
                 f"""**Top-p** (“nucleus sampling”) narrows choices to the most likely tokens.
 
-- 1.0 → safe default  
-- 0.8–0.9 → more focused outputs  
-- Avoid combining high top-p with high temperature  
+- 1.0 → safe default
+- 0.8–0.9 → more focused outputs
+- Avoid combining high top-p with high temperature
 
 **Default:** **{defaults['top_p']}**"""
             )
@@ -1770,8 +1784,8 @@ def render_ai_config_field_help(
             st.info(
                 f"""**Frequency penalty** discourages repeating words/phrases. Range: −2.0 … 2.0.
 
-- 0.0 → default  
-- 0.5–1.0 → if outputs repeat themselves  
+- 0.0 → default
+- 0.5–1.0 → if outputs repeat themselves
 
 **Default:** **{defaults['frequency_penalty']}**"""
             )
@@ -1780,9 +1794,9 @@ def render_ai_config_field_help(
             st.info(
                 f"""**Presence penalty** encourages new topics. Range: −2.0 … 2.0.
 
-- 0.0 → default  
-- 0.5–1.0 → if outputs get stuck on one theme  
-- Too high may drift off-topic  
+- 0.0 → default
+- 0.5–1.0 → if outputs get stuck on one theme
+- Too high may drift off-topic
 
 **Default:** **{defaults['presence_penalty']}**"""
             )
@@ -1811,9 +1825,9 @@ def render_ai_config_field_help(
             st.info(
                 """**Overwrite policy** (applies when `propagation_mode = auto`):
 
-- **fill_empty** *(safe)* → write only if the target field is empty; existing text remains untouched.  
-- **overwrite_if_confident** → replace existing text **only** if model confidence ≥ threshold (e.g., 0.8).  
-- **never** → never replace existing text; only empty fields can be filled.  
+- **fill_empty** *(safe)* → write only if the target field is empty; existing text remains untouched.
+- **overwrite_if_confident** → replace existing text **only** if model confidence ≥ threshold (e.g., 0.8).
+- **never** → never replace existing text; only empty fields can be filled.
 
 **Note:** All values written in **auto** mode are flagged as **unreviewed**; a user can later mark them as reviewed/edited."""
             )
