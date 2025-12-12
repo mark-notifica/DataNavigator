@@ -11,6 +11,12 @@ exclude =
     dist,
     .git,
     .mypy_cache,
-    .pytest_cache
+    .pytest_cache,
+    *.md,
+    *.txt,
+    *.yml,
+    *.yaml,
+    *.json,
+    *.toml
 per-file-ignores =
     data_catalog/ai_analyzer/runners/table_runner.py:E402
