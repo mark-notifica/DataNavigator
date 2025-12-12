@@ -1,11 +1,8 @@
-import os
 import json
 import logging
 from datetime import datetime
 from pathlib import Path
-from typing import Iterable, List, Dict, Optional
-
-import psycopg2
+from typing import List, Dict, Optional
 from dotenv import load_dotenv
 
 from data_catalog.connection_handler import (
@@ -145,7 +142,6 @@ def upsert_node(cur, node_type: str, name: str, qualified_name: str, run_id: int
         (node_type, name, qualified_name, json.dumps(props or {}), run_id, run_id)
     )
     return cur.fetchone()[0]
-
 
 
 def upsert_database(cur, host: str, database: str, run_id: int) -> int:
@@ -429,7 +425,16 @@ def run_catalog(connection_id: int,
                         table_name = t['table_name']
                         table_type = t['table_type']
                         with catalog_conn.cursor() as cur:
-                            table_node_id = upsert_table(cur, src_info['host'], db_name, schema_node_id, schema, table_name, table_type, run_id)
+                            table_node_id = upsert_table(
+                                cur,
+                                src_info['host'],
+                                db_name,
+                                schema_node_id,
+                                schema,
+                                table_name,
+                                table_type,
+                                run_id
+                            )
                         catalog_conn.commit()
                         total_objects += 1
 

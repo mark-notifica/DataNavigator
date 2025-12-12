@@ -1,55 +1,23 @@
-from typing import Callable, Any, Dict, List, Optional, Tuple,Literal
+from typing import Callable, Any, Dict, List, Optional, Tuple, Literal
 import streamlit as st
 from data_catalog.connection_handler import (
     list_connections_df
 )
 from data_catalog.db import q_all, exec_tx
 from inspect import signature
-
 from data_catalog.config_crud import (
     # DW configs
     fetch_dw_catalog_configs,
-    fetch_dw_catalog_config_by_id,
     insert_dw_catalog_config,
     update_dw_catalog_config,
-    deactivate_dw_catalog_config,
-    reactivate_dw_catalog_config,
-    set_dw_catalog_last_test_result,
-    clear_dw_catalog_last_test_result,
-
     # PBI configs
     fetch_pbi_catalog_configs,
-    fetch_pbi_catalog_config_by_id,
     insert_pbi_catalog_config,
     update_pbi_catalog_config,
-    deactivate_pbi_catalog_config,
-    reactivate_pbi_catalog_config,
-    set_pbi_catalog_last_test_result,
-    clear_pbi_catalog_last_test_result,
-
     # DL configs
     fetch_dl_catalog_configs,
-    fetch_dl_catalog_config_by_id,
     insert_dl_catalog_config,
     update_dl_catalog_config,
-    deactivate_dl_catalog_config,
-    reactivate_dl_catalog_config,
-    set_dl_catalog_last_test_result,
-    clear_dl_catalog_last_test_result,
-
-    # AI-configs (DW/PBI/DL) – geen last_test_* kolommen
-    fetch_dw_ai_configs,
-    fetch_pbi_ai_configs,
-    fetch_dl_ai_configs,
-    fetch_dw_ai_config_by_id,
-    fetch_pbi_ai_config_by_id,
-    fetch_dl_ai_config_by_id,
-    insert_pbi_ai_config,
-    update_pbi_ai_config,
-    insert_dl_ai_config,
-    update_dl_ai_config,
-    insert_dw_ai_config,
-    update_dw_ai_config,
 )
 
 Family = Literal["catalog", "ai"]
@@ -57,14 +25,21 @@ Family = Literal["catalog", "ai"]
 def _table_for(family: Family, sc: str) -> str:
     sc = (sc or "").strip().lower()
     if family == "catalog":
-        if sc == "dw":  return "config.dw_catalog_config"
-        if sc == "pbi": return "config.pbi_catalog_config"
-        if sc == "dl":  return "config.dl_catalog_config"
+        if sc == "dw":
+            return "config.dw_catalog_config"
+        if sc == "pbi":
+            return "config.pbi_catalog_config"
+        if sc == "dl":
+            return "config.dl_catalog_config"
     elif family == "ai":
-        if sc == "dw":  return "config.dw_ai_config"
-        if sc == "pbi": return "config.pbi_ai_config"
-        if sc == "dl":  return "config.dl_ai_config"
+        if sc == "dw":
+            return "config.dw_ai_config"
+        if sc == "pbi":
+            return "config.pbi_ai_config"
+        if sc == "dl":
+            return "config.dl_ai_config"
     raise ValueError(f"Unknown family/sc: {family}/{sc}")
+
 
 def list_deactivated_configs(conn_id: int, family: Family, sc: str):
     table = _table_for(family, sc)
@@ -405,8 +380,8 @@ def select_create_or_edit_catalog_config(
     return by_id[chosen_id]
 
 
-# Wrapper: gebruikt bestaande stable picker + CRUD uit config_crud
-def render_catalog_config_picker_with_create_or_edit(
+# Wrapper (deprecated): gebruikt de stable picker; behoud voor compatibiliteit
+def render_catalog_config_picker_with_create_or_edit_using_stable_picker(
     main_connection_id: str,
     short_code: str,
     *,
@@ -553,7 +528,6 @@ def normalize_patch_for_type(short_code: str, patch: dict) -> dict:
 
     return norm
 
-from inspect import signature
 
 def make_crud_adapters_matching_imports():
     # --- FETCH ---
@@ -592,17 +566,28 @@ def make_crud_adapters_matching_imports():
                 sig = signature(insert_dw_catalog_config)
                 kw = {}
                 # keyword-args op basis van param-namen
-                if "conn_id" in sig.parameters:               kw["conn_id"] = conn_id
-                if "connection_id" in sig.parameters:         kw["connection_id"] = conn_id
-                if "name" in sig.parameters:                  kw["name"] = name
-                if "config_name" in sig.parameters:           kw["config_name"] = name
-                if "database_filter" in sig.parameters:       kw["database_filter"] = database_filter
-                if "schema_filter" in sig.parameters:         kw["schema_filter"] = schema_filter
-                if "table_filter" in sig.parameters:          kw["table_filter"] = table_filter
-                if "include_views" in sig.parameters:         kw["include_views"] = include_views
-                if "include_system_objects" in sig.parameters:kw["include_system_objects"] = include_system_obj
-                if "notes" in sig.parameters:                 kw["notes"] = notes
-                if "is_active" in sig.parameters:             kw["is_active"] = is_active
+                if "conn_id" in sig.parameters:
+                    kw["conn_id"] = conn_id
+                if "connection_id" in sig.parameters:
+                    kw["connection_id"] = conn_id
+                if "name" in sig.parameters:
+                    kw["name"] = name
+                if "config_name" in sig.parameters:
+                    kw["config_name"] = name
+                if "database_filter" in sig.parameters:
+                    kw["database_filter"] = database_filter
+                if "schema_filter" in sig.parameters:
+                    kw["schema_filter"] = schema_filter
+                if "table_filter" in sig.parameters:
+                    kw["table_filter"] = table_filter
+                if "include_views" in sig.parameters:
+                    kw["include_views"] = include_views
+                if "include_system_objects" in sig.parameters:
+                    kw["include_system_objects"] = include_system_obj
+                if "notes" in sig.parameters:
+                    kw["notes"] = notes
+                if "is_active" in sig.parameters:
+                    kw["is_active"] = is_active
 
                 if kw:
                     res = insert_dw_catalog_config(**kw)
@@ -633,7 +618,6 @@ def make_crud_adapters_matching_imports():
 
             # >>> Altijd via één pad teruggeven, met gegarandeerde 'id'
             return ensure_config_has_id_or_refetch(sc, conn_id, res, fetch_configs, prefer_name=name)
-
 
         if sc == "pbi":
             workspace_filter     = settings.get("workspace_filter")
@@ -755,24 +739,12 @@ def render_catalog_config_picker_with_create_or_edit(
 
 def validate_catalog_config_inputs(short_code: str, name: str | None, settings: dict) -> list[str]:
     errors: list[str] = []
-    sc = (short_code or "").strip().lower()
 
     # Altijd verplicht
     if not name or not str(name).strip():
         errors.append("Naam is verplicht.")
 
     # Per type: booleans met NOT NULL moeten gedefinieerd zijn (als je posities doorgeeft)
-    if sc == "pbi":
-        for k in ("include_tmdl", "include_model_bim", "respect_perspectives"):
-            if settings.get(k) is None:
-                errors.append(f"{k} (bool) ontbreekt.")
-    if sc == "dl":
-        for k in ("include_hidden_files", "infer_schema"):
-            if settings.get(k) is None:
-                errors.append(f"{k} (bool) ontbreekt.")
-
-    return errors
-
 def _to_records(obj) -> list[dict]:
     # pandas DF -> records; dict -> [dict]; list -> list; anders []
     try:
@@ -780,8 +752,10 @@ def _to_records(obj) -> list[dict]:
             return obj.to_dict(orient="records")
     except Exception:
         pass
-    if isinstance(obj, dict): return [obj]
-    if isinstance(obj, list): return obj
+    if isinstance(obj, dict):
+        return [obj]
+    if isinstance(obj, list):
+        return obj
     return []
 
 def _norm_name(r: dict) -> str:
@@ -1225,7 +1199,6 @@ def select_or_edit_ai_config(
     title: str = "Selecteer of bewerk AI-config",
 ) -> dict:
     sc = (short_code or "").strip().lower()
-    from data_catalog.ui_prompts import prompt_new_ai_config, prompt_edit_ai_config  # if needed
 
     configs = fetch_configs(main_connection_id, sc) or []
     by_id = {c["id"]: c for c in configs if "id" in c}
@@ -1321,14 +1294,12 @@ def render_ai_config_picker_with_edit(
 
 # ------------------ AI config: normalisatie & validatie ------------------
 
-def _none_if_blank(x: str | None) -> str | None:
-    if x is None:
-        return None
-    s = str(x).strip()
-    return s if s else None
+# geldige waarden voor normalisatie (bevatten defaults)
+_VALID_PROPAGATION = {"auto", "manual", "none"}
+_VALID_OVERWRITE = {"fill_empty", "overwrite_all", "skip_existing", "merge"}
 
 def _num_or_none(x, cast=float):
-    if x is None or x == "":
+    if x is None:
         return None
     try:
         return cast(x)
@@ -1336,26 +1307,16 @@ def _num_or_none(x, cast=float):
         return None
 
 def _clamp_or_none(x, lo, hi):
-    if x is None:
+    v = _num_or_none(x, float)
+    if v is None:
         return None
-    try:
-        v = float(x)
-    except Exception:
-        return None
-    if v < lo: v = lo
-    if v > hi: v = hi
+    if v < lo:
+        v = lo
+    if v > hi:
+        v = hi
     return v
 
-# geldige keuzen uit je CHECK-constraints
-_VALID_PROPAGATION = {"auto", "suggest_only", "off"}
-_VALID_OVERWRITE   = {"fill_empty", "overwrite_if_confident", "never"}
-
-def build_ai_settings_for_type(short_code: str, data: dict) -> dict:
-    """
-    Normaliseert velden voor AI-config-create/update o.b.v. short_code.
-    Houdt rekening met NOT NULL + defaults (zoals in je tabellen).
-    Returned dict met keys die je INSERT/UPDATE wil schrijven.
-    """
+def build_ai_settings_for_type(short_code: str, data: dict | None) -> dict:
     sc = (short_code or "").strip().lower()
     d  = data or {}
 

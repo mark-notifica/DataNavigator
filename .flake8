@@ -1,10 +1,16 @@
 [flake8]
-max-line-length = 120
-extend-ignore = E203,W503
+max-line-length = 140
+extend-ignore = E203,W503,E302,E305,E221
 exclude =
     __pycache__,
     .venv,
+    venv,
+    env,
+    .env,
     build,
-    dist
+    dist,
+    .git,
+    .mypy_cache,
+    .pytest_cache
 per-file-ignores =
     data_catalog/ai_analyzer/runners/table_runner.py:E402

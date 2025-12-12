@@ -883,25 +883,59 @@ def prompt_edit_ai_config(cfg: dict, short_code: str):
 
         cols = st.columns(3)
         with cols[0]:
-            temperature = st.number_input("temperature (0–2)", min_value=0.0, max_value=2.0, value=float(_g("temperature") or 0.0), step=0.1)
+            temperature = st.number_input(
+                "temperature (0–2)",
+                min_value=0.0,
+                max_value=2.0,
+                value=float(_g("temperature") or 0.0),
+                step=0.1,
+            )
             top_p = st.number_input("top_p (0–1]", min_value=0.0, max_value=1.0, value=float(_g("top_p") or 1.0), step=0.05)
         with cols[1]:
             max_tokens = st.number_input("max_tokens", min_value=1, value=int(_g("max_tokens") or 2048), step=64)
-            freq_pen = st.number_input("frequency_penalty (-2..2)", min_value=-2.0, max_value=2.0, value=float(_g("frequency_penalty") or 0.0), step=0.1)
+            freq_pen = st.number_input(
+                "frequency_penalty (-2..2)",
+                min_value=-2.0,
+                max_value=2.0,
+                value=float(_g("frequency_penalty") or 0.0),
+                step=0.1,
+            )
         with cols[2]:
-            pres_pen = st.number_input("presence_penalty (-2..2)", min_value=-2.0, max_value=2.0, value=float(_g("presence_penalty") or 0.0), step=0.1)
+            pres_pen = st.number_input(
+                "presence_penalty (-2..2)",
+                min_value=-2.0,
+                max_value=2.0,
+                value=float(_g("presence_penalty") or 0.0),
+                step=0.1,
+            )
 
         colx = st.columns(3)
         with colx[0]:
             runner_concurrency = st.number_input("runner_concurrency", min_value=1, value=int(_g("runner_concurrency") or 2), step=1)
         with colx[1]:
-            propagation_mode = st.selectbox("propagation_mode", ["auto","manual"], index=["auto","manual"].index(_g("propagation_mode") or "auto"))
+            propagation_mode = st.selectbox(
+                "propagation_mode",
+                ["auto", "manual"],
+                index=["auto", "manual"].index(_g("propagation_mode") or "auto"),
+            )
         with colx[2]:
-            overwrite_policy = st.selectbox("overwrite_policy", ["fill_empty", "overwrite_if_confident", "never"], index=["fill_empty","overwrite_if_confident","never"].index(_g("overwrite_policy") or "fill_empty"))
+            _overwrite_options = ["fill_empty", "overwrite_if_confident", "never"]
+            _overwrite_index = _overwrite_options.index(_g("overwrite_policy") or "fill_empty")
+            overwrite_policy = st.selectbox(
+                "overwrite_policy",
+                _overwrite_options,
+                index=_overwrite_index,
+            )
 
         coly = st.columns(3)
         with coly[0]:
-            confidence_threshold = st.number_input("confidence_threshold (0–1)", min_value=0.0, max_value=1.0, value=float(_g("confidence_threshold") or 0.700), step=0.01)
+            confidence_threshold = st.number_input(
+                "confidence_threshold (0–1)",
+                min_value=0.0,
+                max_value=1.0,
+                value=float(_g("confidence_threshold") or 0.700),
+                step=0.01,
+            )
         with coly[1]:
             respect_human_locks = st.checkbox("respect_human_locks", value=bool(_g("respect_human_locks", True)))
         with coly[2]:
@@ -1539,7 +1573,6 @@ on top of the catalog. Keep AI scopes **small and specific** for focus, speed an
 #         )
 
 
-
 # def render_main_connection_help():
 #     with st.popover("ℹ️ What is a main connection?"):
 #         st.markdown(
@@ -1590,7 +1623,8 @@ A **main connection** is the root data source your workspace attaches to.
 - **Preprocessors** run under this main connection and use **catalog scope** by default;
   when launched from an AI run they use **`catalog scope ∩ AI scope`** (intersection).
 
-**Pipeline (MVP):** `Main connection` → `Catalog (catalog scope)` → `Preprocessors (catalog scope, optionally ∩ AI scope)` → `AI analyses (AI scope)`
+**Pipeline (MVP):** `Main connection` → `Catalog (catalog scope)` → `Preprocessors (catalog scope, optionally ∩ AI scope)` → `AI analyses
+(AI scope)`
 
 ### Why this order?
 1. Choose a **main connection** (system & credentials)
@@ -1662,8 +1696,6 @@ def render_connection_type_legend(
         st.download_button("Download registry (CSV)", data=csv, file_name="connection_types.csv", mime="text/csv")
 
 
-
-
 def render_ai_config_field_help(
     sc: str,
     *,
@@ -1680,7 +1712,8 @@ def render_ai_config_field_help(
     PROVIDERS = {
         "OpenAI": {
             "models": ["o4", "o4-mini", "5"],
-            "privacy": "Data may be processed on OpenAI servers in US/EU. Not stored for training when using enterprise agreements, but still leaves your infrastructure.",
+            "privacy": "Data may be processed on OpenAI servers in US/EU. Not stored for training when using enterprise agreements, but "
+            "still leaves your infrastructure.",
         },
         "Microsoft (Azure OpenAI)": {
             "models": ["o4", "o4-mini", "5"],
@@ -1688,7 +1721,8 @@ def render_ai_config_field_help(
         },
         "Local": {
             "models": ["mistral-7b"],
-            "privacy": "Runs fully on your own infra. Data never leaves your network and is full privacy proof. Quality and speed depends on your hardware and set-up.",
+            "privacy": "Runs fully on your own infra. Data never leaves your network and is full privacy proof. "
+            "Quality and speed depends on your hardware and set-up.",
         },
     }
 
@@ -1803,17 +1837,21 @@ def render_ai_config_field_help(
 
         elif choice == "Propagation mode":
             st.info(
-                f"""**Propagation mode** controls if AI results are written to catalog object descriptions immediately. AI results are always stored in the analysis store and can be exported later.
+                f"""**Propagation mode** controls if AI results are written to catalog object descriptions immediately. AI results are
+                always stored in the analysis store and can be exported later.
 
-- **auto** *(default)* → results are **written directly** to descriptions (obeying **Overwrite policy**). Each new/overwritten value is flagged as **unreviewed**; users can later mark as **reviewed** or **edited**.
-- **manual** → results are **stored only** in the analysis store. No automatic write. You can later **exported** to your catalog object descriptions.
-**Recommended default:** **{defaults['propagation_mode']}**"""
+                - **auto** *(default)* → results are **written directly** to descriptions (obeying **Overwrite policy**). Each
+                new/overwritten value is flagged as **unreviewed**; users can later mark as **reviewed** or **edited**.
+                - **manual** → results are **stored only** in the analysis store. No automatic write. You can later **exported**
+                to your catalog object descriptions.
+                **Recommended default:** **{defaults['propagation_mode']}**"""
             )
 
             matrix = pd.DataFrame(
                 [
                     ["auto", "fill_empty", "Writes only into empty fields; existing text untouched (status = unreviewed)."],
-                    ["auto", "overwrite_if_confident", "Overwrites when confidence ≥ threshold (status = unreviewed); otherwise leaves as-is."],
+                    ["auto", "overwrite_if_confident", ("Overwrites when confidence ≥ threshold (status = unreviewed); "
+                                                        "otherwise leaves as-is.")],
                     ["auto", "never", "Never overwrites; only empty fields can be filled (status = unreviewed)."],
                     ["manual", "any", "Writes nothing now; results remain in analysis store until you export/apply."],
                 ],
