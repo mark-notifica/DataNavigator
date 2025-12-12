@@ -1,10 +1,8 @@
 # 📄 Bestand: .github/workflows/pr-checks.yml
 name: PR Checks
-
 on:
   pull_request:
     branches: [main]
-
 jobs:
   validate:
     name: ⚙️ Lint & Test
@@ -13,26 +11,21 @@ jobs:
     if: ${{ ! contains(join(github.event.pull_request.labels.*.name, ','), 'skip-checks') && ! contains(github.event.pull_request.title, '[skip-checks]') }}
     env:
       PYTHONPATH: ${{ github.workspace }}:${{ github.workspace }}/data_catalog
-
     steps:
       - name: 📥 Checkout repository
         uses: actions/checkout@v3
-
       - name: 🐍 Set up Python
         uses: actions/setup-python@v4
         with:
           python-version: '3.11'
-
       - name: 📦 Install dependencies
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
           if [ -f dev-requirements.txt ]; then pip install -r dev-requirements.txt; fi
-
       - name: 🧹 Run flake8 linter
         run: |
-          flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
-
+          flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics --exclude=*.md,*.txt,*.yml,*.yaml,*.json,*.toml
       - name: 🧪 Run tests (if present)
         run: |
           if [ -d tests ]; then pytest tests/; fi
