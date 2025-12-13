@@ -228,6 +228,93 @@ def save_full_catalog(server_name, database_name, schemas, tables_by_schema, col
 
     print("✅ Catalog saved!")
 
+# === READ FUNCTIONS ===
+
+def get_catalog_tables():
+    """
+    Get all tables from catalog database.
+    Returns list of dicts with schema, table, and description.
+    """
+    conn = get_catalog_connection()
+    cursor = conn.cursor()
+
+    cursor.execute("""
+        SELECT
+            s.schema_name,
+            t.table_name,
+            tn.description_short
+        FROM catalog.node_table t
+        JOIN catalog.nodes tn ON t.node_id = tn.node_id
+        JOIN catalog.node_schema s ON t.schema_node_id = s.node_id
+        ORDER BY s.schema_name, t.table_name
+    """)
+
+    results = cursor.fetchall()
+    cursor.close()
+    conn.close()
+
+    return [
+        {'schema': r[0], 'table': r[1], 'description': r[2] or ''}
+        for r in results
+    ]
+
+
+def get_catalog_columns(schema_name, table_name):
+    """
+    Get columns for a specific table from catalog database.
+    Returns list of dicts with column info and description.
+    """
+    conn = get_catalog_connection()
+    cursor = conn.cursor()
+
+    cursor.execute("""
+        SELECT
+            c.column_name,
+            c.data_type,
+            c.is_nullable,
+            cn.description_short
+        FROM catalog.node_column c
+        JOIN catalog.nodes cn ON c.node_id = cn.node_id
+        JOIN catalog.node_table t ON c.table_node_id = t.node_id
+        JOIN catalog.nodes tn ON t.node_id = tn.node_id
+        JOIN catalog.node_schema s ON t.schema_node_id = s.node_id
+        WHERE s.schema_name = %s AND t.table_name = %s
+        ORDER BY c.column_name
+    """, (schema_name, table_name))
+
+    results = cursor.fetchall()
+    cursor.close()
+    conn.close()
+
+    return [
+        {
+            'column': r[0],
+            'type': r[1],
+            'nullable': r[2],
+            'description': r[3] or ''
+        }
+        for r in results
+    ]
+
+
+def get_table_node_id(schema_name, table_name):
+    """Get the node_id for a table. Returns None if not found."""
+    conn = get_catalog_connection()
+    cursor = conn.cursor()
+
+    cursor.execute("""
+        SELECT t.node_id
+        FROM catalog.node_table t
+        JOIN catalog.node_schema s ON t.schema_node_id = s.node_id
+        WHERE s.schema_name = %s AND t.table_name = %s
+    """, (schema_name, table_name))
+
+    row = cursor.fetchone()
+    cursor.close()
+    conn.close()
+
+    return row[0] if row else None
+
 
 if __name__ == "__main__":
     # Quick test - just verify connection works
