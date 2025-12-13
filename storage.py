@@ -230,6 +230,7 @@ def save_full_catalog(server_name, database_name, schemas, tables_by_schema, col
 
 # === READ FUNCTIONS ===
 
+
 def get_catalog_tables():
     """
     Get all tables from catalog database.

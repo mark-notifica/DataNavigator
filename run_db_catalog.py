@@ -1,16 +1,15 @@
 """
 Run a full catalog extraction and save to database.
 """
-print("Starting script...")
-
 from extractor import get_all_schemas, get_all_tables, get_columns
-print("Extractor imported")
 from storage import save_full_catalog
-print("Storage imported")
 import os
 from dotenv import load_dotenv
 
 load_dotenv()
+print("Starting script...")
+print("Extractor imported")
+print("Storage imported")
 
 
 def run_extraction():
@@ -40,7 +39,7 @@ def run_extraction():
     for t in all_tables:
         cols = get_columns(t['table'], t['schema'])
         columns_by_table[(t['schema'], t['table'])] = cols
-    print(f"Extracted columns for all tables")
+    print("Extracted columns for all tables")
 
     # 4. Save everything
     save_full_catalog(server_name, database_name, schemas, tables_by_schema, columns_by_table)
