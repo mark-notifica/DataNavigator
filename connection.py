@@ -28,6 +28,24 @@ def get_source_connection():
         raise Exception(f"Failed to connect to SOURCE database: {e}")
 
 
+def get_connection(host, port, database, user, password):
+    """
+    Connect to any database with explicit parameters.
+    Used for: Dynamic connections from command line args.
+    """
+    try:
+        conn = psycopg2.connect(
+            host=host,
+            port=port,
+            database=database,
+            user=user,
+            password=password
+        )
+        return conn
+    except Exception as e:
+        raise Exception(f"Failed to connect to {host}/{database}: {e}")
+
+
 def get_catalog_connection():
     """
     Connect to the CATALOG database (where we store our metadata).

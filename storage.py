@@ -6,7 +6,43 @@ Saves extracted data to the CATALOG database.
 from connection import get_catalog_connection
 
 
-def get_or_create_database_node(server_name, database_name):
+def get_or_create_server_node(server_name, server_alias=''):
+    """
+    Get or create the server node. Returns node_id.
+    """
+    conn = get_catalog_connection()
+    cursor = conn.cursor()
+
+    qualified_name = server_name
+
+    # Try to find existing
+    cursor.execute("""
+        SELECT node_id FROM catalog.nodes
+        WHERE object_type_code = 'DB_SERVER' AND qualified_name = %s
+    """, (qualified_name,))
+
+    row = cursor.fetchone()
+    if row:
+        cursor.close()
+        conn.close()
+        return row[0]
+
+    # Create new
+    cursor.execute("""
+        INSERT INTO catalog.nodes (object_type_code, name, qualified_name, description_short)
+        VALUES ('DB_SERVER', %s, %s, %s)
+        RETURNING node_id
+    """, (server_name, qualified_name, server_alias if server_alias else None))
+
+    node_id = cursor.fetchone()[0]
+
+    conn.commit()
+    cursor.close()
+    conn.close()
+    return node_id
+
+
+def get_or_create_database_node(server_node_id, server_name, database_name):
     """
     Get or create the database node. Returns node_id.
     """
@@ -18,7 +54,7 @@ def get_or_create_database_node(server_name, database_name):
     # Try to find existing
     cursor.execute("""
         SELECT node_id FROM catalog.nodes
-        WHERE node_type = 'DB_DATABASE' AND qualified_name = %s
+        WHERE object_type_code = 'DB_DATABASE' AND qualified_name = %s
     """, (qualified_name,))
 
     row = cursor.fetchone()
@@ -29,7 +65,7 @@ def get_or_create_database_node(server_name, database_name):
 
     # Create new
     cursor.execute("""
-        INSERT INTO catalog.nodes (node_type, name, qualified_name)
+        INSERT INTO catalog.nodes (object_type_code, name, qualified_name)
         VALUES ('DB_DATABASE', %s, %s)
         RETURNING node_id
     """, (database_name, qualified_name))
@@ -37,9 +73,9 @@ def get_or_create_database_node(server_name, database_name):
     node_id = cursor.fetchone()[0]
 
     cursor.execute("""
-        INSERT INTO catalog.node_database (node_id, server_name, database_name)
-        VALUES (%s, %s, %s)
-    """, (node_id, server_name, database_name))
+        INSERT INTO catalog.node_database (node_id, server_node_id, server_name, database_name)
+        VALUES (%s, %s, %s, %s)
+    """, (node_id, server_node_id, server_name, database_name))
 
     conn.commit()
     cursor.close()
@@ -63,7 +99,7 @@ def save_schema(database_node_id, schema_name):
     # Check if exists
     cursor.execute("""
         SELECT node_id FROM catalog.nodes
-        WHERE node_type = 'DB_SCHEMA' AND qualified_name = %s
+        WHERE object_type_code = 'DB_SCHEMA' AND qualified_name = %s
     """, (qualified_name,))
 
     row = cursor.fetchone()
@@ -74,7 +110,7 @@ def save_schema(database_node_id, schema_name):
 
     # Create new
     cursor.execute("""
-        INSERT INTO catalog.nodes (node_type, name, qualified_name)
+        INSERT INTO catalog.nodes (object_type_code, name, qualified_name)
         VALUES ('DB_SCHEMA', %s, %s)
         RETURNING node_id
     """, (schema_name, qualified_name))
@@ -95,12 +131,11 @@ def save_schema(database_node_id, schema_name):
 def save_table(schema_node_id, table_name, table_type='TABLE'):
     """
     Save a table. Returns node_id.
-    table_type: 'TABLE' or 'VIEW' (stored in node_table, node_type is DB_TABLE or DB_VIEW)
     """
     conn = get_catalog_connection()
     cursor = conn.cursor()
 
-    node_type = 'DB_VIEW' if table_type == 'VIEW' else 'DB_TABLE'
+    object_type_code = 'DB_VIEW' if table_type == 'VIEW' else 'DB_TABLE'
 
     cursor.execute("""
         SELECT qualified_name FROM catalog.nodes WHERE node_id = %s
@@ -111,8 +146,8 @@ def save_table(schema_node_id, table_name, table_type='TABLE'):
     # Check if exists
     cursor.execute("""
         SELECT node_id FROM catalog.nodes
-        WHERE node_type = %s AND qualified_name = %s
-    """, (node_type, qualified_name))
+        WHERE object_type_code = %s AND qualified_name = %s
+    """, (object_type_code, qualified_name))
 
     row = cursor.fetchone()
     if row:
@@ -122,10 +157,10 @@ def save_table(schema_node_id, table_name, table_type='TABLE'):
 
     # Create new
     cursor.execute("""
-        INSERT INTO catalog.nodes (node_type, name, qualified_name)
+        INSERT INTO catalog.nodes (object_type_code, name, qualified_name)
         VALUES (%s, %s, %s)
         RETURNING node_id
-    """, (node_type, table_name, qualified_name))
+    """, (object_type_code, table_name, qualified_name))
 
     node_id = cursor.fetchone()[0]
 
@@ -156,7 +191,7 @@ def save_column(table_node_id, column_name, data_type, is_nullable):
     # Check if exists
     cursor.execute("""
         SELECT node_id FROM catalog.nodes
-        WHERE node_type = 'DB_COLUMN' AND qualified_name = %s
+        WHERE object_type_code = 'DB_COLUMN' AND qualified_name = %s
     """, (qualified_name,))
 
     row = cursor.fetchone()
@@ -167,7 +202,7 @@ def save_column(table_node_id, column_name, data_type, is_nullable):
 
     # Create new
     cursor.execute("""
-        INSERT INTO catalog.nodes (node_type, name, qualified_name)
+        INSERT INTO catalog.nodes (object_type_code, name, qualified_name)
         VALUES ('DB_COLUMN', %s, %s)
         RETURNING node_id
     """, (column_name, qualified_name))
@@ -185,12 +220,13 @@ def save_column(table_node_id, column_name, data_type, is_nullable):
     return node_id
 
 
-def save_full_catalog(server_name, database_name, schemas, tables_by_schema, columns_by_table):
+def save_full_catalog(server_name, server_alias, database_name, schemas, tables_by_schema, columns_by_table):
     """
     Save complete catalog extraction.
 
     Args:
-        server_name: e.g., 'localhost'
+        server_name: e.g., 'VPS2'
+        server_alias: e.g., 'Local Dev' (optional)
         database_name: e.g., '1054'
         schemas: list of schema names ['grip', 'prepare', ...]
         tables_by_schema: dict {'grip': ['job', 'task'], 'prepare': ['stage']}
@@ -198,7 +234,12 @@ def save_full_catalog(server_name, database_name, schemas, tables_by_schema, col
     """
     print(f"Saving catalog for {server_name}/{database_name}...")
 
-    db_node_id = get_or_create_database_node(server_name, database_name)
+    # Server node first
+    server_node_id = get_or_create_server_node(server_name, server_alias)
+    print(f"  Server node: {server_node_id}")
+
+    # Database node
+    db_node_id = get_or_create_database_node(server_node_id, server_name, database_name)
     print(f"  Database node: {db_node_id}")
 
     schema_nodes = {}
