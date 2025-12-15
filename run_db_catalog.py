@@ -2,7 +2,7 @@
 Run a full catalog extraction and save to database.
 """
 import argparse
-from extractor import get_all_schemas, get_all_tables, get_columns, get_view_definition
+from extractor_db_postgres import get_all_schemas, get_all_tables, get_columns, get_view_definition
 from storage import save_full_catalog
 
 

@@ -3,7 +3,7 @@ Data extraction functions.
 Extracts metadata from SOURCE database.
 """
 
-from connection import get_source_connection, get_connection
+from connection_db_postgres import get_source_connection, get_connection
 
 
 def get_all_schemas(host=None, port=None, database=None, user=None, password=None):

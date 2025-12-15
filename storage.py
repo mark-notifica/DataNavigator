@@ -3,12 +3,79 @@ Storage functions for catalog metadata.
 Saves extracted data to the CATALOG database.
 """
 
-from connection import get_catalog_connection
+from connection_db_postgres import get_catalog_connection
 
 
-def get_or_create_server_node(server_name, server_alias=''):
+def start_catalog_run(run_type, source_label, server_node_id=None):
+    """Start a new catalog run. Returns run_id."""
+    conn = get_catalog_connection()
+    cursor = conn.cursor()
+
+    cursor.execute("""
+        INSERT INTO catalog.catalog_runs (run_type, connection_id, source_label, status)
+        VALUES (%s, %s, %s, 'running')
+        RETURNING id
+    """, (run_type, server_node_id or 0, source_label))
+
+    run_id = cursor.fetchone()[0]
+    conn.commit()
+    cursor.close()
+    conn.close()
+    return run_id
+
+
+def finish_catalog_run(run_id, nodes_created, nodes_updated, nodes_deleted, status='completed', error_message=None):
+    """Mark a catalog run as finished."""
+    conn = get_catalog_connection()
+    cursor = conn.cursor()
+
+    cursor.execute("""
+        UPDATE catalog.catalog_runs
+        SET completed_at = NOW(),
+            status = %s,
+            nodes_created = %s,
+            nodes_updated = %s,
+            nodes_deleted = %s,
+            objects_total = %s,
+            error_message = %s
+        WHERE id = %s
+    """, (status, nodes_created, nodes_updated, nodes_deleted,
+          nodes_created + nodes_updated, error_message, run_id))
+
+    conn.commit()
+    cursor.close()
+    conn.close()
+
+
+def mark_deleted_nodes(source_prefix, run_id):
     """
-    Get or create the server node. Returns node_id.
+    Mark nodes not seen in this run as deleted.
+    Returns count of deleted nodes.
+    """
+    conn = get_catalog_connection()
+    cursor = conn.cursor()
+
+    cursor.execute("""
+        UPDATE catalog.nodes
+        SET deleted_in_run_id = %s, deleted_at = NOW()
+        WHERE qualified_name LIKE %s
+        AND last_seen_run_id != %s
+        AND last_seen_run_id IS NOT NULL
+        AND deleted_at IS NULL
+    """, (run_id, f"{source_prefix}%", run_id))
+
+    deleted_count = cursor.rowcount
+
+    conn.commit()
+    cursor.close()
+    conn.close()
+
+    return deleted_count
+
+
+def get_or_create_server_node(server_name, server_alias='', run_id=None):
+    """
+    Get or create the server node. Returns (node_id, was_created).
     """
     conn = get_catalog_connection()
     cursor = conn.cursor()
@@ -23,28 +90,35 @@ def get_or_create_server_node(server_name, server_alias=''):
 
     row = cursor.fetchone()
     if row:
+        node_id = row[0]
+        cursor.execute("""
+            UPDATE catalog.nodes
+            SET updated_at = NOW(), last_seen_run_id = %s
+            WHERE node_id = %s
+        """, (run_id, node_id))
+        conn.commit()
         cursor.close()
         conn.close()
-        return row[0]
+        return node_id, False
 
     # Create new
     cursor.execute("""
-        INSERT INTO catalog.nodes (object_type_code, name, qualified_name, description_short)
-        VALUES ('DB_SERVER', %s, %s, %s)
+        INSERT INTO catalog.nodes (object_type_code, name, qualified_name, description_short, created_in_run_id, last_seen_run_id)
+        VALUES ('DB_SERVER', %s, %s, %s, %s, %s)
         RETURNING node_id
-    """, (server_name, qualified_name, server_alias if server_alias else None))
+    """, (server_name, qualified_name, server_alias if server_alias else None, run_id, run_id))
 
     node_id = cursor.fetchone()[0]
 
     conn.commit()
     cursor.close()
     conn.close()
-    return node_id
+    return node_id, True
 
 
-def get_or_create_database_node(server_node_id, server_name, database_name):
+def get_or_create_database_node(server_node_id, server_name, database_name, run_id=None):
     """
-    Get or create the database node. Returns node_id.
+    Get or create the database node. Returns (node_id, was_created).
     """
     conn = get_catalog_connection()
     cursor = conn.cursor()
@@ -59,16 +133,23 @@ def get_or_create_database_node(server_node_id, server_name, database_name):
 
     row = cursor.fetchone()
     if row:
+        node_id = row[0]
+        cursor.execute("""
+            UPDATE catalog.nodes
+            SET updated_at = NOW(), last_seen_run_id = %s
+            WHERE node_id = %s
+        """, (run_id, node_id))
+        conn.commit()
         cursor.close()
         conn.close()
-        return row[0]
+        return node_id, False
 
     # Create new
     cursor.execute("""
-        INSERT INTO catalog.nodes (object_type_code, name, qualified_name)
-        VALUES ('DB_DATABASE', %s, %s)
+        INSERT INTO catalog.nodes (object_type_code, name, qualified_name, created_in_run_id, last_seen_run_id)
+        VALUES ('DB_DATABASE', %s, %s, %s, %s)
         RETURNING node_id
-    """, (database_name, qualified_name))
+    """, (database_name, qualified_name, run_id, run_id))
 
     node_id = cursor.fetchone()[0]
 
@@ -80,12 +161,12 @@ def get_or_create_database_node(server_node_id, server_name, database_name):
     conn.commit()
     cursor.close()
     conn.close()
-    return node_id
+    return node_id, True
 
 
-def save_schema(database_node_id, schema_name):
+def save_schema(database_node_id, schema_name, run_id=None):
     """
-    Save a schema. Returns node_id.
+    Save a schema (upsert). Returns (node_id, was_created).
     """
     conn = get_catalog_connection()
     cursor = conn.cursor()
@@ -103,34 +184,43 @@ def save_schema(database_node_id, schema_name):
     """, (qualified_name,))
 
     row = cursor.fetchone()
+
     if row:
-        cursor.close()
-        conn.close()
-        return row[0]
+        # UPDATE existing
+        node_id = row[0]
+        cursor.execute("""
+            UPDATE catalog.nodes
+            SET updated_at = NOW(), last_seen_run_id = %s
+            WHERE node_id = %s
+        """, (run_id, node_id))
 
-    # Create new
-    cursor.execute("""
-        INSERT INTO catalog.nodes (object_type_code, name, qualified_name)
-        VALUES ('DB_SCHEMA', %s, %s)
-        RETURNING node_id
-    """, (schema_name, qualified_name))
+        was_created = False
+    else:
+        # INSERT new
+        cursor.execute("""
+            INSERT INTO catalog.nodes (object_type_code, name, qualified_name, created_in_run_id, last_seen_run_id)
+            VALUES ('DB_SCHEMA', %s, %s, %s, %s)
+            RETURNING node_id
+        """, (schema_name, qualified_name, run_id, run_id))
 
-    node_id = cursor.fetchone()[0]
+        node_id = cursor.fetchone()[0]
 
-    cursor.execute("""
-        INSERT INTO catalog.node_schema (node_id, database_node_id, schema_name)
-        VALUES (%s, %s, %s)
-    """, (node_id, database_node_id, schema_name))
+        cursor.execute("""
+            INSERT INTO catalog.node_schema (node_id, database_node_id, schema_name)
+            VALUES (%s, %s, %s)
+        """, (node_id, database_node_id, schema_name))
+
+        was_created = True
 
     conn.commit()
     cursor.close()
     conn.close()
-    return node_id
+    return node_id, was_created
 
 
-def save_table(schema_node_id, table_name, table_type='TABLE', view_definition=None):
+def save_table(schema_node_id, table_name, table_type='TABLE', view_definition=None, run_id=None):
     """
-    Save a table or view. Returns node_id.
+    Save a table or view (upsert). Returns (node_id, was_created).
     """
     conn = get_catalog_connection()
     cursor = conn.cursor()
@@ -150,34 +240,49 @@ def save_table(schema_node_id, table_name, table_type='TABLE', view_definition=N
     """, (object_type_code, qualified_name))
 
     row = cursor.fetchone()
+
     if row:
-        cursor.close()
-        conn.close()
-        return row[0]
+        # UPDATE existing
+        node_id = row[0]
+        cursor.execute("""
+            UPDATE catalog.nodes
+            SET updated_at = NOW(), last_seen_run_id = %s
+            WHERE node_id = %s
+        """, (run_id, node_id))
 
-    # Create new
-    cursor.execute("""
-        INSERT INTO catalog.nodes (object_type_code, name, qualified_name)
-        VALUES (%s, %s, %s)
-        RETURNING node_id
-    """, (object_type_code, table_name, qualified_name))
+        cursor.execute("""
+            UPDATE catalog.node_table
+            SET table_type = %s, view_definition = %s
+            WHERE node_id = %s
+        """, (table_type, view_definition, node_id))
 
-    node_id = cursor.fetchone()[0]
+        was_created = False
+    else:
+        # INSERT new
+        cursor.execute("""
+            INSERT INTO catalog.nodes (object_type_code, name, qualified_name, created_in_run_id, last_seen_run_id)
+            VALUES (%s, %s, %s, %s, %s)
+            RETURNING node_id
+        """, (object_type_code, table_name, qualified_name, run_id, run_id))
 
-    cursor.execute("""
-        INSERT INTO catalog.node_table (node_id, schema_node_id, table_name, table_type, view_definition)
-        VALUES (%s, %s, %s, %s, %s)
-    """, (node_id, schema_node_id, table_name, table_type, view_definition))
+        node_id = cursor.fetchone()[0]
+
+        cursor.execute("""
+            INSERT INTO catalog.node_table (node_id, schema_node_id, table_name, table_type, view_definition)
+            VALUES (%s, %s, %s, %s, %s)
+        """, (node_id, schema_node_id, table_name, table_type, view_definition))
+
+        was_created = True
 
     conn.commit()
     cursor.close()
     conn.close()
-    return node_id
+    return node_id, was_created
 
 
-def save_column(table_node_id, column_name, data_type, is_nullable):
+def save_column(table_node_id, column_name, data_type, is_nullable, run_id=None):
     """
-    Save a column. Returns node_id.
+    Save a column (upsert). Returns (node_id, was_created).
     """
     conn = get_catalog_connection()
     cursor = conn.cursor()
@@ -195,76 +300,125 @@ def save_column(table_node_id, column_name, data_type, is_nullable):
     """, (qualified_name,))
 
     row = cursor.fetchone()
+
     if row:
-        cursor.close()
-        conn.close()
-        return row[0]
+        # UPDATE existing
+        node_id = row[0]
+        cursor.execute("""
+            UPDATE catalog.nodes
+            SET updated_at = NOW(), last_seen_run_id = %s
+            WHERE node_id = %s
+        """, (run_id, node_id))
 
-    # Create new
-    cursor.execute("""
-        INSERT INTO catalog.nodes (object_type_code, name, qualified_name)
-        VALUES ('DB_COLUMN', %s, %s)
-        RETURNING node_id
-    """, (column_name, qualified_name))
+        cursor.execute("""
+            UPDATE catalog.node_column
+            SET data_type = %s, is_nullable = %s
+            WHERE node_id = %s
+        """, (data_type, is_nullable, node_id))
 
-    node_id = cursor.fetchone()[0]
+        was_created = False
+    else:
+        # INSERT new
+        cursor.execute("""
+            INSERT INTO catalog.nodes (object_type_code, name, qualified_name, created_in_run_id, last_seen_run_id)
+            VALUES ('DB_COLUMN', %s, %s, %s, %s)
+            RETURNING node_id
+        """, (column_name, qualified_name, run_id, run_id))
 
-    cursor.execute("""
-        INSERT INTO catalog.node_column (node_id, table_node_id, column_name, data_type, is_nullable)
-        VALUES (%s, %s, %s, %s, %s)
-    """, (node_id, table_node_id, column_name, data_type, is_nullable))
+        node_id = cursor.fetchone()[0]
+
+        cursor.execute("""
+            INSERT INTO catalog.node_column (node_id, table_node_id, column_name, data_type, is_nullable)
+            VALUES (%s, %s, %s, %s, %s)
+        """, (node_id, table_node_id, column_name, data_type, is_nullable))
+
+        was_created = True
 
     conn.commit()
     cursor.close()
     conn.close()
-    return node_id
+    return node_id, was_created
 
 
 def save_full_catalog(server_name, server_alias, database_name, schemas, tables_by_schema, table_types, view_definitions, columns_by_table):
     """
-    Save complete catalog extraction.
+    Save complete catalog extraction with upsert logic.
     """
-    print(f"Saving catalog for {server_name}/{database_name}...")
+    source_label = f"{server_name}/{database_name}"
+    print(f"Saving catalog for {source_label}...")
 
-    # Server node first
-    server_node_id = get_or_create_server_node(server_name, server_alias)
+    created_count = 0
+    updated_count = 0
+
+    # Start run
+    run_id = start_catalog_run('DATABASE', source_label)
+    print(f"  Run ID: {run_id}")
+
+    server_node_id, was_created = get_or_create_server_node(server_name, server_alias, run_id)
+    if was_created:
+        created_count += 1
+    else:
+        updated_count += 1
     print(f"  Server node: {server_node_id}")
 
     # Database node
-    db_node_id = get_or_create_database_node(server_node_id, server_name, database_name)
+    db_node_id, was_created = get_or_create_database_node(server_node_id, server_name, database_name, run_id)
+    if was_created:
+        created_count += 1
+    else:
+        updated_count += 1
     print(f"  Database node: {db_node_id}")
 
+    # Schemas
     schema_nodes = {}
     for schema in schemas:
-        schema_nodes[schema] = save_schema(db_node_id, schema)
-    print(f"  Saved {len(schemas)} schemas")
+        node_id, was_created = save_schema(db_node_id, schema, run_id)
+        schema_nodes[schema] = node_id
+        if was_created:
+            created_count += 1
+        else:
+            updated_count += 1
+    print(f"  Processed {len(schemas)} schemas")
 
+    # Tables
     table_nodes = {}
-    table_count = 0
-    view_count = 0
     for schema, tables in tables_by_schema.items():
         if schema not in schema_nodes:
             continue
         for table in tables:
             ttype = table_types.get((schema, table), 'TABLE')
             view_def = view_definitions.get((schema, table))
-            table_nodes[(schema, table)] = save_table(schema_nodes[schema], table, ttype, view_def)
-            table_count += 1
-            if ttype == 'VIEW':
-                view_count += 1
-    print(f"  Saved {table_count} tables/views ({view_count} views)")
+            node_id, was_created = save_table(schema_nodes[schema], table, ttype, view_def, run_id)
+            table_nodes[(schema, table)] = node_id
+            if was_created:
+                created_count += 1
+            else:
+                updated_count += 1
+    print(f"  Processed {len(table_nodes)} tables/views")
 
+    # Columns
     col_count = 0
     for (schema, table), columns in columns_by_table.items():
         if (schema, table) not in table_nodes:
             continue
         table_node_id = table_nodes[(schema, table)]
         for col in columns:
-            save_column(table_node_id, col['column'], col['type'], col['nullable'])
+            _, was_created = save_column(table_node_id, col['column'], col['type'], col['nullable'], run_id)
+            if was_created:
+                created_count += 1
+            else:
+                updated_count += 1
             col_count += 1
-    print(f"  Saved {col_count} columns")
+    print(f"  Processed {col_count} columns")
 
-    print("✅ Catalog saved!")
+    # Mark deleted
+    deleted_count = mark_deleted_nodes(source_label, run_id)
+    print(f"  Marked {deleted_count} nodes as deleted")
+
+    # Finish run
+    finish_catalog_run(run_id, created_count, updated_count, deleted_count)
+
+    print(f"✅ Catalog saved! (created: {created_count}, updated: {updated_count}, deleted: {deleted_count})")
 
 # === READ FUNCTIONS ===
 
