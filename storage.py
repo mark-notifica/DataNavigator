@@ -73,7 +73,8 @@ def mark_deleted_nodes(source_prefix, run_id):
     return deleted_count
 
 
-def get_or_create_server_node(server_name, server_alias='', run_id=None):
+def get_or_create_server_node(server_name, server_alias='', run_id=None,
+                              ip_address=None, database_type=None):
     """
     Get or create the server node. Returns (node_id, was_created).
     """
@@ -91,24 +92,44 @@ def get_or_create_server_node(server_name, server_alias='', run_id=None):
     row = cursor.fetchone()
     if row:
         node_id = row[0]
+        # Update nodes
         cursor.execute("""
             UPDATE catalog.nodes
             SET updated_at = NOW(), last_seen_run_id = %s
             WHERE node_id = %s
         """, (run_id, node_id))
+        # Upsert node_server
+        cursor.execute("""
+            INSERT INTO catalog.node_server
+            (node_id, server_name, server_alias, ip_address, database_type)
+            VALUES (%s, %s, %s, %s, %s)
+            ON CONFLICT (node_id) DO UPDATE SET
+                server_alias = COALESCE(EXCLUDED.server_alias, catalog.node_server.server_alias),
+                ip_address = COALESCE(EXCLUDED.ip_address, catalog.node_server.ip_address),
+                database_type = COALESCE(EXCLUDED.database_type, catalog.node_server.database_type)
+        """, (node_id, server_name, server_alias or None, ip_address, database_type))
         conn.commit()
         cursor.close()
         conn.close()
         return node_id, False
 
-    # Create new
+    # Create new node
     cursor.execute("""
-        INSERT INTO catalog.nodes (object_type_code, name, qualified_name, description_short, created_in_run_id, last_seen_run_id)
+        INSERT INTO catalog.nodes
+        (object_type_code, name, qualified_name, description_short,
+         created_in_run_id, last_seen_run_id)
         VALUES ('DB_SERVER', %s, %s, %s, %s, %s)
         RETURNING node_id
-    """, (server_name, qualified_name, server_alias if server_alias else None, run_id, run_id))
+    """, (server_name, qualified_name, server_alias or None, run_id, run_id))
 
     node_id = cursor.fetchone()[0]
+
+    # Create node_server detail
+    cursor.execute("""
+        INSERT INTO catalog.node_server
+        (node_id, server_name, server_alias, ip_address, database_type)
+        VALUES (%s, %s, %s, %s, %s)
+    """, (node_id, server_name, server_alias or None, ip_address, database_type))
 
     conn.commit()
     cursor.close()
@@ -340,7 +361,9 @@ def save_column(table_node_id, column_name, data_type, is_nullable, run_id=None)
     return node_id, was_created
 
 
-def save_full_catalog(server_name, server_alias, database_name, schemas, tables_by_schema, table_types, view_definitions, columns_by_table):
+def save_full_catalog(server_name, server_alias, ip_address, database_type,
+                      database_name, schemas, tables_by_schema, table_types,
+                      view_definitions, columns_by_table):
     """
     Save complete catalog extraction with upsert logic.
     """
@@ -354,7 +377,9 @@ def save_full_catalog(server_name, server_alias, database_name, schemas, tables_
     run_id = start_catalog_run('DATABASE', source_label)
     print(f"  Run ID: {run_id}")
 
-    server_node_id, was_created = get_or_create_server_node(server_name, server_alias, run_id)
+    server_node_id, was_created = get_or_create_server_node(
+        server_name, server_alias, run_id, ip_address, database_type
+    )
     if was_created:
         created_count += 1
     else:
@@ -362,7 +387,9 @@ def save_full_catalog(server_name, server_alias, database_name, schemas, tables_
     print(f"  Server node: {server_node_id}")
 
     # Database node
-    db_node_id, was_created = get_or_create_database_node(server_node_id, server_name, database_name, run_id)
+    db_node_id, was_created = get_or_create_database_node(
+        server_node_id, server_name, database_name, run_id
+    )
     if was_created:
         created_count += 1
     else:
@@ -388,7 +415,9 @@ def save_full_catalog(server_name, server_alias, database_name, schemas, tables_
         for table in tables:
             ttype = table_types.get((schema, table), 'TABLE')
             view_def = view_definitions.get((schema, table))
-            node_id, was_created = save_table(schema_nodes[schema], table, ttype, view_def, run_id)
+            node_id, was_created = save_table(
+                schema_nodes[schema], table, ttype, view_def, run_id
+            )
             table_nodes[(schema, table)] = node_id
             if was_created:
                 created_count += 1
@@ -403,7 +432,9 @@ def save_full_catalog(server_name, server_alias, database_name, schemas, tables_
             continue
         table_node_id = table_nodes[(schema, table)]
         for col in columns:
-            _, was_created = save_column(table_node_id, col['column'], col['type'], col['nullable'], run_id)
+            _, was_created = save_column(
+                table_node_id, col['column'], col['type'], col['nullable'], run_id
+            )
             if was_created:
                 created_count += 1
             else:
@@ -418,7 +449,8 @@ def save_full_catalog(server_name, server_alias, database_name, schemas, tables_
     # Finish run
     finish_catalog_run(run_id, created_count, updated_count, deleted_count)
 
-    print(f"✅ Catalog saved! (created: {created_count}, updated: {updated_count}, deleted: {deleted_count})")
+    print(f"✅ Catalog saved! Created: {created_count}, "
+          f"updated: {updated_count}, deleted: {deleted_count}")
 
 # === READ FUNCTIONS ===
 
@@ -507,6 +539,124 @@ def get_table_node_id(schema_name, table_name):
     conn.close()
 
     return row[0] if row else None
+
+
+def get_column_node_id(schema_name, table_name, column_name):
+    """Get node_id for a column."""
+    conn = get_catalog_connection()
+    cursor = conn.cursor()
+
+    cursor.execute("""
+        SELECT c.node_id
+        FROM catalog.node_column c
+        JOIN catalog.node_table t ON c.table_node_id = t.node_id
+        JOIN catalog.node_schema s ON t.schema_node_id = s.node_id
+        WHERE s.schema_name = %s
+          AND t.table_name = %s
+          AND c.column_name = %s
+    """, (schema_name, table_name, column_name))
+
+    row = cursor.fetchone()
+    cursor.close()
+    conn.close()
+    return row[0] if row else None
+
+
+def get_catalog_servers():
+    """Get all servers from catalog."""
+    conn = get_catalog_connection()
+    cursor = conn.cursor()
+
+    cursor.execute("""
+        SELECT n.node_id, n.name, n.description_short
+        FROM catalog.nodes n
+        WHERE n.object_type_code = 'DB_SERVER'
+          AND n.deleted_at IS NULL
+        ORDER BY n.name
+    """)
+
+    results = cursor.fetchall()
+    cursor.close()
+    conn.close()
+
+    return [
+        {'node_id': r[0], 'name': r[1], 'description': r[2] or ''}
+        for r in results
+    ]
+
+
+def get_catalog_databases(server_name):
+    """Get all databases for a server."""
+    conn = get_catalog_connection()
+    cursor = conn.cursor()
+
+    cursor.execute("""
+        SELECT n.node_id, d.database_name, n.description_short
+        FROM catalog.node_database d
+        JOIN catalog.nodes n ON d.node_id = n.node_id
+        JOIN catalog.nodes sn ON d.server_node_id = sn.node_id
+        WHERE sn.name = %s
+          AND n.deleted_at IS NULL
+        ORDER BY d.database_name
+    """, (server_name,))
+
+    results = cursor.fetchall()
+    cursor.close()
+    conn.close()
+
+    return [
+        {'node_id': r[0], 'name': r[1], 'description': r[2] or ''}
+        for r in results
+    ]
+
+
+def get_catalog_tables_for_database(server_name, database_name):
+    """Get tables filtered by server and database."""
+    conn = get_catalog_connection()
+    cursor = conn.cursor()
+
+    cursor.execute("""
+        SELECT
+            s.schema_name,
+            t.table_name,
+            tn.description_short
+        FROM catalog.node_table t
+        JOIN catalog.nodes tn ON t.node_id = tn.node_id
+        JOIN catalog.node_schema s ON t.schema_node_id = s.node_id
+        JOIN catalog.nodes sn ON s.node_id = sn.node_id
+        JOIN catalog.node_database d ON s.database_node_id = d.node_id
+        WHERE d.server_name = %s
+          AND d.database_name = %s
+          AND tn.deleted_at IS NULL
+        ORDER BY s.schema_name, t.table_name
+    """, (server_name, database_name))
+
+    results = cursor.fetchall()
+    cursor.close()
+    conn.close()
+
+    return [
+        {'schema': r[0], 'table': r[1], 'description': r[2] or ''}
+        for r in results
+    ]
+
+
+def update_node_description(node_id, description):
+    """Update description_short for a node."""
+    conn = get_catalog_connection()
+    cursor = conn.cursor()
+
+    cursor.execute("""
+        UPDATE catalog.nodes
+        SET description_short = %s,
+            description_status = 'draft',
+            updated_at = NOW()
+        WHERE node_id = %s
+    """, (description, node_id))
+
+    conn.commit()
+    cursor.close()
+    conn.close()
 
 
 if __name__ == "__main__":
