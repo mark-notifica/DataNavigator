@@ -37,8 +37,13 @@ try:
         st.warning("No servers in catalog. Run extraction first.")
         st.stop()
 
-    server_options = [s['name'] for s in servers]
-    selected_server = st.sidebar.selectbox("Server", server_options)
+    # Format: "VPS2 (Local Dev)" of alleen "VPS2" als geen alias
+    server_options = {
+        s['name'] if not s['alias'] else f"{s['name']} ({s['alias']})": s['name']
+        for s in servers
+    }
+    selected_server_display = st.sidebar.selectbox("Server", list(server_options.keys()))
+    selected_server = server_options[selected_server_display]
 
     # === DATABASE SELECTION ===
     databases = get_catalog_databases(selected_server)
@@ -47,8 +52,16 @@ try:
         st.warning(f"No databases found for {selected_server}")
         st.stop()
 
-    database_options = [d['name'] for d in databases]
-    selected_database = st.sidebar.selectbox("Database", database_options)
+    # Get table count per database
+    database_options = {}
+    for db in databases:
+        tables = get_catalog_tables_for_database(selected_server, db['name'])
+        count = len(tables)
+        label = f"{db['name']} ({count} tables)"
+        database_options[label] = db['name']
+
+    selected_db_display = st.sidebar.selectbox("Database", list(database_options.keys()))
+    selected_database = database_options[selected_db_display]
 
     st.sidebar.divider()
 
@@ -59,20 +72,68 @@ try:
         st.warning("No tables in catalog for this database.")
         st.stop()
 
+    # Search filter
+    search = st.sidebar.text_input("🔍 Filter tables", "")
+
+    if search:
+        tables = [t for t in tables if search.lower() in t['table'].lower()
+                  or search.lower() in t['schema'].lower()]
+
+    if not tables:
+        st.sidebar.warning("No tables match filter")
+        st.stop()
+
     table_options = [f"{t['schema']}.{t['table']}" for t in tables]
     selected = st.sidebar.selectbox("Table", table_options)
 
     # Parse selected table
     schema, table = selected.split('.')
 
-    # Find table description
+    # Find table info
     table_info = next(
         (t for t in tables if t['schema'] == schema and t['table'] == table),
         None
     )
 
     # Main content
-    st.header(f"{selected_server} / {selected_database}")
+    st.header(f"{selected_server_display} / {selected_database}")
+
+    # === SERVER DESCRIPTION EDITING ===
+    server_info = next((s for s in servers if s['name'] == selected_server), None)
+    server_node_id = server_info['node_id'] if server_info else None
+    current_server_desc = server_info['description'] if server_info else ''
+
+    with st.expander("Server Description"):
+        new_server_desc = st.text_area(
+            "Description",
+            value=current_server_desc,
+            key=f"server_desc_{selected_server}",
+            height=68
+        )
+        if st.button("Save Server Description"):
+            if server_node_id:
+                update_node_description(server_node_id, new_server_desc)
+                st.success("Saved!")
+                st.rerun()
+
+    # === DATABASE DESCRIPTION EDITING ===
+    db_info = next((d for d in databases if d['name'] == selected_database), None)
+    db_node_id = db_info['node_id'] if db_info else None
+    current_db_desc = db_info['description'] if db_info else ''
+
+    with st.expander("Database Description"):
+        new_db_desc = st.text_area(
+            "Description",
+            value=current_db_desc,
+            key=f"db_desc_{selected_database}",
+            height=68
+        )
+        if st.button("Save Database Description"):
+            if db_node_id:
+                update_node_description(db_node_id, new_db_desc)
+                st.success("Saved!")
+                st.rerun()
+
     st.subheader(f"Table: {selected}")
 
     # === TABLE DESCRIPTION EDITING ===

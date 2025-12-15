@@ -568,8 +568,9 @@ def get_catalog_servers():
     cursor = conn.cursor()
 
     cursor.execute("""
-        SELECT n.node_id, n.name, n.description_short
+        SELECT n.node_id, n.name, s.server_alias, n.description_short
         FROM catalog.nodes n
+        LEFT JOIN catalog.node_server s ON n.node_id = s.node_id
         WHERE n.object_type_code = 'DB_SERVER'
           AND n.deleted_at IS NULL
         ORDER BY n.name
@@ -580,7 +581,12 @@ def get_catalog_servers():
     conn.close()
 
     return [
-        {'node_id': r[0], 'name': r[1], 'description': r[2] or ''}
+        {
+            'node_id': r[0],
+            'name': r[1],
+            'alias': r[2] or '',
+            'description': r[3] or ''
+        }
         for r in results
     ]
 
