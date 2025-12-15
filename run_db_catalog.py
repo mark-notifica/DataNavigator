@@ -2,7 +2,7 @@
 Run a full catalog extraction and save to database.
 """
 import argparse
-from extractor import get_all_schemas, get_all_tables, get_columns
+from extractor import get_all_schemas, get_all_tables, get_columns, get_view_definition
 from storage import save_full_catalog
 
 
@@ -15,16 +15,29 @@ def run_extraction(server_name, server_alias, database_name, host, port, user, p
     schemas = get_all_schemas(host, port, database_name, user, password)
     print(f"Found {len(schemas)} schemas")
 
-    # 2. Get tables per schema
+    # 2. Get tables per schema (now includes table_type)
     tables_by_schema = {}
+    table_types = {}
+    view_definitions = {}
     all_tables = get_all_tables(host, port, database_name, user, password)
+
     for t in all_tables:
         schema = t['schema']
         table = t['table']
+        ttype = t['table_type']
+
         if schema not in tables_by_schema:
             tables_by_schema[schema] = []
         tables_by_schema[schema].append(table)
-    print(f"Found {len(all_tables)} tables")
+        table_types[(schema, table)] = ttype
+
+        # Get view DDL if it's a view
+        if ttype == 'VIEW':
+            ddl = get_view_definition(table, schema, host, port, database_name, user, password)
+            if ddl:
+                view_definitions[(schema, table)] = ddl
+
+    print(f"Found {len(all_tables)} tables/views ({len(view_definitions)} views with DDL)")
 
     # 3. Get columns per table
     columns_by_table = {}
@@ -40,6 +53,8 @@ def run_extraction(server_name, server_alias, database_name, host, port, user, p
         database_name,
         schemas,
         tables_by_schema,
+        table_types,
+        view_definitions,
         columns_by_table
     )
     print("Done!")

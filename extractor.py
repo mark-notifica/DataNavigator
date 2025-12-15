@@ -41,7 +41,7 @@ def get_all_schemas(host=None, port=None, database=None, user=None, password=Non
 
 def get_all_tables(host=None, port=None, database=None, user=None, password=None, schema=None):
     """
-    Get list of all tables.
+    Get list of all tables and views.
     """
     if host:
         conn = get_connection(host, port, database, user, password)
@@ -52,18 +52,18 @@ def get_all_tables(host=None, port=None, database=None, user=None, password=None
 
     if schema:
         query = """
-            SELECT table_schema, table_name
+            SELECT table_schema, table_name, table_type
             FROM information_schema.tables
             WHERE table_schema = %s
-            AND table_type = 'BASE TABLE'
+            AND table_type IN ('BASE TABLE', 'VIEW')
             ORDER BY table_name;
         """
         cursor.execute(query, (schema,))
     else:
         query = """
-            SELECT table_schema, table_name
+            SELECT table_schema, table_name, table_type
             FROM information_schema.tables
-            WHERE table_type = 'BASE TABLE'
+            WHERE table_type IN ('BASE TABLE', 'VIEW')
             AND table_schema NOT IN (
                 'pg_catalog',
                 'information_schema',
@@ -76,7 +76,11 @@ def get_all_tables(host=None, port=None, database=None, user=None, password=None
     results = cursor.fetchall()
 
     tables = [
-        {'schema': row[0], 'table': row[1]}
+        {
+            'schema': row[0],
+            'table': row[1],
+            'table_type': 'VIEW' if row[2] == 'VIEW' else 'TABLE'
+        }
         for row in results
     ]
 
@@ -121,3 +125,32 @@ def get_columns(table_name, schema='public', host=None, port=None, database=None
     conn.close()
 
     return columns
+
+
+def get_view_definition(view_name, schema='public', host=None, port=None, database=None, user=None, password=None):
+    """
+    Get the DDL definition for a view.
+    Returns the SQL definition string, or None if not a view.
+    """
+    if host:
+        conn = get_connection(host, port, database, user, password)
+    else:
+        conn = get_source_connection()
+
+    cursor = conn.cursor()
+
+    query = """
+        SELECT pg_get_viewdef(%s::regclass, true)
+    """
+
+    try:
+        cursor.execute(query, (f"{schema}.{view_name}",))
+        result = cursor.fetchone()
+        definition = result[0] if result else None
+    except Exception:
+        definition = None
+
+    cursor.close()
+    conn.close()
+
+    return definition

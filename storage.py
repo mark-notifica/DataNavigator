@@ -128,9 +128,9 @@ def save_schema(database_node_id, schema_name):
     return node_id
 
 
-def save_table(schema_node_id, table_name, table_type='TABLE'):
+def save_table(schema_node_id, table_name, table_type='TABLE', view_definition=None):
     """
-    Save a table. Returns node_id.
+    Save a table or view. Returns node_id.
     """
     conn = get_catalog_connection()
     cursor = conn.cursor()
@@ -165,9 +165,9 @@ def save_table(schema_node_id, table_name, table_type='TABLE'):
     node_id = cursor.fetchone()[0]
 
     cursor.execute("""
-        INSERT INTO catalog.node_table (node_id, schema_node_id, table_name, table_type)
-        VALUES (%s, %s, %s, %s)
-    """, (node_id, schema_node_id, table_name, table_type))
+        INSERT INTO catalog.node_table (node_id, schema_node_id, table_name, table_type, view_definition)
+        VALUES (%s, %s, %s, %s, %s)
+    """, (node_id, schema_node_id, table_name, table_type, view_definition))
 
     conn.commit()
     cursor.close()
@@ -220,17 +220,9 @@ def save_column(table_node_id, column_name, data_type, is_nullable):
     return node_id
 
 
-def save_full_catalog(server_name, server_alias, database_name, schemas, tables_by_schema, columns_by_table):
+def save_full_catalog(server_name, server_alias, database_name, schemas, tables_by_schema, table_types, view_definitions, columns_by_table):
     """
     Save complete catalog extraction.
-
-    Args:
-        server_name: e.g., 'VPS2'
-        server_alias: e.g., 'Local Dev' (optional)
-        database_name: e.g., '1054'
-        schemas: list of schema names ['grip', 'prepare', ...]
-        tables_by_schema: dict {'grip': ['job', 'task'], 'prepare': ['stage']}
-        columns_by_table: dict {('grip', 'job'): [{'column': 'id', 'type': 'integer', 'nullable': False}, ...]}
     """
     print(f"Saving catalog for {server_name}/{database_name}...")
 
@@ -249,13 +241,18 @@ def save_full_catalog(server_name, server_alias, database_name, schemas, tables_
 
     table_nodes = {}
     table_count = 0
+    view_count = 0
     for schema, tables in tables_by_schema.items():
         if schema not in schema_nodes:
             continue
         for table in tables:
-            table_nodes[(schema, table)] = save_table(schema_nodes[schema], table)
+            ttype = table_types.get((schema, table), 'TABLE')
+            view_def = view_definitions.get((schema, table))
+            table_nodes[(schema, table)] = save_table(schema_nodes[schema], table, ttype, view_def)
             table_count += 1
-    print(f"  Saved {table_count} tables")
+            if ttype == 'VIEW':
+                view_count += 1
+    print(f"  Saved {table_count} tables/views ({view_count} views)")
 
     col_count = 0
     for (schema, table), columns in columns_by_table.items():
