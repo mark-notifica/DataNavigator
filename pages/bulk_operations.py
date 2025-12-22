@@ -60,7 +60,7 @@ with tab1:
     with col4:
         object_types = st.multiselect(
             "Object types to export",
-            ["DB_TABLE", "DB_VIEW", "DB_COLUMN"],
+            ["DB_SERVER", "DB_DATABASE", "DB_SCHEMA", "DB_TABLE", "DB_VIEW", "DB_COLUMN"],
             default=["DB_TABLE", "DB_VIEW", "DB_COLUMN"],
             help="Select which catalog object types to include"
         )

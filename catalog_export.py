@@ -17,7 +17,7 @@ def export_for_description(server_name=None, database_name=None,
         server_name: Filter by server (optional)
         database_name: Filter by database (optional)
         include_described: If False, only export nodes without description
-        object_types: List of types to include, e.g. ['DB_TABLE', 'DB_COLUMN']
+        object_types: List of types to include, e.g. ['DB_SERVER', 'DB_DATABASE', 'DB_SCHEMA', 'DB_TABLE', 'DB_VIEW', 'DB_COLUMN']
                      Default: tables, views, columns
 
     Returns:
