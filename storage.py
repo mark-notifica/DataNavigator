@@ -616,6 +616,33 @@ def get_catalog_databases(server_name):
     ]
 
 
+def get_catalog_schemas(server_name, database_name):
+    """Get all schemas for a server/database."""
+    conn = get_catalog_connection()
+    cursor = conn.cursor()
+
+    cursor.execute("""
+        SELECT n.node_id, s.schema_name, n.description_short
+        FROM catalog.node_schema s
+        JOIN catalog.nodes n ON s.node_id = n.node_id
+        JOIN catalog.node_database d ON s.database_node_id = d.node_id
+        JOIN catalog.nodes dn ON d.node_id = dn.node_id
+        WHERE d.server_name = %s
+          AND d.database_name = %s
+          AND n.deleted_at IS NULL
+        ORDER BY s.schema_name
+    """, (server_name, database_name))
+
+    results = cursor.fetchall()
+    cursor.close()
+    conn.close()
+
+    return [
+        {'node_id': r[0], 'name': r[1], 'description': r[2] or ''}
+        for r in results
+    ]
+
+
 def get_catalog_tables_for_database(server_name, database_name):
     """Get tables filtered by server and database."""
     conn = get_catalog_connection()

@@ -8,6 +8,7 @@ import pandas as pd
 from storage import (
     get_catalog_servers,
     get_catalog_databases,
+    get_catalog_schemas,
     get_catalog_tables_for_database,
     get_catalog_columns,
     get_table_node_id,
@@ -72,6 +73,14 @@ try:
         st.warning("No tables in catalog for this database.")
         st.stop()
 
+    # Schema filter
+    all_schemas = sorted(list(set(t['schema'] for t in tables)))
+    schema_options = ["All schemas"] + all_schemas
+    selected_schema = st.sidebar.selectbox("Schema", schema_options)
+
+    if selected_schema != "All schemas":
+        tables = [t for t in tables if t['schema'] == selected_schema]
+
     # Search filter
     search = st.sidebar.text_input("🔍 Filter tables", "")
 
@@ -133,6 +142,27 @@ try:
                 update_node_description(db_node_id, new_db_desc)
                 st.success("Saved!")
                 st.rerun()
+
+    # === SCHEMA DESCRIPTION EDITING ===
+    # Only show if a specific schema is selected
+    if selected_schema != "All schemas":
+        schemas = get_catalog_schemas(selected_server, selected_database)
+        schema_info = next((s for s in schemas if s['name'] == selected_schema), None)
+        schema_node_id = schema_info['node_id'] if schema_info else None
+        current_schema_desc = schema_info['description'] if schema_info else ''
+
+        with st.expander(f"Schema Description: {selected_schema}"):
+            new_schema_desc = st.text_area(
+                "Description",
+                value=current_schema_desc,
+                key=f"schema_desc_{selected_schema}",
+                height=68
+            )
+            if st.button("Save Schema Description"):
+                if schema_node_id:
+                    update_node_description(schema_node_id, new_schema_desc)
+                    st.success("Saved!")
+                    st.rerun()
 
     st.subheader(f"Table: {selected}")
 
