@@ -94,6 +94,19 @@ except Exception as e:
     st.warning(f"Could not load catalog stats: {e}")
     st.info("Make sure the catalog database is accessible and run the cataloger to populate it.")
 
+# Quick Start Workflow
+st.subheader("Quick Start")
+
+st.markdown("""
+1. **Extract** - Use *Run Cataloger* to extract metadata from your databases
+2. **Browse** - Use *Catalog* to explore tables/columns and add descriptions manually
+3. **Bulk Edit** - Use *Bulk Operations* to export items, enrich with AI, and import back
+
+See the **Help** page for detailed documentation.
+""")
+
+st.divider()
+
 # Navigation help
 st.subheader("Pages")
 
