@@ -157,9 +157,21 @@ with st.expander("Bulk Operations", expanded=False):
 
     ### Import Tab
 
-    1. **Upload** your CSV file with the `new_description` column filled
-    2. **Dry Run**: Preview what will be updated (recommended first step)
-    3. **Import Now**: Apply the descriptions to the catalog
+    **Import Modes:**
+    - **Add only**: Only add descriptions where none exists (never overwrites)
+    - **Add & Update**: Add new and update existing descriptions (default)
+    - **Overwrite all**: Same as above, plus allows clearing with `[CLEAR]`
+
+    **Process:**
+    1. Select the appropriate **Import Mode**
+    2. **Upload** your CSV file with the `new_description` column filled
+    3. **Dry Run**: Preview changes (shows old vs new, skipped items, change types)
+    4. **Import Now**: Apply the descriptions to the catalog
+
+    **Special Values:**
+    - Empty `new_description`: Row is skipped, existing description preserved
+    - `[CLEAR]`: Removes the description (only in "Overwrite all" mode)
+    - Same as current: Automatically skipped (no unnecessary database updates)
 
     ### AI Prompt Example
 
@@ -170,10 +182,11 @@ with st.expander("Bulk Operations", expanded=False):
     > Focus on business meaning, not just technical details. Keep descriptions under 200 characters."
 
     ### Tips
-    - Always do a **Dry Run** before importing
+    - Always do a **Dry Run** before importing to preview changes
     - Export small batches for better AI results
     - Review AI-generated descriptions before importing
     - Imported descriptions are marked as 'ai_generated' in the status field
+    - Use "Add only" mode to safely add AI descriptions without overwriting manual edits
     """)
 
 st.divider()

@@ -101,72 +101,161 @@ def export_to_file(filepath, **kwargs):
     return row_count
 
 
-def import_descriptions(csv_content, dry_run=False):
+def import_descriptions(csv_content, dry_run=False, mode='add_and_update'):
     """
     Import descriptions from CSV.
 
     Args:
         csv_content: CSV string with new_description column filled
         dry_run: If True, only validate and report what would be updated
+        mode: Import mode:
+            - 'add_only': Only add descriptions where none exists
+            - 'add_and_update': Add new and update existing (default)
+            - 'overwrite_all': Update all, including clearing with [CLEAR]
 
     Returns:
-        Dict with counts: {'updated': n, 'skipped': n, 'errors': [...]}
+        Dict with counts and details for UI display
     """
     reader = csv.DictReader(StringIO(csv_content), delimiter=';')
 
-    results = {'updated': 0, 'skipped': 0, 'errors': []}
-    updates = []
+    results = {
+        'updated': 0,
+        'added': 0,
+        'cleared': 0,
+        'skipped_empty': 0,
+        'skipped_unchanged': 0,
+        'skipped_mode': 0,
+        'errors': [],
+        'changes': []  # List of changes for dry run display
+    }
 
+    # First, collect all node_ids we need to check
+    rows_to_process = []
     for row in reader:
         node_id = row.get('node_id', '').strip()
         new_desc = row.get('new_description', '').strip()
+        current_desc = row.get('current_description', '').strip()
 
         if not node_id:
             results['errors'].append("Missing node_id in row")
             continue
 
-        if not new_desc:
-            results['skipped'] += 1
-            continue
-
         try:
-            updates.append((int(node_id), new_desc))
+            rows_to_process.append({
+                'node_id': int(node_id),
+                'new_desc': new_desc,
+                'current_desc': current_desc,
+                'qualified_name': row.get('qualified_name', '')
+            })
         except ValueError:
             results['errors'].append(f"Invalid node_id: {node_id}")
 
+    # Get current descriptions from database for comparison
+    if rows_to_process:
+        conn = get_catalog_connection()
+        cursor = conn.cursor()
+
+        node_ids = [r['node_id'] for r in rows_to_process]
+        cursor.execute("""
+            SELECT node_id, description
+            FROM catalog.nodes
+            WHERE node_id = ANY(%s)
+        """, (node_ids,))
+
+        db_descriptions = {row[0]: row[1] or '' for row in cursor.fetchall()}
+        cursor.close()
+        conn.close()
+    else:
+        db_descriptions = {}
+
+    # Process each row
+    updates = []
+    for row in rows_to_process:
+        node_id = row['node_id']
+        new_desc = row['new_desc']
+        db_current = db_descriptions.get(node_id, '')
+        qualified_name = row['qualified_name']
+
+        # Handle empty new_description
+        if not new_desc:
+            results['skipped_empty'] += 1
+            continue
+
+        # Handle [CLEAR] special value
+        is_clear = new_desc.upper() == '[CLEAR]'
+        if is_clear:
+            if mode != 'overwrite_all':
+                results['skipped_mode'] += 1
+                continue
+            new_desc = ''  # Clear the description
+
+        # Check if unchanged
+        if new_desc == db_current:
+            results['skipped_unchanged'] += 1
+            continue
+
+        # Check mode restrictions
+        has_existing = bool(db_current)
+        if mode == 'add_only' and has_existing:
+            results['skipped_mode'] += 1
+            continue
+
+        # Determine change type
+        if is_clear:
+            change_type = 'clear'
+            results['cleared'] += 1
+        elif has_existing:
+            change_type = 'update'
+            results['updated'] += 1
+        else:
+            change_type = 'add'
+            results['added'] += 1
+
+        updates.append((node_id, new_desc))
+        results['changes'].append({
+            'node_id': node_id,
+            'qualified_name': qualified_name,
+            'type': change_type,
+            'old': db_current[:50] + ('...' if len(db_current) > 50 else ''),
+            'new': new_desc[:50] + ('...' if len(new_desc) > 50 else '')
+        })
+
     if dry_run:
-        results['updated'] = len(updates)
-        print(f"DRY RUN: Would update {len(updates)} nodes")
-        for node_id, desc in updates[:5]:
-            print(f"  {node_id}: {desc[:50]}...")
-        if len(updates) > 5:
-            print(f"  ... and {len(updates) - 5} more")
+        total = results['added'] + results['updated'] + results['cleared']
+        print(f"DRY RUN: Would process {total} nodes")
+        print(f"  Add: {results['added']}, Update: {results['updated']}, Clear: {results['cleared']}")
+        print(f"  Skipped - empty: {results['skipped_empty']}, unchanged: {results['skipped_unchanged']}, mode: {results['skipped_mode']}")
+        for change in results['changes'][:10]:
+            print(f"  [{change['type']}] {change['node_id']}: '{change['old']}' -> '{change['new']}'")
+        if len(results['changes']) > 10:
+            print(f"  ... and {len(results['changes']) - 10} more")
         return results
 
     # Actually update
-    conn = get_catalog_connection()
-    cursor = conn.cursor()
+    if updates:
+        conn = get_catalog_connection()
+        cursor = conn.cursor()
 
-    for node_id, new_desc in updates:
-        try:
-            cursor.execute("""
-                UPDATE catalog.nodes
-                SET description = %s,
-                    description_status = 'ai_generated',
-                    updated_at = NOW()
-                WHERE node_id = %s
-            """, (new_desc, node_id))
-            results['updated'] += 1
-        except Exception as e:
-            results['errors'].append(f"Error updating {node_id}: {e}")
+        for node_id, new_desc in updates:
+            try:
+                status = 'ai_generated' if new_desc else 'draft'
+                cursor.execute("""
+                    UPDATE catalog.nodes
+                    SET description = %s,
+                        description_status = %s,
+                        updated_at = NOW()
+                    WHERE node_id = %s
+                """, (new_desc if new_desc else None, status, node_id))
+            except Exception as e:
+                results['errors'].append(f"Error updating {node_id}: {e}")
 
-    conn.commit()
-    cursor.close()
-    conn.close()
+        conn.commit()
+        cursor.close()
+        conn.close()
 
-    print(f"Updated {results['updated']} nodes")
-    if results['skipped']:
-        print(f"Skipped {results['skipped']} (no new description)")
+    total = results['added'] + results['updated'] + results['cleared']
+    print(f"Processed {total} nodes")
+    print(f"  Added: {results['added']}, Updated: {results['updated']}, Cleared: {results['cleared']}")
     if results['errors']:
         print(f"Errors: {len(results['errors'])}")
         for err in results['errors'][:5]:
