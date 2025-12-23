@@ -4,6 +4,9 @@ Ask questions about your data and get answers based on catalog descriptions.
 """
 
 import os
+from dotenv import load_dotenv
+load_dotenv()
+
 import streamlit as st
 from vector_store import search, get_stats
 
