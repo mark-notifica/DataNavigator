@@ -28,16 +28,16 @@ if stats['total_vectors'] == 0:
 with st.sidebar:
     st.header("AI Model")
 
-    # Check for API keys
+    # Check for API keys/hosts
     anthropic_key = os.environ.get('ANTHROPIC_API_KEY', '')
-    mistral_url = os.environ.get('MISTRAL_API_URL', '')
+    ollama_host = os.environ.get('OLLAMA_HOST', '')
 
     available_models = []
 
     if anthropic_key:
         available_models.append("Claude (Anthropic)")
-    if mistral_url:
-        available_models.append("Mistral (Local)")
+    if ollama_host:
+        available_models.append("Mistral (Ollama)")
 
     if not available_models:
         st.warning("No AI models configured")
@@ -49,9 +49,10 @@ with st.sidebar:
         ANTHROPIC_API_KEY=sk-ant-...
         ```
 
-        **For Mistral (local):**
+        **For Mistral (Ollama):**
         ```
-        MISTRAL_API_URL=http://your-server:port
+        OLLAMA_HOST=http://10.3.152.8:11434
+        OLLAMA_MODEL=mistral:instruct
         ```
         """)
         model_choice = None
@@ -63,6 +64,68 @@ with st.sidebar:
     st.subheader("Search Settings")
     num_context = st.slider("Context items", 3, 20, 10,
                            help="Number of catalog items to include as context")
+
+
+# Helper functions defined before use
+def call_llm(model: str, question: str, context: str) -> str:
+    """Call the selected LLM with the question and context."""
+
+    system_prompt = """You are a helpful data catalog assistant. You help users understand their data assets.
+
+Use the following catalog context to answer questions. If the context doesn't contain enough information,
+say so and suggest what additional information might help.
+
+Be concise but thorough. Reference specific tables, columns, or other catalog items when relevant."""
+
+    user_prompt = f"""Context from data catalog:
+{context}
+
+Question: {question}"""
+
+    if "Claude" in model:
+        return call_claude(system_prompt, user_prompt)
+    elif "Mistral" in model:
+        return call_ollama(system_prompt, user_prompt)
+    else:
+        return f"Unknown model: {model}"
+
+
+def call_claude(system: str, user: str) -> str:
+    """Call Claude API."""
+    import anthropic
+
+    client = anthropic.Anthropic()  # Uses ANTHROPIC_API_KEY env var
+
+    message = client.messages.create(
+        model="claude-3-5-haiku-20241022",
+        max_tokens=1024,
+        system=system,
+        messages=[
+            {"role": "user", "content": user}
+        ]
+    )
+
+    return message.content[0].text
+
+
+def call_ollama(system: str, user: str) -> str:
+    """Call Ollama server with Mistral model."""
+    from ollama import Client
+
+    host = os.environ.get('OLLAMA_HOST', 'http://localhost:11434')
+    model = os.environ.get('OLLAMA_MODEL', 'mistral:instruct')
+
+    client = Client(host=host)
+
+    messages = [
+        {"role": "system", "content": system},
+        {"role": "user", "content": user}
+    ]
+
+    response = client.chat(model=model, messages=messages)
+
+    return response.get("message", {}).get("content", "")
+
 
 # Chat interface
 if 'messages' not in st.session_state:
@@ -126,73 +189,6 @@ if st.session_state.messages:
         if 'context_results' in dir():
             for r in context_results:
                 st.markdown(f"- **{r['qualified_name']}**: {r.get('description', 'No description')[:100]}")
-
-
-def call_llm(model: str, question: str, context: str) -> str:
-    """Call the selected LLM with the question and context."""
-
-    system_prompt = """You are a helpful data catalog assistant. You help users understand their data assets.
-
-Use the following catalog context to answer questions. If the context doesn't contain enough information,
-say so and suggest what additional information might help.
-
-Be concise but thorough. Reference specific tables, columns, or other catalog items when relevant."""
-
-    user_prompt = f"""Context from data catalog:
-{context}
-
-Question: {question}"""
-
-    if "Claude" in model:
-        return call_claude(system_prompt, user_prompt)
-    elif "Mistral" in model:
-        return call_mistral(system_prompt, user_prompt)
-    else:
-        return f"Unknown model: {model}"
-
-
-def call_claude(system: str, user: str) -> str:
-    """Call Claude API."""
-    import anthropic
-
-    client = anthropic.Anthropic()  # Uses ANTHROPIC_API_KEY env var
-
-    message = client.messages.create(
-        model="claude-3-5-haiku-20241022",
-        max_tokens=1024,
-        system=system,
-        messages=[
-            {"role": "user", "content": user}
-        ]
-    )
-
-    return message.content[0].text
-
-
-def call_mistral(system: str, user: str) -> str:
-    """Call local Mistral server (OpenAI-compatible API)."""
-    import requests
-
-    url = os.environ.get('MISTRAL_API_URL', '').rstrip('/')
-
-    response = requests.post(
-        f"{url}/v1/chat/completions",
-        json={
-            "model": "mistral",
-            "messages": [
-                {"role": "system", "content": system},
-                {"role": "user", "content": user}
-            ],
-            "max_tokens": 1024,
-            "temperature": 0.7
-        },
-        timeout=60
-    )
-
-    response.raise_for_status()
-    data = response.json()
-
-    return data['choices'][0]['message']['content']
 
 
 # Footer
