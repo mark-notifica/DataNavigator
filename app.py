@@ -1,232 +1,112 @@
 """
-DataNavigator v1 - Main Streamlit App
-Simple data catalog viewer with description editing.
+DataNavigator - Home Page
 """
 
 import streamlit as st
-import pandas as pd
-from storage import (
-    get_catalog_servers,
-    get_catalog_databases,
-    get_catalog_schemas,
-    get_catalog_tables_for_database,
-    get_catalog_columns,
-    get_table_node_id,
-    get_column_node_id,
-    update_node_description
-)
+from storage import get_catalog_servers, get_catalog_databases, get_catalog_tables_for_database
+from connection_db_postgres import get_catalog_connection
 
-# Page config
 st.set_page_config(
-    page_title="DataNavigator v1",
-    page_icon="📚",
+    page_title="DataNavigator",
+    page_icon="🧭",
     layout="wide"
 )
 
-# Title
-st.title("📚 DataNavigator v1")
-st.markdown("Simple data catalog - view tables and columns")
+st.title("🧭 DataNavigator")
+st.markdown("A simple data catalog for managing database metadata and descriptions")
 
-# Sidebar
-st.sidebar.header("Navigation")
+st.divider()
 
+# Quick stats
 try:
-    # === SERVER SELECTION ===
+    conn = get_catalog_connection()
+    cursor = conn.cursor()
+
+    # Get counts
+    cursor.execute("""
+        SELECT object_type_code, COUNT(*)
+        FROM catalog.nodes
+        WHERE deleted_at IS NULL
+        GROUP BY object_type_code
+        ORDER BY object_type_code
+    """)
+    counts = {row[0]: row[1] for row in cursor.fetchall()}
+
+    cursor.execute("""
+        SELECT COUNT(*)
+        FROM catalog.nodes
+        WHERE deleted_at IS NULL
+          AND description IS NOT NULL
+          AND description != ''
+    """)
+    described_count = cursor.fetchone()[0]
+
+    cursor.close()
+    conn.close()
+
+    # Display stats
+    st.subheader("Catalog Overview")
+
+    col1, col2, col3, col4 = st.columns(4)
+
+    with col1:
+        st.metric("Servers", counts.get('DB_SERVER', 0))
+    with col2:
+        st.metric("Databases", counts.get('DB_DATABASE', 0))
+    with col3:
+        st.metric("Tables", counts.get('DB_TABLE', 0) + counts.get('DB_VIEW', 0))
+    with col4:
+        st.metric("Columns", counts.get('DB_COLUMN', 0))
+
+    total = sum(counts.values())
+    if total > 0:
+        pct = (described_count / total) * 100
+        st.progress(pct / 100, text=f"{described_count} of {total} items have descriptions ({pct:.1f}%)")
+
+    st.divider()
+
+    # Server list
+    st.subheader("Cataloged Servers")
+
     servers = get_catalog_servers()
+    if servers:
+        for server in servers:
+            with st.container():
+                name = server['name']
+                alias = f" ({server['alias']})" if server['alias'] else ""
+                desc = server['description'] or "_No description_"
 
-    if not servers:
-        st.warning("No servers in catalog. Run extraction first.")
-        st.stop()
+                databases = get_catalog_databases(name)
+                db_count = len(databases)
 
-    # Format: "VPS2 (Local Dev)" of alleen "VPS2" als geen alias
-    server_options = {
-        s['name'] if not s['alias'] else f"{s['name']} ({s['alias']})": s['name']
-        for s in servers
-    }
-    selected_server_display = st.sidebar.selectbox("Server", list(server_options.keys()))
-    selected_server = server_options[selected_server_display]
+                table_count = 0
+                for db in databases:
+                    tables = get_catalog_tables_for_database(name, db['name'])
+                    table_count += len(tables)
 
-    # === DATABASE SELECTION ===
-    databases = get_catalog_databases(selected_server)
-
-    if not databases:
-        st.warning(f"No databases found for {selected_server}")
-        st.stop()
-
-    # Get table count per database
-    database_options = {}
-    for db in databases:
-        tables = get_catalog_tables_for_database(selected_server, db['name'])
-        count = len(tables)
-        label = f"{db['name']} ({count} tables)"
-        database_options[label] = db['name']
-
-    selected_db_display = st.sidebar.selectbox("Database", list(database_options.keys()))
-    selected_database = database_options[selected_db_display]
-
-    st.sidebar.divider()
-
-    # === TABLE SELECTION ===
-    tables = get_catalog_tables_for_database(selected_server, selected_database)
-
-    if not tables:
-        st.warning("No tables in catalog for this database.")
-        st.stop()
-
-    # Schema filter
-    all_schemas = sorted(list(set(t['schema'] for t in tables)))
-    schema_options = ["All schemas"] + all_schemas
-    selected_schema = st.sidebar.selectbox("Schema", schema_options)
-
-    if selected_schema != "All schemas":
-        tables = [t for t in tables if t['schema'] == selected_schema]
-
-    # Search filter
-    search = st.sidebar.text_input("🔍 Filter tables", "")
-
-    if search:
-        tables = [t for t in tables if search.lower() in t['table'].lower()
-                  or search.lower() in t['schema'].lower()]
-
-    if not tables:
-        st.sidebar.warning("No tables match filter")
-        st.stop()
-
-    table_options = [f"{t['schema']}.{t['table']}" for t in tables]
-    selected = st.sidebar.selectbox("Table", table_options)
-
-    # Parse selected table
-    schema, table = selected.split('.')
-
-    # Find table info
-    table_info = next(
-        (t for t in tables if t['schema'] == schema and t['table'] == table),
-        None
-    )
-
-    # Main content
-    st.header(f"{selected_server_display} / {selected_database}")
-
-    # === SERVER DESCRIPTION EDITING ===
-    server_info = next((s for s in servers if s['name'] == selected_server), None)
-    server_node_id = server_info['node_id'] if server_info else None
-    current_server_desc = server_info['description'] if server_info else ''
-
-    with st.expander("Server Description"):
-        new_server_desc = st.text_area(
-            "Description",
-            value=current_server_desc,
-            key=f"server_desc_{selected_server}",
-            height=68
-        )
-        if st.button("Save Server Description"):
-            if server_node_id:
-                update_node_description(server_node_id, new_server_desc)
-                st.success("Saved!")
-                st.rerun()
-
-    # === DATABASE DESCRIPTION EDITING ===
-    db_info = next((d for d in databases if d['name'] == selected_database), None)
-    db_node_id = db_info['node_id'] if db_info else None
-    current_db_desc = db_info['description'] if db_info else ''
-
-    with st.expander("Database Description"):
-        new_db_desc = st.text_area(
-            "Description",
-            value=current_db_desc,
-            key=f"db_desc_{selected_database}",
-            height=68
-        )
-        if st.button("Save Database Description"):
-            if db_node_id:
-                update_node_description(db_node_id, new_db_desc)
-                st.success("Saved!")
-                st.rerun()
-
-    # === SCHEMA DESCRIPTION EDITING ===
-    # Only show if a specific schema is selected
-    if selected_schema != "All schemas":
-        schemas = get_catalog_schemas(selected_server, selected_database)
-        schema_info = next((s for s in schemas if s['name'] == selected_schema), None)
-        schema_node_id = schema_info['node_id'] if schema_info else None
-        current_schema_desc = schema_info['description'] if schema_info else ''
-
-        with st.expander(f"Schema Description: {selected_schema}"):
-            new_schema_desc = st.text_area(
-                "Description",
-                value=current_schema_desc,
-                key=f"schema_desc_{selected_schema}",
-                height=68
-            )
-            if st.button("Save Schema Description"):
-                if schema_node_id:
-                    update_node_description(schema_node_id, new_schema_desc)
-                    st.success("Saved!")
-                    st.rerun()
-
-    st.subheader(f"Table: {selected}")
-
-    # === TABLE DESCRIPTION EDITING ===
-    table_node_id = get_table_node_id(schema, table)
-    current_table_desc = table_info['description'] if table_info else ''
-
-    new_table_desc = st.text_area(
-        "Table Description",
-        value=current_table_desc,
-        key=f"table_desc_{schema}_{table}",
-        height=80
-    )
-
-    if st.button("Save Table Description"):
-        if table_node_id:
-            update_node_description(table_node_id, new_table_desc)
-            st.success("Saved!")
-            st.rerun()
-        else:
-            st.error("Table not found in catalog")
-
-    st.divider()
-
-    # === COLUMNS SECTION ===
-    st.subheader("Columns")
-
-    columns = get_catalog_columns(schema, table)
-
-    df = pd.DataFrame(columns)
-    df.columns = ['Column', 'Type', 'Nullable', 'Description']
-    st.dataframe(df, use_container_width=True)
-
-    st.info(f"📊 {len(columns)} columns")
-
-    # === COLUMN DESCRIPTION EDITING ===
-    st.divider()
-    st.subheader("Edit Column Descriptions")
-
-    column_names = [c['column'] for c in columns]
-    selected_column = st.selectbox("Select column to edit", column_names)
-
-    col_info = next(
-        (c for c in columns if c['column'] == selected_column),
-        None
-    )
-    current_col_desc = col_info['description'] if col_info else ''
-
-    new_col_desc = st.text_area(
-        f"Description for `{selected_column}`",
-        value=current_col_desc,
-        key=f"col_desc_{schema}_{table}_{selected_column}",
-        height=80
-    )
-
-    if st.button("Save Column Description"):
-        col_node_id = get_column_node_id(schema, table, selected_column)
-        if col_node_id:
-            update_node_description(col_node_id, new_col_desc)
-            st.success("Saved!")
-            st.rerun()
-        else:
-            st.error("Column not found in catalog")
+                st.markdown(f"**{name}{alias}** - {db_count} databases, {table_count} tables")
+                st.caption(desc)
+                st.divider()
+    else:
+        st.info("No servers cataloged yet. Use **Run Cataloger** to add your first database.")
 
 except Exception as e:
-    st.error(f"Error: {e}")
-    st.info("Check database connection or run catalog extraction first")
+    st.warning(f"Could not load catalog stats: {e}")
+    st.info("Make sure the catalog database is accessible and run the cataloger to populate it.")
+
+# Navigation help
+st.subheader("Pages")
+
+col1, col2, col3 = st.columns(3)
+
+with col1:
+    st.markdown("### 🔄 Run Cataloger")
+    st.markdown("Extract metadata from a database into the catalog")
+
+with col2:
+    st.markdown("### 📚 Catalog")
+    st.markdown("Browse and edit descriptions for tables and columns")
+
+with col3:
+    st.markdown("### 🔄 Bulk Operations")
+    st.markdown("Export/import descriptions for AI enrichment")
