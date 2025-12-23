@@ -116,7 +116,7 @@ def get_or_create_server_node(server_name, server_alias='', run_id=None,
     # Create new node
     cursor.execute("""
         INSERT INTO catalog.nodes
-        (object_type_code, name, qualified_name, description_short,
+        (object_type_code, name, qualified_name, description,
          created_in_run_id, last_seen_run_id)
         VALUES ('DB_SERVER', %s, %s, %s, %s, %s)
         RETURNING node_id
@@ -467,7 +467,7 @@ def get_catalog_tables():
         SELECT
             s.schema_name,
             t.table_name,
-            tn.description_short
+            tn.description
         FROM catalog.node_table t
         JOIN catalog.nodes tn ON t.node_id = tn.node_id
         JOIN catalog.node_schema s ON t.schema_node_id = s.node_id
@@ -497,7 +497,7 @@ def get_catalog_columns(schema_name, table_name):
             c.column_name,
             c.data_type,
             c.is_nullable,
-            cn.description_short
+            cn.description
         FROM catalog.node_column c
         JOIN catalog.nodes cn ON c.node_id = cn.node_id
         JOIN catalog.node_table t ON c.table_node_id = t.node_id
@@ -568,7 +568,7 @@ def get_catalog_servers():
     cursor = conn.cursor()
 
     cursor.execute("""
-        SELECT n.node_id, n.name, s.server_alias, n.description_short
+        SELECT n.node_id, n.name, s.server_alias, n.description
         FROM catalog.nodes n
         LEFT JOIN catalog.node_server s ON n.node_id = s.node_id
         WHERE n.object_type_code = 'DB_SERVER'
@@ -597,7 +597,7 @@ def get_catalog_databases(server_name):
     cursor = conn.cursor()
 
     cursor.execute("""
-        SELECT n.node_id, d.database_name, n.description_short
+        SELECT n.node_id, d.database_name, n.description
         FROM catalog.node_database d
         JOIN catalog.nodes n ON d.node_id = n.node_id
         JOIN catalog.nodes sn ON d.server_node_id = sn.node_id
@@ -622,7 +622,7 @@ def get_catalog_schemas(server_name, database_name):
     cursor = conn.cursor()
 
     cursor.execute("""
-        SELECT n.node_id, s.schema_name, n.description_short
+        SELECT n.node_id, s.schema_name, n.description
         FROM catalog.node_schema s
         JOIN catalog.nodes n ON s.node_id = n.node_id
         JOIN catalog.node_database d ON s.database_node_id = d.node_id
@@ -652,7 +652,7 @@ def get_catalog_tables_for_database(server_name, database_name):
         SELECT
             s.schema_name,
             t.table_name,
-            tn.description_short
+            tn.description
         FROM catalog.node_table t
         JOIN catalog.nodes tn ON t.node_id = tn.node_id
         JOIN catalog.node_schema s ON t.schema_node_id = s.node_id
@@ -675,13 +675,13 @@ def get_catalog_tables_for_database(server_name, database_name):
 
 
 def update_node_description(node_id, description):
-    """Update description_short for a node."""
+    """Update description for a node."""
     conn = get_catalog_connection()
     cursor = conn.cursor()
 
     cursor.execute("""
         UPDATE catalog.nodes
-        SET description_short = %s,
+        SET description = %s,
             description_status = 'draft',
             updated_at = NOW()
         WHERE node_id = %s

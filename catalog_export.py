@@ -35,7 +35,7 @@ def export_for_description(server_name=None, database_name=None,
             n.node_id,
             n.object_type_code,
             n.qualified_name,
-            n.description_short,
+            n.description,
             CASE
                 WHEN n.object_type_code = 'DB_COLUMN' THEN c.data_type
                 ELSE NULL
@@ -48,7 +48,7 @@ def export_for_description(server_name=None, database_name=None,
     params = [object_types]
 
     if not include_described:
-        query += " AND (n.description_short IS NULL OR n.description_short = '')"
+        query += " AND (n.description IS NULL OR n.description = '')"
 
     if server_name:
         query += " AND n.qualified_name LIKE %s"
@@ -151,7 +151,7 @@ def import_descriptions(csv_content, dry_run=False):
         try:
             cursor.execute("""
                 UPDATE catalog.nodes
-                SET description_short = %s,
+                SET description = %s,
                     description_status = 'ai_generated',
                     updated_at = NOW()
                 WHERE node_id = %s
