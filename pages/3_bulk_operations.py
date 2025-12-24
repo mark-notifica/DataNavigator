@@ -4,7 +4,7 @@ Export to CSV for AI enrichment, import back with generated descriptions.
 """
 
 import streamlit as st
-from catalog_export import export_for_description, import_descriptions, export_view_ddl
+from catalog_export import export_for_description, import_descriptions
 from storage import get_catalog_servers, get_catalog_databases
 
 st.set_page_config(
@@ -14,9 +14,44 @@ st.set_page_config(
 )
 
 st.title("🔄 Bulk Operations")
-st.markdown("Export catalog items for AI description generation, then import the enriched descriptions back.")
+st.markdown("Export catalog items for AI description generation or manual editing, then import the enriched descriptions back.")
 
-tab1, tab2, tab3 = st.tabs(["📥 Export Descriptions", "📤 Import Descriptions", "📜 Export View DDL"])
+# === SHARED SIDEBAR NAVIGATION ===
+st.sidebar.header("Navigation")
+
+servers = get_catalog_servers()
+
+if not servers:
+    st.sidebar.warning("No servers in catalog")
+    selected_server = None
+    selected_database = None
+else:
+    # Server selection (with "All" option)
+    server_options = {"All servers": None}
+    for s in servers:
+        label = s['name'] if not s['alias'] else f"{s['name']} ({s['alias']})"
+        server_options[label] = s['name']
+
+    selected_server_display = st.sidebar.selectbox("Server", list(server_options.keys()))
+    selected_server = server_options[selected_server_display]
+
+    # Database selection
+    if selected_server:
+        databases = get_catalog_databases(selected_server)
+        if databases:
+            database_options = {"All databases": None}
+            database_options.update({d['name']: d['name'] for d in databases})
+            selected_database = st.sidebar.selectbox("Database", list(database_options.keys()))
+            if selected_database == "All databases":
+                selected_database = None
+        else:
+            selected_database = None
+            st.sidebar.warning("No databases found")
+    else:
+        selected_database = None
+
+# Main tabs
+tab1, tab2 = st.tabs(["📥 Export", "📤 Import"])
 
 # === EXPORT TAB ===
 with tab1:
@@ -30,38 +65,34 @@ with tab1:
 
     st.divider()
 
-    # Filters
+    # Show current filter
+    if selected_server and selected_database:
+        st.info(f"Exporting from: **{selected_server} / {selected_database}**")
+    elif selected_server:
+        st.info(f"Exporting from: **{selected_server}** (all databases)")
+    else:
+        st.info("Exporting from: **All servers**")
+
+    # Options
     col1, col2 = st.columns(2)
 
     with col1:
-        servers = get_catalog_servers()
-        server_options = ["All servers"] + [s['name'] for s in servers]
-        selected_server = st.selectbox("🖥️ Server", server_options)
-
-    with col2:
-        if selected_server != "All servers":
-            databases = get_catalog_databases(selected_server)
-            database_options = ["All databases"] + [d['name'] for d in databases]
-            selected_database = st.selectbox("🗄️ Database", database_options)
-        else:
-            selected_database = "All databases"
-            st.selectbox("🗄️ Database", ["All databases"], disabled=True)
-
-    # Options
-    col3, col4 = st.columns(2)
-
-    with col3:
         include_described = st.checkbox(
             "Include already described items",
-            value=False,
+            value=True,
             help="If unchecked, only exports items without descriptions"
         )
+        include_ddl = st.checkbox(
+            "Include View DDL",
+            value=True,
+            help="Include SQL definition for views - helpful for AI to understand context"
+        )
 
-    with col4:
+    with col2:
         object_types = st.multiselect(
             "Object types to export",
             ["DB_SERVER", "DB_DATABASE", "DB_SCHEMA", "DB_TABLE", "DB_VIEW", "DB_COLUMN"],
-            default=["DB_TABLE", "DB_VIEW", "DB_COLUMN"],
+            default=["DB_SERVER", "DB_DATABASE", "DB_SCHEMA", "DB_TABLE", "DB_VIEW", "DB_COLUMN"],
             help="Select which catalog object types to include"
         )
 
@@ -75,10 +106,11 @@ with tab1:
             with st.spinner("Generating export..."):
                 try:
                     csv_content = export_for_description(
-                        server_name=None if selected_server == "All servers" else selected_server,
-                        database_name=None if selected_database == "All databases" else selected_database,
+                        server_name=selected_server,
+                        database_name=selected_database,
                         include_described=include_described,
-                        object_types=object_types
+                        object_types=object_types,
+                        include_ddl=include_ddl
                     )
 
                     row_count = csv_content.count('\n') - 1
@@ -90,9 +122,9 @@ with tab1:
 
                         # Generate filename
                         filename_parts = ["catalog_export"]
-                        if selected_server != "All servers":
+                        if selected_server:
                             filename_parts.append(selected_server)
-                        if selected_database != "All databases":
+                        if selected_database:
                             filename_parts.append(selected_database)
                         filename = "_".join(filename_parts) + ".csv"
 
@@ -269,17 +301,24 @@ with tab2:
     else:
         st.info("Upload a CSV file to begin import")
 
-# Footer
+# Help section
 st.divider()
-st.markdown("""
+with st.expander("Help"):
+    st.markdown("""
 ### CSV Format
 The CSV file uses semicolon (`;`) as delimiter and has these columns:
 - `node_id` - Unique identifier (don't modify)
 - `object_type` - Type of object (DB_TABLE, DB_VIEW, DB_COLUMN, etc.)
 - `qualified_name` - Full path name
 - `data_type` - Data type for columns
+- `view_definition` - SQL definition for views (for AI context, ignored on import)
 - `current_description` - Existing description (for reference)
 - `new_description` - **Fill this column** with your descriptions
+
+### View DDL in Export
+When "Include View DDL" is checked, the export includes the SQL definition of views.
+This helps AI understand what each view does, making it easier to generate accurate descriptions.
+The `view_definition` column is ignored during import - only `new_description` is processed.
 
 ### Import Modes
 - **Add only**: Only adds descriptions where none exists, never overwrites
@@ -291,102 +330,3 @@ The CSV file uses semicolon (`;`) as delimiter and has these columns:
 - `[CLEAR]`: Removes the description (only works in "Overwrite all" mode)
 - Same as current: Automatically skipped (no unnecessary updates)
 """)
-
-# === VIEW DDL EXPORT TAB ===
-with tab3:
-    st.header("Export View DDL for AI Analysis")
-    st.markdown("""
-    Export view definitions (DDL) from your catalog. This is useful for:
-    - AI analysis of view logic and dependencies
-    - Documentation generation
-    - Code review and understanding complex views
-    """)
-
-    st.divider()
-
-    # Filters
-    col1, col2, col3 = st.columns(3)
-
-    with col1:
-        servers = get_catalog_servers()
-        server_options_ddl = ["All servers"] + [s['name'] for s in servers]
-        selected_server_ddl = st.selectbox("Server", server_options_ddl, key="ddl_server")
-
-    with col2:
-        if selected_server_ddl != "All servers":
-            databases = get_catalog_databases(selected_server_ddl)
-            database_options_ddl = ["All databases"] + [d['name'] for d in databases]
-            selected_database_ddl = st.selectbox("Database", database_options_ddl, key="ddl_database")
-        else:
-            selected_database_ddl = "All databases"
-            st.selectbox("Database", ["All databases"], disabled=True, key="ddl_database_disabled")
-
-    with col3:
-        ddl_format = st.selectbox(
-            "Output format",
-            ["SQL", "Markdown"],
-            help="SQL: Pure DDL with comments. Markdown: Documented format with tables.",
-            key="ddl_format"
-        )
-
-    # Options
-    col4, col5 = st.columns(2)
-
-    with col4:
-        include_columns = st.checkbox(
-            "Include column information",
-            value=True,
-            help="Add column names, types, and descriptions to the output",
-            key="ddl_columns"
-        )
-
-    st.divider()
-
-    # Export button
-    if st.button("Generate DDL Export", type="primary", use_container_width=True, key="ddl_export_btn"):
-        with st.spinner("Generating DDL export..."):
-            try:
-                ddl_content = export_view_ddl(
-                    server_name=None if selected_server_ddl == "All servers" else selected_server_ddl,
-                    database_name=None if selected_database_ddl == "All databases" else selected_database_ddl,
-                    include_columns=include_columns,
-                    output_format=ddl_format.lower()
-                )
-
-                view_count = ddl_content.count('CREATE OR REPLACE VIEW')
-
-                if view_count == 0:
-                    st.warning("No views with DDL found matching the selected filters")
-                else:
-                    st.success(f"Exported {view_count} view definitions")
-
-                    # Generate filename
-                    filename_parts = ["views_ddl"]
-                    if selected_server_ddl != "All servers":
-                        filename_parts.append(selected_server_ddl)
-                    if selected_database_ddl != "All databases":
-                        filename_parts.append(selected_database_ddl)
-                    ext = "md" if ddl_format == "Markdown" else "sql"
-                    filename = "_".join(filename_parts) + f".{ext}"
-
-                    # Download button
-                    st.download_button(
-                        label="Download DDL File",
-                        data=ddl_content,
-                        file_name=filename,
-                        mime="text/plain",
-                        use_container_width=True
-                    )
-
-                    # Preview
-                    st.subheader("Preview (first 2000 characters)")
-                    if ddl_format == "Markdown":
-                        st.markdown(ddl_content[:2000])
-                    else:
-                        st.code(ddl_content[:2000], language="sql")
-
-                    if len(ddl_content) > 2000:
-                        st.info("... (truncated for display)")
-
-            except Exception as e:
-                st.error(f"Error during DDL export: {e}")

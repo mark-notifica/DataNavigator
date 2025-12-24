@@ -678,14 +678,15 @@ def get_catalog_tables_for_database(server_name, database_name):
 
 
 def update_node_description(node_id, description):
-    """Update description for a node."""
+    """Update description for a node (via UI)."""
     conn = get_catalog_connection()
     cursor = conn.cursor()
 
     cursor.execute("""
         UPDATE catalog.nodes
         SET description = %s,
-            description_status = 'draft',
+            description_source = 'ui',
+            description_updated_at = NOW(),
             updated_at = NOW()
         WHERE node_id = %s
     """, (description, node_id))

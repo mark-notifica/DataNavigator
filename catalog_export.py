@@ -221,7 +221,8 @@ def export_ddl_to_file(filepath, **kwargs):
 
 
 def export_for_description(server_name=None, database_name=None,
-                           include_described=False, object_types=None):
+                           include_described=False, object_types=None,
+                           include_ddl=True):
     """
     Export catalog nodes for AI description generation.
 
@@ -231,6 +232,7 @@ def export_for_description(server_name=None, database_name=None,
         include_described: If False, only export nodes without description
         object_types: List of types to include, e.g. ['DB_SERVER', 'DB_DATABASE', 'DB_SCHEMA', 'DB_TABLE', 'DB_VIEW', 'DB_COLUMN']
                      Default: tables, views, columns
+        include_ddl: If True, include view_definition for views (for AI context)
 
     Returns:
         CSV string ready to paste into AI
@@ -241,7 +243,7 @@ def export_for_description(server_name=None, database_name=None,
     conn = get_catalog_connection()
     cursor = conn.cursor()
 
-    # Build query with optional filters
+    # Build query with optional filters - now includes view_definition
     query = """
         SELECT
             n.node_id,
@@ -251,9 +253,14 @@ def export_for_description(server_name=None, database_name=None,
             CASE
                 WHEN n.object_type_code = 'DB_COLUMN' THEN c.data_type
                 ELSE NULL
-            END as extra_info
+            END as data_type,
+            CASE
+                WHEN n.object_type_code IN ('DB_VIEW', 'DB_TABLE') THEN t.view_definition
+                ELSE NULL
+            END as view_definition
         FROM catalog.nodes n
         LEFT JOIN catalog.node_column c ON n.node_id = c.node_id
+        LEFT JOIN catalog.node_table t ON n.node_id = t.node_id
         WHERE n.object_type_code = ANY(%s)
           AND n.deleted_at IS NULL
     """
@@ -282,21 +289,32 @@ def export_for_description(server_name=None, database_name=None,
     output = StringIO()
     writer = csv.writer(output, delimiter=';')
 
-    # Header
-    writer.writerow(['node_id', 'object_type', 'qualified_name', 'data_type',
-                     'current_description', 'new_description'])
+    # Header - include view_definition column for AI context
+    header = ['node_id', 'object_type', 'qualified_name', 'data_type',
+              'current_description', 'new_description']
+    if include_ddl:
+        header.insert(4, 'view_definition')  # Add before current_description
+    writer.writerow(header)
 
     # Data rows
     for row in rows:
-        node_id, obj_type, qual_name, curr_desc, extra = row
-        writer.writerow([
+        node_id, obj_type, qual_name, curr_desc, data_type, view_def = row
+
+        row_data = [
             node_id,
             obj_type,
             qual_name,
-            extra or '',  # data_type for columns
+            data_type or '',
+        ]
+        if include_ddl:
+            # Clean up DDL for CSV (replace newlines with spaces for readability)
+            ddl_clean = (view_def or '').replace('\n', ' ').replace('\r', '')
+            row_data.append(ddl_clean)
+        row_data.extend([
             curr_desc or '',
             ''  # new_description - to be filled by AI
         ])
+        writer.writerow(row_data)
 
     return output.getvalue()
 
@@ -450,14 +468,14 @@ def import_descriptions(csv_content, dry_run=False, mode='add_and_update'):
 
         for node_id, new_desc in updates:
             try:
-                status = 'ai_generated' if new_desc else 'draft'
                 cursor.execute("""
                     UPDATE catalog.nodes
                     SET description = %s,
-                        description_status = %s,
+                        description_source = 'import',
+                        description_updated_at = NOW(),
                         updated_at = NOW()
                     WHERE node_id = %s
-                """, (new_desc if new_desc else None, status, node_id))
+                """, (new_desc if new_desc else None, node_id))
             except Exception as e:
                 results['errors'].append(f"Error updating {node_id}: {e}")
 
