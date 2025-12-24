@@ -39,22 +39,29 @@ if not servers:
     selected_database = None
     databases = []
 else:
-    # Server selection
-    server_options = {
-        s['name'] if not s['alias'] else f"{s['name']} ({s['alias']})": s['name']
-        for s in servers
-    }
+    # Server selection (with "All" option)
+    server_options = {"All servers": None}
+    for s in servers:
+        label = s['name'] if not s['alias'] else f"{s['name']} ({s['alias']})"
+        server_options[label] = s['name']
+
     selected_server_display = st.sidebar.selectbox("Server", list(server_options.keys()))
     selected_server = server_options[selected_server_display]
 
     # Database selection
-    databases = get_catalog_databases(selected_server)
-    if databases:
-        database_options = {d['name']: d['name'] for d in databases}
-        selected_database = st.sidebar.selectbox("Database", list(database_options.keys()))
+    if selected_server:
+        databases = get_catalog_databases(selected_server)
+        if databases:
+            database_options = {"All databases": None}
+            database_options.update({d['name']: d['name'] for d in databases})
+            selected_database = st.sidebar.selectbox("Database", list(database_options.keys()))
+        else:
+            selected_database = None
+            st.sidebar.warning("No databases found")
     else:
+        databases = []
         selected_database = None
-        st.sidebar.warning("No databases found")
+        st.sidebar.info("Select a server to see databases")
 
 # Main tabs
 tab_browse, tab_cleanup = st.tabs(["Browse", "🧹 Cleanup"])
@@ -66,10 +73,14 @@ with tab_cleanup:
 
     if not servers:
         st.warning("No servers in catalog. Run extraction first.")
-    elif not selected_database:
-        st.warning("Select a database in the sidebar.")
     else:
-        st.info(f"Showing stale nodes for: **{selected_server_display} / {selected_database}**")
+        # Show current filter
+        if selected_server and selected_database:
+            st.info(f"Showing stale nodes for: **{selected_server_display} / {selected_database}**")
+        elif selected_server:
+            st.info(f"Showing stale nodes for: **{selected_server_display}** (all databases)")
+        else:
+            st.info("Showing stale nodes for: **All servers**")
 
         # Get stale nodes for selected server/database
         stale_nodes = get_stale_nodes(selected_server, selected_database)
@@ -128,9 +139,9 @@ with tab_cleanup:
                             st.rerun()
 
                     with col2:
-                        with st.popover(f"Permanently delete"):
+                        with st.popover("Permanently delete"):
                             st.warning("This will permanently remove these nodes!")
-                            if st.button(f"Confirm deletion", key=f"confirm_{source_key}"):
+                            if st.button("Confirm deletion", key=f"confirm_{source_key}"):
                                 deleted = permanently_delete_nodes(node_ids)
                                 st.success(f"Deleted {deleted} nodes")
                                 st.rerun()
@@ -157,8 +168,10 @@ with tab_cleanup:
 with tab_browse:
     if not servers:
         st.warning("No servers in catalog. Run extraction first.")
+    elif not selected_server:
+        st.warning("Select a server in the sidebar to browse tables.")
     elif not selected_database:
-        st.warning("Select a database in the sidebar.")
+        st.warning("Select a database in the sidebar to browse tables.")
     else:
         try:
             st.sidebar.divider()
