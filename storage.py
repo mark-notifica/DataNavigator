@@ -694,6 +694,66 @@ def update_node_description(node_id, description):
     conn.close()
 
 
+def get_latest_running_run():
+    """Get the latest running catalog run, if any."""
+    conn = get_catalog_connection()
+    cursor = conn.cursor()
+
+    cursor.execute("""
+        SELECT id, source_label, started_at
+        FROM catalog.catalog_runs
+        WHERE status = 'running'
+        ORDER BY started_at DESC
+        LIMIT 1
+    """)
+
+    row = cursor.fetchone()
+    cursor.close()
+    conn.close()
+
+    if row:
+        return {'run_id': row[0], 'source_label': row[1], 'started_at': row[2]}
+    return None
+
+
+def get_run_progress(run_id):
+    """Get progress stats for a running catalog run."""
+    conn = get_catalog_connection()
+    cursor = conn.cursor()
+
+    # Count nodes created/updated in this run
+    cursor.execute("""
+        SELECT
+            COUNT(*) FILTER (WHERE created_in_run_id = %s) as created,
+            COUNT(*) FILTER (WHERE last_seen_run_id = %s AND created_in_run_id != %s) as updated
+        FROM catalog.nodes
+        WHERE last_seen_run_id = %s
+    """, (run_id, run_id, run_id, run_id))
+
+    row = cursor.fetchone()
+
+    # Get run status
+    cursor.execute("""
+        SELECT status, started_at, completed_at
+        FROM catalog.catalog_runs
+        WHERE id = %s
+    """, (run_id,))
+
+    run_row = cursor.fetchone()
+
+    cursor.close()
+    conn.close()
+
+    return {
+        'created': row[0] if row else 0,
+        'updated': row[1] if row else 0,
+        'total': (row[0] or 0) + (row[1] or 0) if row else 0,
+        'status': run_row[0] if run_row else 'unknown',
+        'started_at': run_row[1] if run_row else None,
+        'completed_at': run_row[2] if run_row else None
+    }
+
+
 if __name__ == "__main__":
     # Quick test - just verify connection works
     conn = get_catalog_connection()

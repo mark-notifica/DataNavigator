@@ -5,7 +5,11 @@ Run Cataloger - Extract database metadata into the catalog.
 import streamlit as st
 import subprocess
 import sys
-from storage import get_catalog_servers, get_catalog_databases
+import time
+from storage import (
+    get_catalog_servers, get_catalog_databases,
+    get_latest_running_run, get_run_progress
+)
 
 st.set_page_config(
     page_title="Run Cataloger - DataNavigator",
@@ -147,45 +151,65 @@ if st.button("🚀 Run Cataloger", type="primary", use_container_width=True):
         if ip_address:
             cmd.extend(["--ip", ip_address])
 
-        # Run cataloger
-        st.info("Starting cataloger... (this may take several minutes for large databases)")
-        progress_placeholder = st.empty()
-        output_placeholder = st.empty()
+        # Run cataloger with progress tracking
+        with st.status("Running cataloger...", expanded=True) as status:
+            st.write(f"Cataloging {server_name}/{database}")
 
-        try:
-            process = subprocess.Popen(
-                cmd,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.STDOUT,
-                text=True,
-                bufsize=1
-            )
+            try:
+                process = subprocess.Popen(
+                    cmd,
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.STDOUT,
+                    text=True,
+                    bufsize=1
+                )
 
-            # Collect output
-            output_lines = []
-            while True:
-                line = process.stdout.readline()
-                if line:
-                    output_lines.append(line.rstrip())
-                    # Update display with last 20 lines
-                    progress_placeholder.text(f"Running... ({len(output_lines)} lines)")
-                    output_placeholder.code('\n'.join(output_lines[-20:]), language="text")
-                elif process.poll() is not None:
-                    break
+                # Wait a moment for run to start
+                time.sleep(1)
 
-            # Show full output
-            st.subheader("Full Output")
-            st.code('\n'.join(output_lines), language="text")
+                # Find the run_id
+                running_run = get_latest_running_run()
+                run_id = running_run['run_id'] if running_run else None
 
-            if process.returncode == 0:
-                st.success("Cataloger completed successfully!")
-            else:
-                st.error(f"Cataloger failed with return code {process.returncode}")
+                output_lines = []
+                last_progress_check = 0
 
-        except Exception as e:
-            st.error(f"Error running cataloger: {e}")
-            import traceback
-            st.code(traceback.format_exc())
+                while True:
+                    line = process.stdout.readline()
+                    if line:
+                        output_lines.append(line.rstrip())
+
+                    # Check progress every 5 seconds
+                    current_time = time.time()
+                    if run_id and current_time - last_progress_check >= 5:
+                        progress = get_run_progress(run_id)
+                        st.write(f"Progress: {progress['total']} nodes ({progress['created']} new, {progress['updated']} updated)")
+                        last_progress_check = current_time
+
+                    if not line and process.poll() is not None:
+                        break
+
+                # Final progress
+                if run_id:
+                    final_progress = get_run_progress(run_id)
+                    st.write(f"Final: {final_progress['total']} nodes processed")
+
+                if process.returncode == 0:
+                    status.update(label="Cataloger completed!", state="complete", expanded=False)
+                    st.success(f"Done! Created: {final_progress['created']}, Updated: {final_progress['updated']}")
+                else:
+                    status.update(label="Cataloger failed", state="error")
+                    st.error(f"Failed with return code {process.returncode}")
+
+                # Show output in expander
+                with st.expander("Full Output", expanded=False):
+                    st.code('\n'.join(output_lines), language="text")
+
+            except Exception as e:
+                status.update(label="Error", state="error")
+                st.error(f"Error running cataloger: {e}")
+                import traceback
+                st.code(traceback.format_exc())
 
 # Help section
 st.divider()
