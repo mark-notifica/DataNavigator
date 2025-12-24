@@ -49,28 +49,29 @@ def finish_catalog_run(run_id, nodes_created, nodes_updated, nodes_deleted, stat
 
 def mark_deleted_nodes(source_prefix, run_id):
     """
-    Mark nodes not seen in this run as deleted.
-    Returns count of deleted nodes.
+    Count nodes not seen in this run (but don't delete them).
+    Automatic deletion is disabled - use the Cleanup page to manually review stale nodes.
+    Returns count of stale nodes (for informational purposes only).
     """
     conn = get_catalog_connection()
     cursor = conn.cursor()
 
+    # Only COUNT stale nodes, don't mark them as deleted
     cursor.execute("""
-        UPDATE catalog.nodes
-        SET deleted_in_run_id = %s, deleted_at = NOW()
+        SELECT COUNT(*)
+        FROM catalog.nodes
         WHERE qualified_name LIKE %s
         AND last_seen_run_id != %s
         AND last_seen_run_id IS NOT NULL
         AND deleted_at IS NULL
-    """, (run_id, f"{source_prefix}%", run_id))
+    """, (f"{source_prefix}%", run_id))
 
-    deleted_count = cursor.rowcount
+    stale_count = cursor.fetchone()[0]
 
-    conn.commit()
     cursor.close()
     conn.close()
 
-    return deleted_count
+    return stale_count
 
 
 def get_or_create_server_node(server_name, server_alias='', run_id=None,
@@ -443,15 +444,15 @@ def save_full_catalog(server_name, server_alias, ip_address, database_type,
             col_count += 1
     print(f"  Processed {col_count} columns")
 
-    # Mark deleted
-    deleted_count = mark_deleted_nodes(source_label, run_id)
-    print(f"  Marked {deleted_count} nodes as deleted")
+    # Check for stale nodes (but don't auto-delete)
+    stale_count = mark_deleted_nodes(source_label, run_id)
+    if stale_count > 0:
+        print(f"  Found {stale_count} stale nodes (use Cleanup page to review)")
 
-    # Finish run
-    finish_catalog_run(run_id, created_count, updated_count, deleted_count)
+    # Finish run (deleted_count is always 0 now - manual cleanup only)
+    finish_catalog_run(run_id, created_count, updated_count, 0)
 
-    print(f"✅ Catalog saved! Created: {created_count}, "
-          f"updated: {updated_count}, deleted: {deleted_count}")
+    print(f"✅ Catalog saved! Created: {created_count}, Updated: {updated_count}")
 
 # === READ FUNCTIONS ===
 
@@ -752,6 +753,119 @@ def get_run_progress(run_id):
         'started_at': run_row[1] if run_row else None,
         'completed_at': run_row[2] if run_row else None
     }
+
+
+def get_stale_nodes(server_name=None, database_name=None):
+    """
+    Get nodes that haven't been seen in recent runs.
+    Returns nodes grouped by their last run.
+    """
+    conn = get_catalog_connection()
+    cursor = conn.cursor()
+
+    query = """
+        SELECT
+            n.node_id,
+            n.qualified_name,
+            n.object_type_code,
+            n.name,
+            n.description,
+            n.last_seen_run_id,
+            r.source_label,
+            r.completed_at as last_seen_at,
+            (SELECT MAX(id) FROM catalog.catalog_runs
+             WHERE source_label = r.source_label AND status = 'completed') as latest_run_id
+        FROM catalog.nodes n
+        LEFT JOIN catalog.catalog_runs r ON n.last_seen_run_id = r.id
+        WHERE n.deleted_at IS NULL
+    """
+    params = []
+
+    if server_name:
+        query += " AND n.qualified_name LIKE %s"
+        params.append(f"{server_name}/%")
+
+    if database_name:
+        query += " AND n.qualified_name LIKE %s"
+        params.append(f"%/{database_name}/%")
+
+    query += " ORDER BY n.qualified_name"
+
+    cursor.execute(query, params)
+    rows = cursor.fetchall()
+    cursor.close()
+    conn.close()
+
+    # Filter to only stale nodes (last_seen_run_id < latest_run_id)
+    stale = []
+    for row in rows:
+        last_run = row[5]
+        latest_run = row[8]
+        if last_run and latest_run and last_run < latest_run:
+            stale.append({
+                'node_id': row[0],
+                'qualified_name': row[1],
+                'object_type': row[2],
+                'name': row[3],
+                'description': row[4],
+                'last_seen_run_id': row[5],
+                'source_label': row[6],
+                'last_seen_at': row[7],
+                'latest_run_id': row[8]
+            })
+
+    return stale
+
+
+def delete_nodes(node_ids, run_id=None):
+    """
+    Soft-delete nodes by their IDs.
+    """
+    if not node_ids:
+        return 0
+
+    conn = get_catalog_connection()
+    cursor = conn.cursor()
+
+    cursor.execute("""
+        UPDATE catalog.nodes
+        SET deleted_at = NOW(), deleted_in_run_id = %s
+        WHERE node_id = ANY(%s)
+        AND deleted_at IS NULL
+    """, (run_id, node_ids))
+
+    deleted = cursor.rowcount
+    conn.commit()
+    cursor.close()
+    conn.close()
+
+    return deleted
+
+
+def permanently_delete_nodes(node_ids):
+    """
+    Permanently delete nodes (and their detail records) from the database.
+    Use with caution - this cannot be undone.
+    """
+    if not node_ids:
+        return 0
+
+    conn = get_catalog_connection()
+    cursor = conn.cursor()
+
+    # Delete from detail tables first (foreign key constraints)
+    for table in ['node_column', 'node_table', 'node_schema', 'node_database', 'node_server']:
+        cursor.execute(f"DELETE FROM catalog.{table} WHERE node_id = ANY(%s)", (node_ids,))
+
+    # Delete from nodes
+    cursor.execute("DELETE FROM catalog.nodes WHERE node_id = ANY(%s)", (node_ids,))
+    deleted = cursor.rowcount
+
+    conn.commit()
+    cursor.close()
+    conn.close()
+
+    return deleted
 
 
 if __name__ == "__main__":
