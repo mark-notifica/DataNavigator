@@ -285,9 +285,9 @@ def export_for_description(server_name=None, database_name=None,
     cursor.close()
     conn.close()
 
-    # Build CSV
-    output = StringIO()
-    writer = csv.writer(output, delimiter=';')
+    # Build CSV - use explicit lineterminator to avoid double \r on Windows
+    output = StringIO(newline='')
+    writer = csv.writer(output, delimiter=';', lineterminator='\n')
 
     # Header - include view_definition column for AI context
     header = ['node_id', 'object_type', 'qualified_name', 'data_type',
