@@ -1,11 +1,223 @@
 """
 Export and import catalog descriptions.
 Export to CSV for AI enrichment, import back with generated descriptions.
+Also supports exporting view DDL for AI analysis.
 """
 
 import csv
 from io import StringIO
 from connection_db_postgres import get_catalog_connection
+
+
+def export_view_ddl(server_name=None, database_name=None, schema_name=None,
+                    include_columns=True, output_format='sql'):
+    """
+    Export view DDL definitions for AI analysis.
+
+    Args:
+        server_name: Filter by server (optional)
+        database_name: Filter by database (optional)
+        schema_name: Filter by schema (optional)
+        include_columns: Include column info in output (default True)
+        output_format: 'sql' for pure DDL, 'markdown' for documented format
+
+    Returns:
+        String with view definitions
+    """
+    conn = get_catalog_connection()
+    cursor = conn.cursor()
+
+    # Get views with their DDL
+    query = """
+        SELECT
+            n.qualified_name,
+            n.name as view_name,
+            n.description,
+            t.view_definition,
+            s.schema_name,
+            d.database_name,
+            srv.name as server_name
+        FROM catalog.nodes n
+        JOIN catalog.node_table t ON n.node_id = t.node_id
+        JOIN catalog.node_schema s ON t.schema_node_id = s.node_id
+        JOIN catalog.nodes sn ON s.node_id = sn.node_id
+        JOIN catalog.node_database d ON s.database_node_id = d.node_id
+        JOIN catalog.nodes dn ON d.node_id = dn.node_id
+        JOIN catalog.node_server srv_t ON d.server_node_id = srv_t.node_id
+        JOIN catalog.nodes srv ON srv_t.node_id = srv.node_id
+        WHERE n.object_type_code = 'DB_VIEW'
+          AND n.deleted_at IS NULL
+          AND t.view_definition IS NOT NULL
+    """
+    params = []
+
+    if server_name:
+        query += " AND srv.name = %s"
+        params.append(server_name)
+
+    if database_name:
+        query += " AND d.database_name = %s"
+        params.append(database_name)
+
+    if schema_name:
+        query += " AND s.schema_name = %s"
+        params.append(schema_name)
+
+    query += " ORDER BY srv.name, d.database_name, s.schema_name, n.name"
+
+    cursor.execute(query, params)
+    views = cursor.fetchall()
+
+    # Get columns for each view if requested
+    view_columns = {}
+    if include_columns:
+        view_node_ids = []
+        cursor.execute("""
+            SELECT n.node_id, n.qualified_name
+            FROM catalog.nodes n
+            WHERE n.object_type_code = 'DB_VIEW'
+              AND n.deleted_at IS NULL
+        """)
+        view_map = {row[1]: row[0] for row in cursor.fetchall()}
+
+        for view in views:
+            qualified_name = view[0]
+            if qualified_name in view_map:
+                view_node_ids.append(view_map[qualified_name])
+
+        if view_node_ids:
+            cursor.execute("""
+                SELECT
+                    c.table_node_id,
+                    c.column_name,
+                    c.data_type,
+                    cn.description
+                FROM catalog.node_column c
+                JOIN catalog.nodes cn ON c.node_id = cn.node_id
+                WHERE c.table_node_id = ANY(%s)
+                  AND cn.deleted_at IS NULL
+                ORDER BY c.table_node_id, c.column_name
+            """, (view_node_ids,))
+
+            for row in cursor.fetchall():
+                table_node_id = row[0]
+                if table_node_id not in view_columns:
+                    view_columns[table_node_id] = []
+                view_columns[table_node_id].append({
+                    'name': row[1],
+                    'type': row[2],
+                    'description': row[3] or ''
+                })
+
+    cursor.close()
+    conn.close()
+
+    # Build output
+    if output_format == 'markdown':
+        return _format_ddl_markdown(views, view_columns, view_map if include_columns else {})
+    else:
+        return _format_ddl_sql(views, view_columns, view_map if include_columns else {})
+
+
+def _format_ddl_sql(views, view_columns, view_map):
+    """Format as pure SQL with comments."""
+    output = []
+    output.append("-- View DDL Export")
+    output.append("-- Generated for AI analysis")
+    output.append("")
+
+    for view in views:
+        qualified_name, view_name, description, ddl, schema, db, server = view
+        output.append("-- ============================================")
+        output.append(f"-- View: {schema}.{view_name}")
+        output.append(f"-- Location: {server}/{db}/{schema}")
+        if description:
+            output.append(f"-- Description: {description}")
+        output.append("-- ============================================")
+        output.append("")
+        output.append(f"CREATE OR REPLACE VIEW {schema}.{view_name} AS")
+        output.append(ddl)
+        output.append(";")
+        output.append("")
+
+        # Add column info as comments
+        if qualified_name in view_map:
+            node_id = view_map[qualified_name]
+            if node_id in view_columns:
+                output.append("-- Columns:")
+                for col in view_columns[node_id]:
+                    desc = f" -- {col['description']}" if col['description'] else ""
+                    output.append(f"--   {col['name']}: {col['type']}{desc}")
+                output.append("")
+
+    return "\n".join(output)
+
+
+def _format_ddl_markdown(views, view_columns, view_map):
+    """Format as markdown documentation."""
+    output = []
+    output.append("# View DDL Export")
+    output.append("")
+    output.append("This document contains view definitions for AI analysis.")
+    output.append("")
+
+    current_server = None
+    current_db = None
+
+    for view in views:
+        qualified_name, view_name, description, ddl, schema, db, server = view
+
+        # Add server/database headers
+        if server != current_server:
+            output.append(f"# Server: {server}")
+            output.append("")
+            current_server = server
+            current_db = None
+
+        if db != current_db:
+            output.append(f"## Database: {db}")
+            output.append("")
+            current_db = db
+
+        output.append(f"### {schema}.{view_name}")
+        output.append("")
+
+        if description:
+            output.append(f"**Description:** {description}")
+            output.append("")
+
+        output.append("**DDL:**")
+        output.append("```sql")
+        output.append(f"CREATE OR REPLACE VIEW {schema}.{view_name} AS")
+        output.append(ddl)
+        output.append("```")
+        output.append("")
+
+        # Add column table
+        if qualified_name in view_map:
+            node_id = view_map[qualified_name]
+            if node_id in view_columns and view_columns[node_id]:
+                output.append("**Columns:**")
+                output.append("")
+                output.append("| Column | Type | Description |")
+                output.append("|--------|------|-------------|")
+                for col in view_columns[node_id]:
+                    output.append(f"| {col['name']} | {col['type']} | {col['description']} |")
+                output.append("")
+
+    return "\n".join(output)
+
+
+def export_ddl_to_file(filepath, **kwargs):
+    """Export view DDL to a file."""
+    content = export_view_ddl(**kwargs)
+    with open(filepath, 'w', encoding='utf-8') as f:
+        f.write(content)
+
+    # Count views
+    view_count = content.count('CREATE OR REPLACE VIEW')
+    print(f"Exported {view_count} view definitions to {filepath}")
+    return view_count
 
 
 def export_for_description(server_name=None, database_name=None,
@@ -298,6 +510,18 @@ if __name__ == "__main__":
     import_parser.add_argument('--dry-run', action='store_true',
                                help='Validate only, do not update')
 
+    # DDL export command
+    ddl_parser = subparsers.add_parser('ddl', help='Export view DDL for AI analysis')
+    ddl_parser.add_argument('-o', '--output', default='views_ddl.sql',
+                            help='Output file path')
+    ddl_parser.add_argument('--server', help='Filter by server name')
+    ddl_parser.add_argument('--database', help='Filter by database name')
+    ddl_parser.add_argument('--schema', help='Filter by schema name')
+    ddl_parser.add_argument('--format', choices=['sql', 'markdown'], default='sql',
+                            help='Output format: sql or markdown')
+    ddl_parser.add_argument('--no-columns', action='store_true',
+                            help='Exclude column information')
+
     args = parser.parse_args()
 
     if args.command == 'export':
@@ -310,5 +534,14 @@ if __name__ == "__main__":
         )
     elif args.command == 'import':
         import_from_file(args.input, dry_run=args.dry_run)
+    elif args.command == 'ddl':
+        export_ddl_to_file(
+            args.output,
+            server_name=args.server,
+            database_name=args.database,
+            schema_name=args.schema,
+            include_columns=not args.no_columns,
+            output_format=args.format
+        )
     else:
         parser.print_help()

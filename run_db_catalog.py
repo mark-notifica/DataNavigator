@@ -16,6 +16,7 @@ def run_extraction(server_name, server_alias, ip_address, database_type,
     if ip_address:
         print(f"  IP address: {ip_address}")
     print(f"  Database type: {database_type}")
+    print(f"  Host: {host}")
 
     # 1. Get schemas
     schemas = get_all_schemas(host, port, database_name, user, password)
@@ -68,7 +69,8 @@ def run_extraction(server_name, server_alias, ip_address, database_type,
         tables_by_schema,
         table_types,
         view_definitions,
-        columns_by_table
+        columns_by_table,
+        host
     )
     print("Done!")
 

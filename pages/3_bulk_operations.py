@@ -4,7 +4,7 @@ Export to CSV for AI enrichment, import back with generated descriptions.
 """
 
 import streamlit as st
-from catalog_export import export_for_description, import_descriptions
+from catalog_export import export_for_description, import_descriptions, export_view_ddl
 from storage import get_catalog_servers, get_catalog_databases
 
 st.set_page_config(
@@ -16,7 +16,7 @@ st.set_page_config(
 st.title("🔄 Bulk Operations")
 st.markdown("Export catalog items for AI description generation, then import the enriched descriptions back.")
 
-tab1, tab2 = st.tabs(["📥 Export", "📤 Import"])
+tab1, tab2, tab3 = st.tabs(["📥 Export Descriptions", "📤 Import Descriptions", "📜 Export View DDL"])
 
 # === EXPORT TAB ===
 with tab1:
@@ -291,3 +291,102 @@ The CSV file uses semicolon (`;`) as delimiter and has these columns:
 - `[CLEAR]`: Removes the description (only works in "Overwrite all" mode)
 - Same as current: Automatically skipped (no unnecessary updates)
 """)
+
+# === VIEW DDL EXPORT TAB ===
+with tab3:
+    st.header("Export View DDL for AI Analysis")
+    st.markdown("""
+    Export view definitions (DDL) from your catalog. This is useful for:
+    - AI analysis of view logic and dependencies
+    - Documentation generation
+    - Code review and understanding complex views
+    """)
+
+    st.divider()
+
+    # Filters
+    col1, col2, col3 = st.columns(3)
+
+    with col1:
+        servers = get_catalog_servers()
+        server_options_ddl = ["All servers"] + [s['name'] for s in servers]
+        selected_server_ddl = st.selectbox("Server", server_options_ddl, key="ddl_server")
+
+    with col2:
+        if selected_server_ddl != "All servers":
+            databases = get_catalog_databases(selected_server_ddl)
+            database_options_ddl = ["All databases"] + [d['name'] for d in databases]
+            selected_database_ddl = st.selectbox("Database", database_options_ddl, key="ddl_database")
+        else:
+            selected_database_ddl = "All databases"
+            st.selectbox("Database", ["All databases"], disabled=True, key="ddl_database_disabled")
+
+    with col3:
+        ddl_format = st.selectbox(
+            "Output format",
+            ["SQL", "Markdown"],
+            help="SQL: Pure DDL with comments. Markdown: Documented format with tables.",
+            key="ddl_format"
+        )
+
+    # Options
+    col4, col5 = st.columns(2)
+
+    with col4:
+        include_columns = st.checkbox(
+            "Include column information",
+            value=True,
+            help="Add column names, types, and descriptions to the output",
+            key="ddl_columns"
+        )
+
+    st.divider()
+
+    # Export button
+    if st.button("Generate DDL Export", type="primary", use_container_width=True, key="ddl_export_btn"):
+        with st.spinner("Generating DDL export..."):
+            try:
+                ddl_content = export_view_ddl(
+                    server_name=None if selected_server_ddl == "All servers" else selected_server_ddl,
+                    database_name=None if selected_database_ddl == "All databases" else selected_database_ddl,
+                    include_columns=include_columns,
+                    output_format=ddl_format.lower()
+                )
+
+                view_count = ddl_content.count('CREATE OR REPLACE VIEW')
+
+                if view_count == 0:
+                    st.warning("No views with DDL found matching the selected filters")
+                else:
+                    st.success(f"Exported {view_count} view definitions")
+
+                    # Generate filename
+                    filename_parts = ["views_ddl"]
+                    if selected_server_ddl != "All servers":
+                        filename_parts.append(selected_server_ddl)
+                    if selected_database_ddl != "All databases":
+                        filename_parts.append(selected_database_ddl)
+                    ext = "md" if ddl_format == "Markdown" else "sql"
+                    filename = "_".join(filename_parts) + f".{ext}"
+
+                    # Download button
+                    st.download_button(
+                        label="Download DDL File",
+                        data=ddl_content,
+                        file_name=filename,
+                        mime="text/plain",
+                        use_container_width=True
+                    )
+
+                    # Preview
+                    st.subheader("Preview (first 2000 characters)")
+                    if ddl_format == "Markdown":
+                        st.markdown(ddl_content[:2000])
+                    else:
+                        st.code(ddl_content[:2000], language="sql")
+
+                    if len(ddl_content) > 2000:
+                        st.info("... (truncated for display)")
+
+            except Exception as e:
+                st.error(f"Error during DDL export: {e}")

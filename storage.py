@@ -74,7 +74,7 @@ def mark_deleted_nodes(source_prefix, run_id):
 
 
 def get_or_create_server_node(server_name, server_alias='', run_id=None,
-                              ip_address=None, database_type=None):
+                              ip_address=None, database_type=None, host=None):
     """
     Get or create the server node. Returns (node_id, was_created).
     """
@@ -101,13 +101,14 @@ def get_or_create_server_node(server_name, server_alias='', run_id=None,
         # Upsert node_server
         cursor.execute("""
             INSERT INTO catalog.node_server
-            (node_id, server_name, server_alias, ip_address, database_type)
-            VALUES (%s, %s, %s, %s, %s)
+            (node_id, server_name, server_alias, ip_address, database_type, host)
+            VALUES (%s, %s, %s, %s, %s, %s)
             ON CONFLICT (node_id) DO UPDATE SET
                 server_alias = COALESCE(EXCLUDED.server_alias, catalog.node_server.server_alias),
                 ip_address = COALESCE(EXCLUDED.ip_address, catalog.node_server.ip_address),
-                database_type = COALESCE(EXCLUDED.database_type, catalog.node_server.database_type)
-        """, (node_id, server_name, server_alias or None, ip_address, database_type))
+                database_type = COALESCE(EXCLUDED.database_type, catalog.node_server.database_type),
+                host = COALESCE(EXCLUDED.host, catalog.node_server.host)
+        """, (node_id, server_name, server_alias or None, ip_address, database_type, host))
         conn.commit()
         cursor.close()
         conn.close()
@@ -127,9 +128,9 @@ def get_or_create_server_node(server_name, server_alias='', run_id=None,
     # Create node_server detail
     cursor.execute("""
         INSERT INTO catalog.node_server
-        (node_id, server_name, server_alias, ip_address, database_type)
-        VALUES (%s, %s, %s, %s, %s)
-    """, (node_id, server_name, server_alias or None, ip_address, database_type))
+        (node_id, server_name, server_alias, ip_address, database_type, host)
+        VALUES (%s, %s, %s, %s, %s, %s)
+    """, (node_id, server_name, server_alias or None, ip_address, database_type, host))
 
     conn.commit()
     cursor.close()
@@ -363,7 +364,7 @@ def save_column(table_node_id, column_name, data_type, is_nullable, run_id=None)
 
 def save_full_catalog(server_name, server_alias, ip_address, database_type,
                       database_name, schemas, tables_by_schema, table_types,
-                      view_definitions, columns_by_table):
+                      view_definitions, columns_by_table, host=None):
     """
     Save complete catalog extraction with upsert logic.
     """
@@ -378,7 +379,7 @@ def save_full_catalog(server_name, server_alias, ip_address, database_type,
     print(f"  Run ID: {run_id}")
 
     server_node_id, was_created = get_or_create_server_node(
-        server_name, server_alias, run_id, ip_address, database_type
+        server_name, server_alias, run_id, ip_address, database_type, host
     )
     if was_created:
         created_count += 1
@@ -568,7 +569,7 @@ def get_catalog_servers():
     cursor = conn.cursor()
 
     cursor.execute("""
-        SELECT n.node_id, n.name, s.server_alias, n.description
+        SELECT n.node_id, n.name, s.server_alias, n.description, s.host
         FROM catalog.nodes n
         LEFT JOIN catalog.node_server s ON n.node_id = s.node_id
         WHERE n.object_type_code = 'DB_SERVER'
@@ -585,7 +586,8 @@ def get_catalog_servers():
             'node_id': r[0],
             'name': r[1],
             'alias': r[2] or '',
-            'description': r[3] or ''
+            'description': r[3] or '',
+            'host': r[4] or ''
         }
         for r in results
     ]
