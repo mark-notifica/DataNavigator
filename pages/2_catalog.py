@@ -27,13 +27,37 @@ st.set_page_config(
 st.title("📚 Catalog")
 st.markdown("Browse and edit catalog descriptions")
 
-# Main tabs
-tab_browse, tab_cleanup = st.tabs(["Browse", "🧹 Cleanup"])
-
-# Sidebar (shared)
+# === SHARED SIDEBAR NAVIGATION ===
 st.sidebar.header("Navigation")
 
 servers = get_catalog_servers()
+
+if not servers:
+    st.sidebar.warning("No servers in catalog")
+    selected_server = None
+    selected_server_display = None
+    selected_database = None
+    databases = []
+else:
+    # Server selection
+    server_options = {
+        s['name'] if not s['alias'] else f"{s['name']} ({s['alias']})": s['name']
+        for s in servers
+    }
+    selected_server_display = st.sidebar.selectbox("Server", list(server_options.keys()))
+    selected_server = server_options[selected_server_display]
+
+    # Database selection
+    databases = get_catalog_databases(selected_server)
+    if databases:
+        database_options = {d['name']: d['name'] for d in databases}
+        selected_database = st.sidebar.selectbox("Database", list(database_options.keys()))
+    else:
+        selected_database = None
+        st.sidebar.warning("No databases found")
+
+# Main tabs
+tab_browse, tab_cleanup = st.tabs(["Browse", "🧹 Cleanup"])
 
 # === CLEANUP TAB ===
 with tab_cleanup:
@@ -42,30 +66,13 @@ with tab_cleanup:
 
     if not servers:
         st.warning("No servers in catalog. Run extraction first.")
+    elif not selected_database:
+        st.warning("Select a database in the sidebar.")
     else:
-        # Filters
-        col1, col2 = st.columns(2)
+        st.info(f"Showing stale nodes for: **{selected_server_display} / {selected_database}**")
 
-        with col1:
-            server_options_cleanup = ["All servers"] + [s['name'] for s in servers]
-            selected_server_cleanup = st.selectbox("Server", server_options_cleanup, key="cleanup_server")
-
-        with col2:
-            if selected_server_cleanup != "All servers":
-                databases_cleanup = get_catalog_databases(selected_server_cleanup)
-                database_options_cleanup = ["All databases"] + [d['name'] for d in databases_cleanup]
-                selected_database_cleanup = st.selectbox("Database", database_options_cleanup, key="cleanup_database")
-            else:
-                selected_database_cleanup = "All databases"
-                st.selectbox("Database", ["All databases"], disabled=True, key="cleanup_database_disabled")
-
-        st.divider()
-
-        # Get stale nodes
-        server_filter = None if selected_server_cleanup == "All servers" else selected_server_cleanup
-        database_filter = None if selected_database_cleanup == "All databases" else selected_database_cleanup
-
-        stale_nodes = get_stale_nodes(server_filter, database_filter)
+        # Get stale nodes for selected server/database
+        stale_nodes = get_stale_nodes(selected_server, selected_database)
 
         if not stale_nodes:
             st.success("No stale nodes found! Your catalog is up to date.")
@@ -150,37 +157,13 @@ with tab_cleanup:
 with tab_browse:
     if not servers:
         st.warning("No servers in catalog. Run extraction first.")
+    elif not selected_database:
+        st.warning("Select a database in the sidebar.")
     else:
         try:
-            # Format: "VPS2 (Local Dev)" of alleen "VPS2" als geen alias
-            server_options = {
-                s['name'] if not s['alias'] else f"{s['name']} ({s['alias']})": s['name']
-                for s in servers
-            }
-            selected_server_display = st.sidebar.selectbox("Server", list(server_options.keys()))
-            selected_server = server_options[selected_server_display]
-
-            # === DATABASE SELECTION ===
-            databases = get_catalog_databases(selected_server)
-
-            if not databases:
-                st.warning(f"No databases found for {selected_server}")
-                st.stop()
-
-            # Get table count per database
-            database_options = {}
-            for db in databases:
-                tables = get_catalog_tables_for_database(selected_server, db['name'])
-                count = len(tables)
-                label = f"{db['name']} ({count} tables)"
-                database_options[label] = db['name']
-
-            selected_db_display = st.sidebar.selectbox("Database", list(database_options.keys()))
-            selected_database = database_options[selected_db_display]
-
             st.sidebar.divider()
 
-            # === TABLE SELECTION ===
+            # === TABLE SELECTION (Browse-specific) ===
             tables = get_catalog_tables_for_database(selected_server, selected_database)
 
             if not tables:
