@@ -756,6 +756,62 @@ def get_run_progress(run_id):
     }
 
 
+def get_all_runs(limit=50):
+    """Get all catalog runs with node counts."""
+    conn = get_catalog_connection()
+    cursor = conn.cursor()
+
+    cursor.execute("""
+        SELECT
+            r.id,
+            r.source_label,
+            r.started_at,
+            r.completed_at,
+            r.status,
+            COUNT(n.node_id) FILTER (WHERE n.created_in_run_id = r.id) as created,
+            COUNT(n.node_id) FILTER (WHERE n.last_seen_run_id = r.id AND n.created_in_run_id != r.id) as updated
+        FROM catalog.catalog_runs r
+        LEFT JOIN catalog.nodes n ON n.last_seen_run_id = r.id
+        GROUP BY r.id, r.source_label, r.started_at, r.completed_at, r.status
+        ORDER BY r.started_at DESC
+        LIMIT %s
+    """, (limit,))
+
+    rows = cursor.fetchall()
+    cursor.close()
+    conn.close()
+
+    return [{
+        'run_id': row[0],
+        'source_label': row[1],
+        'started_at': row[2],
+        'completed_at': row[3],
+        'status': row[4],
+        'created': row[5] or 0,
+        'updated': row[6] or 0
+    } for row in rows]
+
+
+def mark_run_failed(run_id):
+    """Mark a running catalog run as failed."""
+    conn = get_catalog_connection()
+    cursor = conn.cursor()
+
+    cursor.execute("""
+        UPDATE catalog.catalog_runs
+        SET status = 'failed', completed_at = NOW()
+        WHERE id = %s AND status = 'running'
+        RETURNING id
+    """, (run_id,))
+
+    result = cursor.fetchone()
+    conn.commit()
+    cursor.close()
+    conn.close()
+
+    return result is not None
+
+
 def get_stale_nodes(server_name=None, database_name=None):
     """
     Get nodes that haven't been seen in recent runs.
