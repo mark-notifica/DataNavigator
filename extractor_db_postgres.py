@@ -139,15 +139,21 @@ def get_view_definition(view_name, schema='public', host=None, port=None, databa
 
     cursor = conn.cursor()
 
+    # Use quote_ident to properly quote identifiers with special chars/spaces
     query = """
-        SELECT pg_get_viewdef(%s::regclass, true)
+        SELECT pg_get_viewdef(
+            (quote_ident(%s) || '.' || quote_ident(%s))::regclass,
+            true
+        )
     """
 
     try:
-        cursor.execute(query, (f"{schema}.{view_name}",))
+        cursor.execute(query, (schema, view_name))
         result = cursor.fetchone()
         definition = result[0] if result else None
-    except Exception:
+    except Exception as e:
+        # Log the error for debugging
+        print(f"    Warning: Could not get definition for {schema}.{view_name}: {e}")
         definition = None
 
     cursor.close()
