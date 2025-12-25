@@ -1,11 +1,23 @@
 """
 Bulk Operations Page - Export and Import Catalog Descriptions
 Export to CSV for AI enrichment, import back with generated descriptions.
+Also provides direct AI generation and interactive enrichment.
 """
 
+import os
+
+from dotenv import load_dotenv
 import streamlit as st
+
 from catalog_export import export_for_description, import_descriptions
-from storage import get_catalog_servers, get_catalog_databases
+from storage import get_catalog_servers, get_catalog_databases, get_catalog_schemas
+from ai_enrichment import (
+    get_items_for_enrichment,
+    generate_description,
+    save_description
+)
+
+load_dotenv()
 
 st.set_page_config(
     page_title="Bulk Operations - DataNavigator",
@@ -50,8 +62,32 @@ else:
     else:
         selected_database = None
 
+    # Schema selection (only if a specific database is selected)
+    selected_schema = None
+    if selected_server and selected_database:
+        schemas = get_catalog_schemas(selected_server, selected_database)
+        if schemas:
+            schema_options = {"All schemas": None}
+            schema_options.update({s['name']: s['name'] for s in schemas})
+            selected_schema = st.sidebar.selectbox("Schema", list(schema_options.keys()))
+            if selected_schema == "All schemas":
+                selected_schema = None
+
+# Check for AI availability
+anthropic_key = os.environ.get('ANTHROPIC_API_KEY', '')
+ollama_host = os.environ.get('OLLAMA_HOST', '')
+ai_available = bool(anthropic_key or ollama_host)
+
+# Determine model choice
+if anthropic_key:
+    ai_model = "claude"
+elif ollama_host:
+    ai_model = "ollama"
+else:
+    ai_model = None
+
 # Main tabs
-tab1, tab2 = st.tabs(["📥 Export", "📤 Import"])
+tab1, tab2, tab3 = st.tabs(["📥 Export", "📤 Import", "🤖 AI Generate"])
 
 # === EXPORT TAB ===
 with tab1:
@@ -66,8 +102,10 @@ with tab1:
     st.divider()
 
     # Show current filter
-    if selected_server and selected_database:
-        st.info(f"Exporting from: **{selected_server} / {selected_database}**")
+    if selected_server and selected_database and selected_schema:
+        st.info(f"Exporting from: **{selected_server} / {selected_database} / {selected_schema}**")
+    elif selected_server and selected_database:
+        st.info(f"Exporting from: **{selected_server} / {selected_database}** (all schemas)")
     elif selected_server:
         st.info(f"Exporting from: **{selected_server}** (all databases)")
     else:
@@ -108,6 +146,7 @@ with tab1:
                     csv_content = export_for_description(
                         server_name=selected_server,
                         database_name=selected_database,
+                        schema_name=selected_schema,
                         include_described=include_described,
                         object_types=object_types,
                         include_ddl=include_ddl
@@ -126,12 +165,15 @@ with tab1:
                             filename_parts.append(selected_server)
                         if selected_database:
                             filename_parts.append(selected_database)
+                        if selected_schema:
+                            filename_parts.append(selected_schema)
                         filename = "_".join(filename_parts) + ".csv"
 
-                        # Download button
+                        # Download button - encode with BOM for Excel compatibility
+                        csv_bytes = ('\ufeff' + csv_content).encode('utf-8')
                         st.download_button(
                             label="📥 Download CSV File",
-                            data=csv_content,
+                            data=csv_bytes,
                             file_name=filename,
                             mime="text/csv",
                             use_container_width=True
@@ -146,6 +188,26 @@ with tab1:
 
                 except Exception as e:
                     st.error(f"Error during export: {e}")
+
+    # Export help
+    st.divider()
+    with st.expander("Help: CSV Export"):
+        st.markdown("""
+**CSV Format** - The exported file uses semicolon (`;`) as delimiter:
+- `node_id` - Unique identifier (don't modify)
+- `object_type` - Type: DB_TABLE, DB_VIEW, DB_COLUMN, etc.
+- `qualified_name` - Full path (server/database/schema/name)
+- `data_type` - Column data type (for columns only)
+- `view_definition_1/2/3` - View SQL split across 3 columns (long views need multiple cells)
+- `current_description` - Existing description
+- `new_description` - **Fill this column** with your descriptions
+
+**Workflow:**
+1. Export to CSV
+2. Open in Excel or send to AI
+3. Fill the `new_description` column
+4. Import back using the Import tab
+""")
 
 # === IMPORT TAB ===
 with tab2:
@@ -301,32 +363,257 @@ with tab2:
     else:
         st.info("Upload a CSV file to begin import")
 
-# Help section
-st.divider()
-with st.expander("Help"):
-    st.markdown("""
-### CSV Format
-The CSV file uses semicolon (`;`) as delimiter and has these columns:
-- `node_id` - Unique identifier (don't modify)
-- `object_type` - Type of object (DB_TABLE, DB_VIEW, DB_COLUMN, etc.)
-- `qualified_name` - Full path name
-- `data_type` - Data type for columns
-- `view_definition` - SQL definition for views (for AI context, ignored on import)
-- `current_description` - Existing description (for reference)
-- `new_description` - **Fill this column** with your descriptions
+    # Import help
+    st.divider()
+    with st.expander("Help: CSV Import"):
+        st.markdown("""
+**Import Modes:**
+- **Add only** - Only fills in items that have no description yet
+- **Add & Update** - Adds new descriptions and updates existing ones (most common)
+- **Overwrite all** - Same as Add & Update, but also processes `[CLEAR]` values
 
-### View DDL in Export
-When "Include View DDL" is checked, the export includes the SQL definition of views.
-This helps AI understand what each view does, making it easier to generate accurate descriptions.
-The `view_definition` column is ignored during import - only `new_description` is processed.
+**Special Values in `new_description`:**
+- Empty cell → skipped (no change)
+- `[CLEAR]` → removes existing description (only in "Overwrite all" mode)
 
-### Import Modes
-- **Add only**: Only adds descriptions where none exists, never overwrites
-- **Add & Update**: Adds new descriptions and updates existing ones (default)
-- **Overwrite all**: Same as Add & Update, but also allows clearing with `[CLEAR]`
+**Workflow:**
+1. Upload your CSV file (must have `node_id` and `new_description` columns)
+2. Run **Dry Run** first to preview changes
+3. Review the summary (adds, updates, clears, errors)
+4. Click **Import Now** to apply changes
 
-### Special Values
-- Empty `new_description`: Row is skipped (existing description preserved)
-- `[CLEAR]`: Removes the description (only works in "Overwrite all" mode)
-- Same as current: Automatically skipped (no unnecessary updates)
+**Tips:**
+- Always do a dry run first to catch errors
+- The `node_id` column must match exactly - don't modify it
+- CSV should use semicolon (`;`) as delimiter
 """)
+
+# === AI GENERATE TAB ===
+with tab3:
+    st.header("AI Description Generation")
+
+    if not ai_available:
+        st.warning("No AI model configured. Add ANTHROPIC_API_KEY or OLLAMA_HOST to your .env file.")
+    else:
+        st.markdown(f"Generate descriptions automatically using **{'Claude' if ai_model == 'claude' else 'Ollama'}**.")
+
+        # Show current filter
+        filter_desc = []
+        if selected_server:
+            filter_desc.append(selected_server)
+        if selected_database:
+            filter_desc.append(selected_database)
+        if selected_schema:
+            filter_desc.append(selected_schema)
+
+        if filter_desc:
+            st.info(f"Scope: **{' / '.join(filter_desc)}**")
+        else:
+            st.info("Scope: **All servers** (select a server/database in sidebar to narrow down)")
+
+        st.divider()
+
+        # Options
+        col1, col2 = st.columns(2)
+        with col1:
+            ai_object_types = st.multiselect(
+                "Object types",
+                ["DB_TABLE", "DB_VIEW", "DB_COLUMN"],
+                default=["DB_TABLE", "DB_VIEW"],
+                key="ai_object_types"
+            )
+            batch_size = st.slider("Batch size", 5, 50, 10, help="Number of items to process at once")
+
+        with col2:
+            include_described_ai = st.checkbox(
+                "Include already described",
+                value=False,
+                help="Re-generate descriptions for items that already have one"
+            )
+
+        # Reference context section
+        st.divider()
+        st.subheader("Reference Context (Optional)")
+        st.markdown("Add extra information to help AI generate better descriptions.")
+
+        col1, col2 = st.columns(2)
+
+        with col1:
+            # File upload
+            uploaded_ref = st.file_uploader(
+                "Upload reference file",
+                type=['txt', 'csv', 'md'],
+                key="ref_file",
+                help="Upload a text file with reference information"
+            )
+            if uploaded_ref:
+                try:
+                    file_content = uploaded_ref.read().decode('utf-8')
+                    st.session_state['reference_context'] = file_content
+                    st.success(f"Loaded {len(file_content)} characters")
+                except Exception as e:
+                    st.error(f"Error reading file: {e}")
+
+        with col2:
+            # Manual text input
+            manual_context = st.text_area(
+                "Or enter text manually",
+                value=st.session_state.get('manual_reference', ''),
+                height=120,
+                key="manual_ref_input",
+                help="Paste or type reference information"
+            )
+            if manual_context:
+                st.session_state['reference_context'] = manual_context
+                st.session_state['manual_reference'] = manual_context
+
+        # Show preview if context exists
+        reference_context = st.session_state.get('reference_context')
+        if reference_context:
+            with st.expander("Preview reference context"):
+                st.text(reference_context[:2000])
+                if len(reference_context) > 2000:
+                    st.caption(f"... ({len(reference_context)} total characters)")
+            if st.button("Clear context", key="clear_ref"):
+                st.session_state['reference_context'] = None
+                st.session_state['manual_reference'] = ''
+                st.rerun()
+
+        st.divider()
+
+        # Get items to process
+        if st.button("🔍 Find Items to Describe", use_container_width=True):
+            with st.spinner("Loading items..."):
+                items = get_items_for_enrichment(
+                    server_name=selected_server,
+                    database_name=selected_database,
+                    schema_name=selected_schema,
+                    object_types=ai_object_types,
+                    include_described=include_described_ai,
+                    limit=batch_size
+                )
+                st.session_state['ai_items'] = items
+
+        # Show items if loaded
+        if 'ai_items' in st.session_state and st.session_state['ai_items']:
+            items = st.session_state['ai_items']
+            st.success(f"Found {len(items)} items to process")
+
+            # Initialize results storage
+            if 'ai_results' not in st.session_state:
+                st.session_state['ai_results'] = {}
+
+            # Generate button
+            if st.button("🤖 Generate Descriptions", type="primary", use_container_width=True):
+                progress = st.progress(0)
+                status = st.empty()
+
+                # Get reference context from session state
+                ref_ctx = st.session_state.get('reference_context')
+
+                for i, item in enumerate(items):
+                    status.text(f"Processing: {item['name']} ({item['object_type']})")
+
+                    try:
+                        description = generate_description(
+                            item,
+                            model=ai_model,
+                            reference_context=ref_ctx
+                        )
+                        st.session_state['ai_results'][item['node_id']] = {
+                            'item': item,
+                            'description': description,
+                            'status': 'pending'
+                        }
+                    except Exception as e:
+                        st.session_state['ai_results'][item['node_id']] = {
+                            'item': item,
+                            'description': f"Error: {e}",
+                            'status': 'error'
+                        }
+
+                    progress.progress((i + 1) / len(items))
+
+                status.text("Done!")
+
+            # Show results for review
+            if st.session_state.get('ai_results'):
+                st.subheader("Review Generated Descriptions")
+                st.markdown("Review and save each description, or edit before saving.")
+
+                for node_id, result in list(st.session_state['ai_results'].items()):
+                    if result['status'] == 'saved':
+                        continue
+
+                    item = result['item']
+                    with st.expander(f"**{item['name']}** ({item['object_type'].replace('DB_', '')})", expanded=True):
+                        st.caption(item['qualified_name'])
+
+                        if item.get('description'):
+                            st.markdown(f"**Current:** {item['description']}")
+
+                        # Editable description
+                        new_desc = st.text_area(
+                            "Generated description",
+                            value=result['description'],
+                            key=f"desc_{node_id}",
+                            height=100
+                        )
+
+                        col1, col2, col3 = st.columns([1, 1, 2])
+                        with col1:
+                            if st.button("✅ Save", key=f"save_{node_id}"):
+                                try:
+                                    save_description(node_id, new_desc, source='ai')
+                                    st.session_state['ai_results'][node_id]['status'] = 'saved'
+                                    st.success("Saved!")
+                                    st.rerun()
+                                except Exception as e:
+                                    st.error(f"Error: {e}")
+                        with col2:
+                            if st.button("❌ Skip", key=f"skip_{node_id}"):
+                                del st.session_state['ai_results'][node_id]
+                                st.rerun()
+
+                # Summary
+                saved = sum(1 for r in st.session_state['ai_results'].values() if r['status'] == 'saved')
+                pending = sum(1 for r in st.session_state['ai_results'].values() if r['status'] == 'pending')
+                if saved > 0 or pending > 0:
+                    st.divider()
+                    st.markdown(f"**Progress:** {saved} saved, {pending} pending review")
+
+                    if pending == 0 and saved > 0:
+                        if st.button("🔄 Load Next Batch"):
+                            st.session_state['ai_results'] = {}
+                            del st.session_state['ai_items']
+                            st.rerun()
+
+        elif 'ai_items' in st.session_state:
+            st.info("No items found matching the criteria. Try different filters or include already described items.")
+
+    # AI Generate help
+    st.divider()
+    with st.expander("Help: AI Generate"):
+        st.markdown("""
+**Batch Generation Workflow:**
+1. Select object types and batch size
+2. Click **Find Items to Describe** to load items needing descriptions
+3. (Optional) Add reference context for better AI output
+4. Click **Generate Descriptions** to run AI on all items
+5. Review each generated description
+6. **Save** to keep, **Skip** to discard, or edit before saving
+
+**Reference Context:**
+Provide extra information to help AI generate better descriptions:
+- **Upload file** - Upload a text/CSV file with reference data
+- **Manual text** - Paste or type reference information directly
+
+The AI will use this context when generating descriptions, making them more accurate and domain-specific.
+
+**Tips:**
+- Start with small batches (5-10 items) to verify quality
+- Use reference context for domain-specific terminology
+- Edit generated descriptions before saving if needed
+- Items are saved individually - you can stop anytime
+""")
+

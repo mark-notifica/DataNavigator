@@ -220,7 +220,7 @@ def export_ddl_to_file(filepath, **kwargs):
     return view_count
 
 
-def export_for_description(server_name=None, database_name=None,
+def export_for_description(server_name=None, database_name=None, schema_name=None,
                            include_described=False, object_types=None,
                            include_ddl=True):
     """
@@ -229,6 +229,7 @@ def export_for_description(server_name=None, database_name=None,
     Args:
         server_name: Filter by server (optional)
         database_name: Filter by database (optional)
+        schema_name: Filter by schema (optional)
         include_described: If False, only export nodes without description
         object_types: List of types to include, e.g. ['DB_SERVER', 'DB_DATABASE', 'DB_SCHEMA', 'DB_TABLE', 'DB_VIEW', 'DB_COLUMN']
                      Default: tables, views, columns
@@ -277,6 +278,10 @@ def export_for_description(server_name=None, database_name=None,
         query += " AND n.qualified_name LIKE %s"
         params.append(f"%/{database_name}/%")
 
+    if schema_name:
+        query += " AND n.qualified_name LIKE %s"
+        params.append(f"%/{schema_name}/%")
+
     query += " ORDER BY n.qualified_name"
 
     cursor.execute(query, params)
@@ -289,11 +294,17 @@ def export_for_description(server_name=None, database_name=None,
     output = StringIO(newline='')
     writer = csv.writer(output, delimiter=';', lineterminator='\n')
 
-    # Header - include view_definition column for AI context
+    # Excel cell limit is 32,767 chars - use 30,000 to be safe
+    CELL_LIMIT = 30000
+
+    # Header - include view_definition columns for AI context (split into parts)
     header = ['node_id', 'object_type', 'qualified_name', 'data_type',
               'current_description', 'new_description']
     if include_ddl:
-        header.insert(4, 'view_definition')  # Add before current_description
+        # Add 3 columns for view_definition parts
+        header.insert(4, 'view_definition_1')
+        header.insert(5, 'view_definition_2')
+        header.insert(6, 'view_definition_3')
     writer.writerow(header)
 
     # Data rows
@@ -309,7 +320,11 @@ def export_for_description(server_name=None, database_name=None,
         if include_ddl:
             # Clean up DDL for CSV (replace newlines with spaces for readability)
             ddl_clean = (view_def or '').replace('\n', ' ').replace('\r', '')
-            row_data.append(ddl_clean)
+            # Split into chunks for Excel compatibility
+            part1 = ddl_clean[:CELL_LIMIT]
+            part2 = ddl_clean[CELL_LIMIT:CELL_LIMIT*2] if len(ddl_clean) > CELL_LIMIT else ''
+            part3 = ddl_clean[CELL_LIMIT*2:CELL_LIMIT*3] if len(ddl_clean) > CELL_LIMIT*2 else ''
+            row_data.extend([part1, part2, part3])
         row_data.extend([
             curr_desc or '',
             ''  # new_description - to be filled by AI
@@ -515,6 +530,7 @@ if __name__ == "__main__":
                                help='Output file path')
     export_parser.add_argument('--server', help='Filter by server name')
     export_parser.add_argument('--database', help='Filter by database name')
+    export_parser.add_argument('--schema', help='Filter by schema name')
     export_parser.add_argument('--include-described', action='store_true',
                                help='Include nodes that already have descriptions')
     export_parser.add_argument('--types', nargs='+',
@@ -547,6 +563,7 @@ if __name__ == "__main__":
             args.output,
             server_name=args.server,
             database_name=args.database,
+            schema_name=args.schema,
             include_described=args.include_described,
             object_types=args.types
         )
