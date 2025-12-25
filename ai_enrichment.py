@@ -367,17 +367,18 @@ def generate_description(item: dict, model: str = "claude", reference_context: s
     """
     prompt = build_prompt_for_item(item, reference_context=reference_context)
 
-    system = """You are a data catalog documentation expert. Your job is to write clear,
-concise descriptions for database objects (tables, views, columns).
+    system = """Je bent een data catalog documentatie expert. Je schrijft duidelijke,
+beknopte beschrijvingen voor database objecten (tabellen, views, kolommen) in het Nederlands.
 
-Guidelines:
-- Be concise (1-3 sentences for most items)
-- Focus on WHAT the object contains and WHY it exists
-- Use business terminology when evident from names
-- For views, explain what the view calculates or presents
-- For columns, explain what values are stored
-- Don't repeat the object name in the description
-- Don't use phrases like "This table contains..." - just describe the content"""
+Richtlijnen:
+- Wees beknopt (1-3 zinnen voor de meeste items)
+- Focus op WAT het object bevat en WAAROM het bestaat
+- Gebruik zakelijke/ERP terminologie waar mogelijk
+- Voor views, leg uit wat de view berekent of presenteert
+- Voor kolommen, leg uit welke waarden worden opgeslagen
+- Herhaal niet de objectnaam in de beschrijving
+- Gebruik geen zinnen als "Deze tabel bevat..." - beschrijf gewoon de inhoud
+- Schrijf altijd in het Nederlands"""
 
     if model == "claude":
         return _call_claude(system, prompt)
@@ -395,17 +396,18 @@ def generate_description_stream(item: dict, model: str = "claude") -> Generator[
     """
     prompt = build_prompt_for_item(item)
 
-    system = """You are a data catalog documentation expert. Your job is to write clear,
-concise descriptions for database objects (tables, views, columns).
+    system = """Je bent een data catalog documentatie expert. Je schrijft duidelijke,
+beknopte beschrijvingen voor database objecten (tabellen, views, kolommen) in het Nederlands.
 
-Guidelines:
-- Be concise (1-3 sentences for most items)
-- Focus on WHAT the object contains and WHY it exists
-- Use business terminology when evident from names
-- For views, explain what the view calculates or presents
-- For columns, explain what values are stored
-- Don't repeat the object name in the description
-- Don't use phrases like "This table contains..." - just describe the content"""
+Richtlijnen:
+- Wees beknopt (1-3 zinnen voor de meeste items)
+- Focus op WAT het object bevat en WAAROM het bestaat
+- Gebruik zakelijke/ERP terminologie waar mogelijk
+- Voor views, leg uit wat de view berekent of presenteert
+- Voor kolommen, leg uit welke waarden worden opgeslagen
+- Herhaal niet de objectnaam in de beschrijving
+- Gebruik geen zinnen als "Deze tabel bevat..." - beschrijf gewoon de inhoud
+- Schrijf altijd in het Nederlands"""
 
     if model == "claude":
         yield from _call_claude_stream(system, prompt)
@@ -453,13 +455,13 @@ def chat_about_item(item: dict, user_message: str, chat_history: list, model: st
 
     context = "\n".join(context_parts)
 
-    system = f"""You are a data catalog documentation assistant helping to write descriptions.
+    system = f"""Je bent een data catalog documentatie assistent die helpt bij het schrijven van beschrijvingen in het Nederlands.
 
 {context}
 
-Help the user understand this object and write a good description. When the user is satisfied,
-they can ask you to "finalize" the description - respond with just the final description text
-preceded by "FINAL:" on its own line."""
+Help de gebruiker dit object te begrijpen en schrijf een goede beschrijving. Wanneer de gebruiker tevreden is,
+kan hij vragen om de beschrijving te "finaliseren" - antwoord dan met alleen de uiteindelijke beschrijvingstekst
+voorafgegaan door "FINAL:" op een eigen regel."""
 
     # Build messages
     messages = []
@@ -479,7 +481,10 @@ preceded by "FINAL:" on its own line."""
 
 def _call_claude(system: str, user: str) -> str:
     """Call Claude API (non-streaming)."""
-    import anthropic
+    try:
+        import anthropic
+    except ImportError:
+        raise ImportError("The 'anthropic' module is not available. Please use Ollama instead or install anthropic with: pip install anthropic")
 
     client = anthropic.Anthropic()
 
@@ -495,7 +500,10 @@ def _call_claude(system: str, user: str) -> str:
 
 def _call_claude_stream(system: str, user: str) -> Generator[str, None, None]:
     """Call Claude API with streaming."""
-    import anthropic
+    try:
+        import anthropic
+    except ImportError:
+        raise ImportError("The 'anthropic' module is not available. Please use Ollama instead or install anthropic with: pip install anthropic")
 
     client = anthropic.Anthropic()
 
@@ -511,7 +519,10 @@ def _call_claude_stream(system: str, user: str) -> Generator[str, None, None]:
 
 def _call_claude_chat(system: str, messages: list) -> str:
     """Call Claude API for multi-turn chat."""
-    import anthropic
+    try:
+        import anthropic
+    except ImportError:
+        raise ImportError("The 'anthropic' module is not available. Please use Ollama instead or install anthropic with: pip install anthropic")
 
     client = anthropic.Anthropic()
 

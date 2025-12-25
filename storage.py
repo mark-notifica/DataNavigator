@@ -486,28 +486,52 @@ def get_catalog_tables():
     ]
 
 
-def get_catalog_columns(schema_name, table_name):
+def get_catalog_columns(schema_name, table_name, server_name=None, database_name=None):
     """
     Get columns for a specific table from catalog database.
     Returns list of dicts with column info and description.
+
+    Args:
+        schema_name: Schema name
+        table_name: Table name
+        server_name: Optional server name to filter by
+        database_name: Optional database name to filter by
     """
     conn = get_catalog_connection()
     cursor = conn.cursor()
 
-    cursor.execute("""
+    query = """
         SELECT
             c.column_name,
             c.data_type,
             c.is_nullable,
-            cn.description
+            cn.description,
+            c.node_id
         FROM catalog.node_column c
         JOIN catalog.nodes cn ON c.node_id = cn.node_id
         JOIN catalog.node_table t ON c.table_node_id = t.node_id
         JOIN catalog.nodes tn ON t.node_id = tn.node_id
         JOIN catalog.node_schema s ON t.schema_node_id = s.node_id
+        JOIN catalog.node_database d ON s.database_node_id = d.node_id
+        JOIN catalog.nodes dn ON d.node_id = dn.node_id
+        JOIN catalog.node_server srv ON d.server_node_id = srv.node_id
+        JOIN catalog.nodes sn ON srv.node_id = sn.node_id
         WHERE s.schema_name = %s AND t.table_name = %s
-        ORDER BY c.column_name
-    """, (schema_name, table_name))
+          AND cn.deleted_at IS NULL
+    """
+    params = [schema_name, table_name]
+
+    if server_name:
+        query += " AND sn.name = %s"
+        params.append(server_name)
+
+    if database_name:
+        query += " AND d.database_name = %s"
+        params.append(database_name)
+
+    query += " ORDER BY c.column_name"
+
+    cursor.execute(query, params)
 
     results = cursor.fetchall()
     cursor.close()
@@ -518,7 +542,8 @@ def get_catalog_columns(schema_name, table_name):
             'column': r[0],
             'type': r[1],
             'nullable': r[2],
-            'description': r[3] or ''
+            'description': r[3] or '',
+            'node_id': r[4]
         }
         for r in results
     ]

@@ -64,7 +64,220 @@ else:
         st.sidebar.info("Select a server to see databases")
 
 # Main tabs
-tab_browse, tab_cleanup = st.tabs(["Browse", "🧹 Cleanup"])
+tab_browse, tab_batch, tab_cleanup = st.tabs(["Browse", "📝 Batch Edit", "🧹 Cleanup"])
+
+# === BATCH EDIT TAB ===
+with tab_batch:
+    st.header("Batch Edit Descriptions")
+    st.markdown("Quickly edit descriptions for multiple tables and columns.")
+
+    if not servers:
+        st.warning("No servers in catalog. Run extraction first.")
+    elif not selected_server:
+        st.warning("Select a server in the sidebar.")
+    elif not selected_database:
+        st.warning("Select a database in the sidebar.")
+    else:
+        # Get all tables for this database
+        all_tables = get_catalog_tables_for_database(selected_server, selected_database)
+
+        if not all_tables:
+            st.warning("No tables found.")
+        else:
+            # Schema filter
+            all_schemas = sorted(list(set(t['schema'] for t in all_tables)))
+
+            col1, col2 = st.columns([1, 2])
+            with col1:
+                batch_schema = st.selectbox(
+                    "Schema",
+                    ["All schemas"] + all_schemas,
+                    key="batch_schema"
+                )
+
+            with col2:
+                batch_filter = st.text_input("Filter by name", "", key="batch_filter")
+
+            # Filter tables
+            filtered_tables = all_tables
+            if batch_schema != "All schemas":
+                filtered_tables = [t for t in filtered_tables if t['schema'] == batch_schema]
+            if batch_filter:
+                filtered_tables = [t for t in filtered_tables if batch_filter.lower() in t['table'].lower()]
+
+            # Object type selection
+            batch_type = st.radio(
+                "Edit",
+                ["Tables", "Columns"],
+                horizontal=True,
+                key="batch_type"
+            )
+
+            st.divider()
+
+            if batch_type == "Tables":
+                # === BATCH EDIT TABLES ===
+                st.subheader(f"Tables ({len(filtered_tables)})")
+
+                if not filtered_tables:
+                    st.info("No tables match the filter.")
+                else:
+                    # Initialize session state for pending changes
+                    if 'batch_table_changes' not in st.session_state:
+                        st.session_state['batch_table_changes'] = {}
+
+                    # Show tables in editable format
+                    for table_info in filtered_tables[:50]:  # Limit to 50 for performance
+                        table_key = f"{table_info['schema']}.{table_info['table']}"
+                        node_id = get_table_node_id(table_info['schema'], table_info['table'])
+
+                        col1, col2 = st.columns([1, 3])
+                        with col1:
+                            st.markdown(f"**{table_info['table']}**")
+                            st.caption(table_info['schema'])
+                        with col2:
+                            current_desc = table_info.get('description') or ''
+                            new_desc = st.text_input(
+                                "Description",
+                                value=current_desc,
+                                key=f"batch_table_{table_key}",
+                                label_visibility="collapsed"
+                            )
+                            # Track changes
+                            if new_desc != current_desc:
+                                st.session_state['batch_table_changes'][node_id] = {
+                                    'name': table_key,
+                                    'old': current_desc,
+                                    'new': new_desc
+                                }
+                            elif node_id in st.session_state['batch_table_changes']:
+                                del st.session_state['batch_table_changes'][node_id]
+
+                    if len(filtered_tables) > 50:
+                        st.info(f"Showing first 50 of {len(filtered_tables)} tables. Use filter to narrow down.")
+
+                    # Save button
+                    changes = st.session_state.get('batch_table_changes', {})
+                    if changes:
+                        st.divider()
+                        st.warning(f"**{len(changes)} unsaved changes**")
+
+                        if st.button("💾 Save All Table Changes", type="primary"):
+                            saved = 0
+                            for node_id, change in changes.items():
+                                try:
+                                    update_node_description(node_id, change['new'])
+                                    saved += 1
+                                except Exception as e:
+                                    st.error(f"Error saving {change['name']}: {e}")
+                            if saved > 0:
+                                st.success(f"Saved {saved} descriptions!")
+                                st.session_state['batch_table_changes'] = {}
+                                st.rerun()
+
+            else:
+                # === BATCH EDIT COLUMNS ===
+                # Select a table first
+                table_options = [f"{t['schema']}.{t['table']}" for t in filtered_tables]
+
+                if not table_options:
+                    st.info("No tables match the filter.")
+                else:
+                    selected_table = st.selectbox(
+                        "Select table to edit columns",
+                        table_options,
+                        key="batch_column_table"
+                    )
+
+                    schema, table = selected_table.split('.', 1)
+                    columns = get_catalog_columns(schema, table, selected_server, selected_database)
+
+                    st.subheader(f"Columns in {selected_table} ({len(columns)})")
+
+                    if not columns:
+                        st.info("No columns found.")
+                    else:
+                        # Initialize session state for pending changes
+                        if 'batch_column_changes' not in st.session_state:
+                            st.session_state['batch_column_changes'] = {}
+
+                        # Column filter
+                        col_filter = st.text_input("Filter columns", "", key="col_filter")
+
+                        filtered_cols = columns
+                        if col_filter:
+                            filtered_cols = [c for c in columns if col_filter.lower() in c['column'].lower()]
+
+                        # Show columns in editable format
+                        for col_info in filtered_cols:
+                            col_name = col_info['column']
+                            node_id = col_info.get('node_id') or get_column_node_id(schema, table, col_name)
+
+                            if not node_id:
+                                continue  # Skip columns without node_id
+
+                            col_key = f"{schema}.{table}.{col_name}"
+
+                            col1, col2, col3 = st.columns([1, 0.5, 2.5])
+                            with col1:
+                                st.markdown(f"**{col_name}**")
+                            with col2:
+                                st.caption(col_info.get('type', ''))
+                            with col3:
+                                current_desc = col_info.get('description') or ''
+                                new_desc = st.text_input(
+                                    "Description",
+                                    value=current_desc,
+                                    key=f"batch_col_{node_id}",  # Use node_id for unique key
+                                    label_visibility="collapsed"
+                                )
+                                # Track changes
+                                if new_desc != current_desc:
+                                    st.session_state['batch_column_changes'][node_id] = {
+                                        'name': col_key,
+                                        'old': current_desc,
+                                        'new': new_desc
+                                    }
+                                elif node_id in st.session_state['batch_column_changes']:
+                                    del st.session_state['batch_column_changes'][node_id]
+
+                        # Save button
+                        changes = st.session_state.get('batch_column_changes', {})
+                        if changes:
+                            st.divider()
+                            st.warning(f"**{len(changes)} unsaved changes**")
+
+                            if st.button("💾 Save All Column Changes", type="primary"):
+                                saved = 0
+                                for node_id, change in changes.items():
+                                    try:
+                                        update_node_description(node_id, change['new'])
+                                        saved += 1
+                                    except Exception as e:
+                                        st.error(f"Error saving {change['name']}: {e}")
+                                if saved > 0:
+                                    st.success(f"Saved {saved} descriptions!")
+                                    st.session_state['batch_column_changes'] = {}
+                                    st.rerun()
+
+                        # Navigation buttons for quick table switching
+                        st.divider()
+                        current_idx = table_options.index(selected_table)
+
+                        col1, col2, col3 = st.columns([1, 2, 1])
+                        with col1:
+                            if current_idx > 0:
+                                if st.button("⬅️ Previous table"):
+                                    st.session_state['batch_column_table'] = table_options[current_idx - 1]
+                                    st.rerun()
+                        with col2:
+                            st.caption(f"Table {current_idx + 1} of {len(table_options)}")
+                        with col3:
+                            if current_idx < len(table_options) - 1:
+                                if st.button("Next table ➡️"):
+                                    st.session_state['batch_column_table'] = table_options[current_idx + 1]
+                                    st.rerun()
+
 
 # === CLEANUP TAB ===
 with tab_cleanup:
@@ -300,9 +513,10 @@ with tab_browse:
             # === COLUMNS SECTION ===
             st.subheader("Columns")
 
-            columns = get_catalog_columns(schema, table)
+            columns = get_catalog_columns(schema, table, selected_server, selected_database)
 
             df = pd.DataFrame(columns)
+            df = df[['column', 'type', 'nullable', 'description']]  # Reorder and select columns
             df.columns = ['Column', 'Type', 'Nullable', 'Description']
             st.dataframe(df, use_container_width=True)
 

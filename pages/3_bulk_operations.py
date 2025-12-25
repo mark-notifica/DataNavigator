@@ -78,11 +78,11 @@ anthropic_key = os.environ.get('ANTHROPIC_API_KEY', '')
 ollama_host = os.environ.get('OLLAMA_HOST', '')
 ai_available = bool(anthropic_key or ollama_host)
 
-# Determine model choice
-if anthropic_key:
-    ai_model = "claude"
-elif ollama_host:
+# Determine model choice - prefer Ollama due to anthropic module compatibility issues
+if ollama_host:
     ai_model = "ollama"
+elif anthropic_key:
+    ai_model = "claude"
 else:
     ai_model = None
 
@@ -493,53 +493,127 @@ with tab3:
                     limit=batch_size
                 )
                 st.session_state['ai_items'] = items
+                # Initialize selection - all selected by default
+                st.session_state['ai_selected'] = {item['node_id']: True for item in items}
 
         # Show items if loaded
         if 'ai_items' in st.session_state and st.session_state['ai_items']:
             items = st.session_state['ai_items']
-            st.success(f"Found {len(items)} items to process")
+
+            # Initialize selection if not exists
+            if 'ai_selected' not in st.session_state:
+                st.session_state['ai_selected'] = {item['node_id']: True for item in items}
+
+            selected_count = sum(1 for v in st.session_state['ai_selected'].values() if v)
+            st.success(f"Found {len(items)} items ({selected_count} selected for generation)")
+
+            # Select/deselect all buttons
+            col1, col2, col3 = st.columns([1, 1, 3])
+            with col1:
+                if st.button("Select All"):
+                    st.session_state['ai_selected'] = {item['node_id']: True for item in items}
+                    st.rerun()
+            with col2:
+                if st.button("Deselect All"):
+                    st.session_state['ai_selected'] = {item['node_id']: False for item in items}
+                    st.rerun()
+
+            # Show items with checkboxes for selection
+            st.markdown("**Select items to generate descriptions for:**")
+            for item in items:
+                col1, col2 = st.columns([0.05, 0.95])
+                with col1:
+                    selected = st.checkbox(
+                        "",
+                        value=st.session_state['ai_selected'].get(item['node_id'], True),
+                        key=f"sel_{item['node_id']}",
+                        label_visibility="collapsed"
+                    )
+                    st.session_state['ai_selected'][item['node_id']] = selected
+                with col2:
+                    obj_type = item['object_type'].replace('DB_', '')
+                    current_desc = f" - _{item['description'][:50]}..._" if item.get('description') else ""
+                    st.markdown(f"**{item['name']}** ({obj_type}){current_desc}")
+                    st.caption(item['qualified_name'])
 
             # Initialize results storage
             if 'ai_results' not in st.session_state:
                 st.session_state['ai_results'] = {}
 
-            # Generate button
-            if st.button("🤖 Generate Descriptions", type="primary", use_container_width=True):
-                progress = st.progress(0)
-                status = st.empty()
+            st.divider()
 
-                # Get reference context from session state
-                ref_ctx = st.session_state.get('reference_context')
+            # Generate button - only process selected items
+            selected_items = [item for item in items if st.session_state['ai_selected'].get(item['node_id'], False)]
 
-                for i, item in enumerate(items):
-                    status.text(f"Processing: {item['name']} ({item['object_type']})")
+            if selected_items:
+                if st.button(f"🤖 Generate Descriptions for {len(selected_items)} items", type="primary", use_container_width=True):
+                    progress = st.progress(0)
+                    status = st.empty()
 
-                    try:
-                        description = generate_description(
-                            item,
-                            model=ai_model,
-                            reference_context=ref_ctx
-                        )
-                        st.session_state['ai_results'][item['node_id']] = {
-                            'item': item,
-                            'description': description,
-                            'status': 'pending'
-                        }
-                    except Exception as e:
-                        st.session_state['ai_results'][item['node_id']] = {
-                            'item': item,
-                            'description': f"Error: {e}",
-                            'status': 'error'
-                        }
+                    # Get reference context from session state
+                    ref_ctx = st.session_state.get('reference_context')
 
-                    progress.progress((i + 1) / len(items))
+                    for i, item in enumerate(selected_items):
+                        status.text(f"Processing: {item['name']} ({item['object_type']})")
 
-                status.text("Done!")
+                        try:
+                            description = generate_description(
+                                item,
+                                model=ai_model,
+                                reference_context=ref_ctx
+                            )
+                            st.session_state['ai_results'][item['node_id']] = {
+                                'item': item,
+                                'description': description,
+                                'status': 'pending'
+                            }
+                        except Exception as e:
+                            st.session_state['ai_results'][item['node_id']] = {
+                                'item': item,
+                                'description': f"Error: {e}",
+                                'status': 'error'
+                            }
+
+                        progress.progress((i + 1) / len(selected_items))
+
+                    status.text("Done!")
+            else:
+                st.warning("No items selected. Check the items you want to generate descriptions for.")
 
             # Show results for review
             if st.session_state.get('ai_results'):
                 st.subheader("Review Generated Descriptions")
                 st.markdown("Review and save each description, or edit before saving.")
+
+                # Count pending items
+                pending_results = {k: v for k, v in st.session_state['ai_results'].items() if v['status'] == 'pending'}
+
+                if pending_results:
+                    # Bulk action buttons
+                    st.markdown("**Bulk actions:**")
+                    col1, col2, col3 = st.columns([1, 1, 2])
+                    with col1:
+                        if st.button("✅ Save All", type="primary"):
+                            saved_count = 0
+                            for node_id, result in pending_results.items():
+                                try:
+                                    save_description(node_id, result['description'], source='ai')
+                                    st.session_state['ai_results'][node_id]['status'] = 'saved'
+                                    saved_count += 1
+                                except Exception as e:
+                                    st.error(f"Error saving {result['item']['name']}: {e}")
+                            if saved_count > 0:
+                                st.success(f"Saved {saved_count} descriptions!")
+                                st.rerun()
+                    with col2:
+                        if st.button("❌ Skip All"):
+                            for node_id in list(pending_results.keys()):
+                                del st.session_state['ai_results'][node_id]
+                            st.rerun()
+                    with col3:
+                        st.caption("Skip = discard without saving (no changes made)")
+
+                    st.divider()
 
                 for node_id, result in list(st.session_state['ai_results'].items()):
                     if result['status'] == 'saved':
@@ -571,7 +645,7 @@ with tab3:
                                 except Exception as e:
                                     st.error(f"Error: {e}")
                         with col2:
-                            if st.button("❌ Skip", key=f"skip_{node_id}"):
+                            if st.button("❌ Skip", key=f"skip_{node_id}", help="Discard this description without saving"):
                                 del st.session_state['ai_results'][node_id]
                                 st.rerun()
 
