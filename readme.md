@@ -170,11 +170,13 @@ DataNavigator supports two AI backends for description generation:
 
 Planned features for future releases:
 
-- **Power BI TMDL support** - Catalog Power BI semantic models from TMDL files
+- **Power BI TMDL support** - Catalog Power BI semantic models from TMDL files (investigate: parse into nodes vs. chunk whole files)
 - **SQL Server support** - Metadata extraction from SQL Server databases
-- **ETL script cataloging** - Extract and document ETL scripts and data pipelines
+- **ETL script cataloging** - Extract and document ETL scripts and data pipelines (with chunking for long scripts)
+- **DDL vectorization** - Investigate benefits of embedding view/procedure definitions for semantic search
 - **Data lineage** - Track relationships and dependencies between tables
 - **Scheduled cataloging** - Automatic periodic extraction runs
+- **Incremental vector sync** - Only re-embed changed descriptions for faster indexing
 - **Description approval workflow** - Review and approve AI-generated descriptions
 - **API access** - REST API for programmatic catalog access
 
