@@ -19,50 +19,70 @@ st.divider()
 st.header("Workflow")
 
 st.markdown("""
-DataNavigator helps you build and maintain a data catalog with descriptions for your database objects.
-The typical workflow consists of three main steps:
+DataNavigator helps you build and maintain a documented data catalog. Follow these 5 steps to get started:
 """)
 
-col1, col2, col3 = st.columns(3)
+st.markdown("""
+### Step 1: Extract Metadata
+**Page: Run Cataloger**
 
-with col1:
-    st.markdown("""
-    ### Step 1: Extract
-    **Page: Run Cataloger**
+Connect to your databases and extract metadata:
+- Select a configured database source
+- Run the cataloger to extract schemas, tables, views, and columns
+- Monitor progress in real-time with the progress display
+- View run history in the Run History tab
+- Clean up stuck runs if needed
 
-    Extract metadata from your PostgreSQL databases:
-    - Schemas
-    - Tables and Views
-    - Columns with data types
+The cataloger tracks changes between runs, detecting new, updated, and deleted items.
+""")
 
-    The cataloger tracks changes between runs, marking new, updated, and deleted items.
-    """)
+st.markdown("""
+### Step 2: Browse & Document
+**Page: Catalog**
 
-with col2:
-    st.markdown("""
-    ### Step 2: Browse & Edit
-    **Page: Catalog**
+Navigate and document your data assets:
+- **Browse tab**: Explore the hierarchy (Server > Database > Schema > Table > Column)
+- **Batch Edit tab**: Quickly edit descriptions for multiple tables and columns
+- **Cleanup tab**: Remove stale objects that no longer exist in the source database
 
-    Explore your catalog and add descriptions:
-    - Navigate by server/database/schema
-    - View table structures
-    - Edit descriptions at any level
+Click the edit icon next to any item to add or update its description.
+""")
 
-    Descriptions help teams understand your data assets.
-    """)
+st.markdown("""
+### Step 3: Bulk Enrich with AI
+**Page: Bulk Operations**
 
-with col3:
-    st.markdown("""
-    ### Step 3: Bulk Enrich
-    **Page: Bulk Operations**
+Generate descriptions at scale using AI:
+- **Export tab**: Download tables/columns as CSV for external processing
+- **AI Generate tab**: Use built-in AI (Claude or Ollama) to auto-generate descriptions
+- **Import tab**: Upload enriched CSV to update the catalog
 
-    Use AI to generate descriptions at scale:
-    1. Export items without descriptions
-    2. Send CSV to AI (ChatGPT, Claude, etc.)
-    3. Import the enriched descriptions
+Filter by server, database, schema, and whether items already have descriptions.
+""")
 
-    Much faster than manual editing!
-    """)
+st.markdown("""
+### Step 4: Index for Search
+**Page: Index**
+
+Enable semantic search by syncing your catalog to a vector database:
+- Click "Sync Now" to index all catalog items with descriptions
+- The index stores qualified names, object types, data types, and descriptions
+- Required before using the Ask page
+
+Re-sync whenever you add or update descriptions.
+""")
+
+st.markdown("""
+### Step 5: Ask Questions
+**Page: Ask**
+
+Chat with your data catalog using natural language:
+- Ask questions like "Which tables contain customer information?"
+- Find data assets by meaning, not just keywords
+- Get contextual answers based on your catalog descriptions
+
+Requires a configured AI model (Claude or Ollama) and a synced vector index.
+""")
 
 st.divider()
 
@@ -75,34 +95,30 @@ with st.expander("Run Cataloger", expanded=False):
     ### Purpose
     Extract database metadata and store it in the catalog.
 
-    ### Required Fields
-    - **Server Name**: Logical identifier for the server (e.g., "VPS2", "Production")
-    - **Database Name**: The database to catalog
-    - **Host**: Connection hostname or IP
-    - **Username/Password**: Database credentials
+    ### Supported Databases
+    - **PostgreSQL**: Full support including schemas, tables, views, columns
 
-    ### Optional Fields
-    - **Server Alias**: Friendly name (e.g., "Development Server")
-    - **IP Address**: For documentation purposes
-    - **Port**: Defaults to 5432 for PostgreSQL
+    ### How to Use
+    1. Select a database source from the dropdown (configured in `.env`)
+    2. Click "Run Cataloger" to start extraction
+    3. Monitor progress in real-time
+    4. View results in the Run History tab
 
     ### What Gets Extracted
-    - All schemas (excluding system schemas like pg_catalog)
+    - All schemas (excluding system schemas)
     - All tables and views
     - All columns with data types and nullability
     - View definitions (DDL)
 
-    ### Command Line Alternative
-    ```bash
-    python run_db_catalog.py \\
-        --server VPS2 \\
-        --database mydb \\
-        --host localhost \\
-        --port 5432 \\
-        --user postgres \\
-        --password secret \\
-        --alias "Dev Server"
-    ```
+    ### Run History Tab
+    - View all previous cataloger runs
+    - See counts of created, updated, and deleted items
+    - Clean up stuck runs that didn't complete properly
+
+    ### Tips
+    - The cataloger preserves existing descriptions
+    - Re-running detects changes (new, updated, deleted objects)
+    - Deleted objects are soft-deleted and can be cleaned up in the Catalog page
     """)
 
 # Catalog
@@ -189,6 +205,75 @@ with st.expander("Bulk Operations", expanded=False):
     - Use "Add only" mode to safely add AI descriptions without overwriting manual edits
     """)
 
+# Index
+with st.expander("Index", expanded=False):
+    st.markdown("""
+    ### Purpose
+    Sync catalog descriptions to a vector database (ChromaDB) for semantic search.
+
+    ### How It Works
+    The index stores each catalog item as a vector embedding:
+    - **Qualified name**: The full path (server/database/schema/table/column)
+    - **Object type**: table, view, column, etc.
+    - **Data type**: For columns
+    - **Description**: The main searchable content
+
+    ### Actions
+    - **Sync Now**: Update the index with current catalog descriptions
+    - **Clear Index**: Remove all items from the index
+
+    ### When to Sync
+    - After adding or updating descriptions in the Catalog
+    - After importing descriptions via Bulk Operations
+    - After running the cataloger (if descriptions were preserved)
+
+    ### Tips
+    - Only items with descriptions are indexed
+    - Sync is incremental - only changed items are updated
+    - The index is stored locally in the `chroma_db` folder
+    """)
+
+# Ask
+with st.expander("Ask", expanded=False):
+    st.markdown("""
+    ### Purpose
+    Chat with your data catalog using natural language queries.
+
+    ### Prerequisites
+    1. **Vector index**: Sync your catalog on the Index page first
+    2. **AI model**: Configure Claude (Anthropic) or Ollama in your `.env` file
+
+    ### How It Works
+    1. You type a question about your data
+    2. The system searches the vector index for relevant catalog items
+    3. The AI uses those items as context to answer your question
+    4. You see the answer plus the source catalog items
+
+    ### Example Questions
+    - "Which tables store customer data?"
+    - "What columns contain email addresses?"
+    - "Where is order information stored?"
+    - "What does the users table contain?"
+
+    ### AI Configuration
+    Add one of these to your `.env` file:
+
+    **Claude (Anthropic):**
+    ```
+    ANTHROPIC_API_KEY=sk-ant-...
+    ```
+
+    **Ollama (Local):**
+    ```
+    OLLAMA_HOST=http://localhost:11434
+    ```
+
+    ### Tips
+    - More detailed descriptions lead to better answers
+    - The AI can only find items that are in the vector index
+    - Re-sync the index after updating descriptions
+    """)
+
 st.divider()
 
 # Technical info
@@ -270,4 +355,4 @@ with st.expander("Configuration", expanded=False):
 
 st.divider()
 
-st.caption("DataNavigator v1 - A simple data catalog for PostgreSQL databases")
+st.caption("DataNavigator - A data catalog tool for PostgreSQL databases")
