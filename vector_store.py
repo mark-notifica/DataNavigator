@@ -28,7 +28,7 @@ def get_collection():
     return client.get_or_create_collection(
         name="catalog_nodes",
         embedding_function=DEFAULT_EMBEDDING_FUNCTION,
-        metadata={"description": "Data catalog node descriptions"}
+        metadata={"hnsw:space": "cosine"}
     )
 
 
