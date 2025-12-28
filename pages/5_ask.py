@@ -68,17 +68,102 @@ with st.sidebar:
     num_context = st.slider("Context items", 3, 20, 10,
                            help="Number of catalog items to include as context")
 
+    st.divider()
+
+    st.subheader("Prompt Settings")
+
+    # Default system prompts
+    default_prompts = {
+        "English": """You are a helpful data catalog assistant. You help users understand their data assets.
+
+Use the following catalog context to answer questions. If the context doesn't contain enough information,
+say so and suggest what additional information might help.
+
+Be concise but thorough. Reference specific tables, columns, or other catalog items when relevant.""",
+
+        "Nederlands": """Je bent een behulpzame data catalog assistent. Je helpt gebruikers hun data assets te begrijpen.
+
+Gebruik de catalogus context om vragen te beantwoorden. Als de context onvoldoende informatie bevat,
+geef dit aan en suggereer welke aanvullende informatie zou kunnen helpen.
+
+Wees beknopt maar grondig. Verwijs naar specifieke tabellen, kolommen of andere catalog items waar relevant."""
+    }
+
+    # Initialize session state for prompts
+    if 'prompt_language' not in st.session_state:
+        st.session_state.prompt_language = "English"
+    if 'system_prompt' not in st.session_state:
+        st.session_state.system_prompt = default_prompts["English"]
+    if 'business_rules' not in st.session_state:
+        st.session_state.business_rules = ""
+
+    # Language selector
+    language = st.selectbox(
+        "Language",
+        options=list(default_prompts.keys()),
+        index=list(default_prompts.keys()).index(st.session_state.prompt_language),
+        help="Select language for the default system prompt"
+    )
+
+    # If language changed, update prompt
+    if language != st.session_state.prompt_language:
+        st.session_state.prompt_language = language
+        st.session_state.system_prompt = default_prompts[language]
+        st.rerun()
+
+    # System prompt editor
+    system_prompt_input = st.text_area(
+        "System prompt",
+        value=st.session_state.system_prompt,
+        height=150,
+        help="Instructions for the AI. Edit freely or switch language above."
+    )
+    st.session_state.system_prompt = system_prompt_input
+
+    # Business rules placeholders per language
+    business_rules_placeholders = {
+        "English": """Example:
+- Structure answers as: A) Direct answer, B) Relevant tables/columns, C) Data types, D) Notes
+- Only answer based on catalog context - never guess or invent information
+- If no relevant information found, state: "No matching information found in the catalog"
+- Always include full qualified path (server/database/schema/table/column)
+- Mention if an object is a view rather than a table""",
+
+        "Nederlands": """Voorbeeld:
+- Structureer antwoorden als: A) Direct antwoord, B) Relevante tabellen/kolommen, C) Datatypes, D) Opmerkingen
+- Baseer antwoorden alleen op catalog context - raad nooit en verzin geen informatie
+- Als geen informatie gevonden: "Geen overeenkomende informatie gevonden in de catalog"
+- Vermeld altijd het volledige pad (server/database/schema/tabel/kolom)
+- Vermeld als een object een view is in plaats van een tabel"""
+    }
+
+    # Business rules editor
+    business_rules_input = st.text_area(
+        "Business rules & guidelines",
+        value=st.session_state.business_rules,
+        height=150,
+        placeholder=business_rules_placeholders.get(st.session_state.prompt_language, business_rules_placeholders["English"]),
+        help="Additional context appended to the system prompt"
+    )
+    st.session_state.business_rules = business_rules_input
+
+    # Reset button
+    if st.button("Reset to defaults", use_container_width=True):
+        st.session_state.system_prompt = default_prompts[st.session_state.prompt_language]
+        st.session_state.business_rules = ""
+        st.rerun()
+
 
 # Helper functions defined before use
 def call_llm(model: str, question: str, context: str) -> str:
     """Call the selected LLM with the question and context."""
 
-    system_prompt = """You are a helpful data catalog assistant. You help users understand their data assets.
+    # Build system prompt from session state
+    system_prompt = st.session_state.system_prompt
 
-Use the following catalog context to answer questions. If the context doesn't contain enough information,
-say so and suggest what additional information might help.
-
-Be concise but thorough. Reference specific tables, columns, or other catalog items when relevant."""
+    # Append business rules if provided
+    if st.session_state.business_rules.strip():
+        system_prompt += f"\n\nBusiness rules and guidelines:\n{st.session_state.business_rules}"
 
     user_prompt = f"""Context from data catalog:
 {context}
