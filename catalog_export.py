@@ -325,8 +325,10 @@ def export_for_description(server_name=None, database_name=None, schema_name=Non
             part2 = ddl_clean[CELL_LIMIT:CELL_LIMIT*2] if len(ddl_clean) > CELL_LIMIT else ''
             part3 = ddl_clean[CELL_LIMIT*2:CELL_LIMIT*3] if len(ddl_clean) > CELL_LIMIT*2 else ''
             row_data.extend([part1, part2, part3])
+        # Clean up description for CSV (replace newlines with spaces)
+        curr_desc_clean = (curr_desc or '').replace('\n', ' ').replace('\r', '')
         row_data.extend([
-            curr_desc or '',
+            curr_desc_clean,
             ''  # new_description - to be filled by AI
         ])
         writer.writerow(row_data)
@@ -361,7 +363,29 @@ def import_descriptions(csv_content, dry_run=False, mode='add_and_update'):
     Returns:
         Dict with counts and details for UI display
     """
-    reader = csv.DictReader(StringIO(csv_content), delimiter=';')
+    # Strip BOM if present (Excel UTF-8 files often have this)
+    if csv_content.startswith('\ufeff'):
+        csv_content = csv_content[1:]
+
+    # Normalize line endings (Excel on Windows uses \r\n, but quoted fields may have embedded \r\n)
+    # We need to be careful: only normalize unquoted line endings
+    # Simplest approach: normalize all \r\n to \n first, then handle parsing
+    csv_content = csv_content.replace('\r\n', '\n').replace('\r', '\n')
+
+    # Auto-detect delimiter by checking the first line
+    first_line = csv_content.split('\n')[0]
+    if ';' in first_line and first_line.count(';') > first_line.count(','):
+        delimiter = ';'
+    else:
+        delimiter = ','
+
+    # Use csv.reader with proper quoting to handle multi-line fields
+    reader = csv.DictReader(
+        StringIO(csv_content),
+        delimiter=delimiter,
+        quotechar='"',
+        doublequote=True
+    )
 
     results = {
         'updated': 0,
