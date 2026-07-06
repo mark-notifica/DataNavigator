@@ -1,3 +1,6 @@
+> ⚠️ **VEROUDERD (juni 2025).** Vervangen door de bedrijfsbrede werkwijze in
+> `notifica-architectuur/git-werkwijze.md`. Dit bestand blijft alleen als DataNavigator-historie.
+
 # 🚀 Git Workflow voor DataNavigator
 
 Dit document beschrijft de manier van werken met Git binnen het DataNavigator-project, inclusief branch-strategie, naamconventies, inzet van AI-assistenten en praktische commando’s.
